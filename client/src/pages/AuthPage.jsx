@@ -29,7 +29,15 @@ export default function AuthPage() {
         navigate('/');
       }
     } catch (err) {
-      setError(err.message || 'Authentication failed');
+      let msg = err.message || 'Authentication failed';
+      if (msg.includes('User already registered')) {
+        msg = 'An account with this email already exists. Click "Sign In Instead" below.';
+      } else if (msg.includes('Invalid login credentials')) {
+        msg = 'Invalid email or password. Please check your credentials or create an account.';
+      } else if (msg.includes('Password should be at least')) {
+        msg = 'Password must be at least 6 characters long.';
+      }
+      setError(msg);
     } finally {
       setLoading(false);
     }
