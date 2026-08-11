@@ -15,10 +15,43 @@ dotenv.config({ path: '../.env' });
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware
+// Normalize allowed origins (strip pathnames, trailing slashes, handle Vercel origins)
+function isOriginAllowed(origin) {
+  if (!origin) return true; // Allow non-browser or server-to-server requests
+
+  const defaultAllowed = ['http://localhost:5173', 'http://localhost:3000', 'https://tooprep.vercel.app'];
+  
+  if (defaultAllowed.includes(origin)) return true;
+
+  if (process.env.CLIENT_URL) {
+    const rawUrls = process.env.CLIENT_URL.split(',').map(u => u.trim());
+    for (const rawUrl of rawUrls) {
+      try {
+        const parsed = new URL(rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`);
+        if (parsed.origin === origin) return true;
+      } catch {
+        if (rawUrl.replace(/\/+$/, '') === origin) return true;
+      }
+    }
+  }
+
+  // Allow all Vercel deployment preview/production subdomains
+  if (origin.endsWith('.vercel.app')) return true;
+
+  return false;
+}
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
-  credentials: true
+  origin: (origin, callback) => {
+    if (isOriginAllowed(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, false);
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 app.use(express.json());
 
