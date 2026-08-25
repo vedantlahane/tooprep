@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "node --watch index.js",
-    "start": "node index.js",
-    "test": "node --test test/**/*.test.js"
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "test": "node --test src/test/**/*.test.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
