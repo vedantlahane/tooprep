@@ -24,35 +24,35 @@ export default function QuestionCard({
     const isCorrect = question.correct_answer === optionId;
 
     if (showResult) {
-      if (isCorrect) return 'bg-tertiary-container/10 border-tertiary-container text-on-surface ring-2 ring-tertiary-container';
-      if (isSelected && !isCorrect) return 'bg-error-container/20 border-error text-on-surface ring-2 ring-error';
-      return 'bg-surface-container-lowest border-outline-variant/50 text-on-surface-variant';
+      if (isCorrect) return 'bg-status-aligned text-white border-2 border-status-aligned';
+      if (isSelected && !isCorrect) return 'bg-error text-white border-2 border-error';
+      return 'bg-surface-container-high border-2 border-transparent text-on-surface-variant';
     }
 
-    if (isSelected) return 'bg-primary-fixed border-primary text-on-surface ring-2 ring-primary';
-    return 'bg-surface-container-lowest border-outline-variant/50 text-on-surface hover:border-primary/50 hover:bg-surface-container-low';
+    if (isSelected) return 'bg-primary text-white border-2 border-primary';
+    return 'bg-surface-container-high border-2 border-transparent text-on-surface hover:border-outline-variant';
   };
 
   return (
-    <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm p-5 md:p-6 animate-fade-in">
+    <div className="bg-surface-dim border-2 border-outline-variant p-6 md:p-8 animate-fade-in">
       {/* Question header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
+      <div className="flex items-start justify-between mb-6">
+        <div className="flex items-center gap-4">
           {questionNumber && (
-            <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-on-primary text-label-mono font-bold">
+            <span className="inline-flex items-center justify-center w-10 h-10 bg-primary text-white text-headline-md font-light">
               {questionNumber}
             </span>
           )}
           <div className="flex items-center gap-2">
-            <span className={`text-label-sm-mono px-2 py-0.5 rounded border-l-2 ${
-              question.difficulty === 'easy' ? 'bg-tertiary-container/10 text-tertiary-container border-tertiary-container' :
-              question.difficulty === 'medium' ? 'bg-status-weak/10 text-status-weak border-status-weak' :
-              'bg-error-container/20 text-error border-error'
+            <span className={`text-label-sm-mono px-2 py-1 uppercase tracking-widest ${
+              question.difficulty === 'easy' ? 'bg-status-aligned/20 text-status-aligned' :
+              question.difficulty === 'medium' ? 'bg-status-weak/20 text-status-weak' :
+              'bg-error/20 text-error'
             }`}>
-              {question.difficulty?.toUpperCase()}
+              {question.difficulty}
             </span>
             {question.source_type === 'PYQ' && (
-              <span className="text-label-sm-mono px-2 py-0.5 rounded bg-primary-fixed text-primary border-l-2 border-primary">
+              <span className="text-label-sm-mono px-2 py-1 bg-primary/20 text-primary uppercase tracking-widest">
                 PYQ {question.exam_year || ''}
               </span>
             )}
@@ -61,10 +61,10 @@ export default function QuestionCard({
         {onMarkForReview && (
           <button
             onClick={onMarkForReview}
-            className={`p-1.5 rounded-lg transition-colors ${
+            className={`p-2 transition-colors border-2 ${
               markedForReview
-                ? 'text-status-weak bg-status-weak/10'
-                : 'text-on-surface-variant hover:bg-surface-container-low'
+                ? 'border-status-weak text-status-weak bg-status-weak/10'
+                : 'border-transparent text-on-surface-variant hover:border-outline-variant'
             }`}
           >
             <span className={`material-symbols-outlined ${markedForReview ? 'filled' : ''}`}>
@@ -75,32 +75,32 @@ export default function QuestionCard({
       </div>
 
       {/* Question text */}
-      <div className="text-body-lg text-on-surface mb-5 leading-relaxed">
+      <div className="text-headline-md font-light text-on-surface mb-8 leading-relaxed">
         <MathText text={question.question_text} />
       </div>
 
       {/* Options */}
-      <div className="space-y-2.5">
+      <div className="space-y-3">
         {options.map(opt => (
           <button
             key={opt.id}
             disabled={disabled || showResult}
             onClick={() => onSelectAnswer && onSelectAnswer(opt.id)}
-            className={`w-full text-left p-3.5 rounded-lg border-2 transition-all duration-150 flex items-start gap-3 ${getOptionStyle(opt.id)} ${
-              disabled || showResult ? '' : 'cursor-pointer active:scale-[0.99]'
+            className={`w-full text-left p-4 transition-all duration-150 flex items-start gap-4 ${getOptionStyle(opt.id)} ${
+              disabled || showResult ? '' : 'cursor-pointer active:scale-[0.98]'
             }`}
           >
-            <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-surface-container text-label-mono font-bold text-on-surface-variant flex-shrink-0 mt-0.5">
+            <span className="inline-flex items-center justify-center w-8 h-8 bg-black/20 text-body-lg font-bold flex-shrink-0 mt-0.5">
               {opt.id}
             </span>
-            <span className="text-body-md flex-1">
+            <span className="text-body-lg flex-1">
               <MathText text={opt.text} />
             </span>
             {showResult && question.correct_answer === opt.id && (
-              <span className="material-symbols-outlined text-tertiary-container flex-shrink-0">check_circle</span>
+              <span className="material-symbols-outlined flex-shrink-0 text-white">check</span>
             )}
             {showResult && selectedAnswer === opt.id && selectedAnswer !== question.correct_answer && (
-              <span className="material-symbols-outlined text-error flex-shrink-0">cancel</span>
+              <span className="material-symbols-outlined flex-shrink-0 text-white">close</span>
             )}
           </button>
         ))}
@@ -108,9 +108,9 @@ export default function QuestionCard({
 
       {/* Solution */}
       {showSolution && question.solution_text && (
-        <div className="mt-5 p-4 rounded-lg bg-[#F0F7FF] border border-primary-fixed">
-          <div className="text-label-sm-mono text-primary font-bold mb-2">SOLUTION</div>
-          <div className="text-body-md text-on-surface leading-relaxed">
+        <div className="mt-8 p-6 bg-primary/10 border-l-4 border-primary">
+          <div className="text-label-sm-mono text-primary font-bold mb-3 tracking-widest uppercase">solution</div>
+          <div className="text-body-lg text-on-surface leading-relaxed font-light">
             <MathText text={question.solution_text} />
           </div>
         </div>

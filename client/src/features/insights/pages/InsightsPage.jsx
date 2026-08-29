@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/shared/lib/api';
-import StatusDot from '@/shared/components/StatusDot';
 
 export default function InsightsPage() {
   const [data, setData] = useState([]);
@@ -60,24 +59,24 @@ export default function InsightsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="animate-pulse-soft text-primary text-headline-md">Loading insights...</div>
+        <div className="text-display text-primary font-light animate-pulse-soft lowercase">loading...</div>
       </div>
     );
   }
 
   if (!insights || data.length === 0) {
     return (
-      <div className="max-w-2xl mx-auto animate-fade-in">
-        <h2 className="text-display text-on-surface mb-4">Insights</h2>
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm p-8 text-center">
-          <span className="material-symbols-outlined text-on-surface-variant text-6xl mb-4 block">analytics</span>
-          <h3 className="text-headline-md text-on-surface mb-2">No Data Yet</h3>
-          <p className="text-body-md text-on-surface-variant mb-4">Start by rating your confidence and taking evaluations to see insights.</p>
+      <div className="max-w-4xl mx-auto animate-fade-in">
+        <h2 className="text-display text-on-surface mb-8 font-light lowercase">insights</h2>
+        <div className="bg-surface-dim border-2 border-outline-variant p-8 md:p-12 text-center">
+          <span className="material-symbols-outlined text-on-surface-variant text-[64px] mb-6 block">analytics</span>
+          <h3 className="text-headline-lg text-on-surface mb-4 font-light lowercase">no data yet</h3>
+          <p className="text-body-lg text-on-surface-variant mb-8 font-light lowercase">start by rating your confidence and taking evaluations to see insights.</p>
           <button
             onClick={() => navigate('/')}
-            className="px-6 py-2.5 rounded-lg bg-primary text-on-primary text-body-md font-semibold hover:bg-primary-container transition-colors"
+            className="px-8 py-4 bg-primary text-white text-body-md font-semibold uppercase tracking-widest hover:bg-primary-fixed-dim transition-colors"
           >
-            Go to Knowledge Map
+            go to map
           </button>
         </div>
       </div>
@@ -85,102 +84,116 @@ export default function InsightsPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto animate-fade-in">
-      <h2 className="text-display text-on-surface mb-6">Insights</h2>
+    <div className="max-w-5xl mx-auto animate-fade-in pb-12">
+      <h2 className="text-display text-on-surface mb-8 font-light lowercase">insights</h2>
 
       {/* Status Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-8">
         {[
-          { label: 'Overconfident', count: insights.overconfident.length, color: 'text-status-overconfident', bg: 'bg-status-overconfident/10' },
-          { label: 'Weak', count: insights.weakAligned.length, color: 'text-status-weak', bg: 'bg-status-weak/10' },
-          { label: 'Underconfident', count: insights.underconfident.length, color: 'text-status-underconfident', bg: 'bg-status-underconfident/10' },
-          { label: 'Aligned', count: insights.aligned.length, color: 'text-status-aligned', bg: 'bg-status-aligned/10' },
-          { label: 'No Data', count: insights.noData.length, color: 'text-on-surface-variant', bg: 'bg-surface-container' },
+          { label: 'overconfident', count: insights.overconfident.length, color: 'text-white', bg: 'bg-status-overconfident' },
+          { label: 'weak', count: insights.weakAligned.length, color: 'text-white', bg: 'bg-status-weak' },
+          { label: 'underconfident', count: insights.underconfident.length, color: 'text-white', bg: 'bg-status-underconfident' },
+          { label: 'aligned', count: insights.aligned.length, color: 'text-white', bg: 'bg-status-aligned' },
+          { label: 'no data', count: insights.noData.length, color: 'text-on-surface-variant', bg: 'bg-surface-container-high' },
         ].map(s => (
-          <div key={s.label} className={`p-4 rounded-xl border border-outline-variant/50 ${s.bg} text-center`}>
-            <div className={`text-headline-lg font-bold ${s.color}`}>{s.count}</div>
-            <div className="text-label-sm-mono text-on-surface-variant mt-1">{s.label}</div>
+          <div key={s.label} className={`p-6 ${s.bg}`}>
+            <div className={`text-display font-light mb-2 ${s.color}`}>{s.count}</div>
+            <div className={`text-label-sm-mono uppercase tracking-widest ${s.color === 'text-white' ? 'text-white/80' : 'text-on-surface-variant'}`}>{s.label}</div>
           </div>
         ))}
       </div>
 
-      {/* Subject Breakdown */}
-      <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm p-5 mb-6">
-        <h3 className="text-label-sm-mono text-on-surface-variant mb-4">SUBJECT BREAKDOWN</h3>
-        <div className="space-y-4">
-          {Object.entries(insights.bySubject).map(([name, s]) => (
-            <div key={name} className="p-4 rounded-lg bg-surface-container/50">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="text-headline-md text-on-surface">{name}</h4>
-                <span className="text-label-mono text-on-surface-variant">{s.attempted}/{s.total} topics practiced</span>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        {/* Subject Breakdown */}
+        <div className="bg-surface-dim border-2 border-outline-variant p-6 md:p-8">
+          <h3 className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-6">subject breakdown</h3>
+          <div className="space-y-4">
+            {Object.entries(insights.bySubject).map(([name, s]) => (
+              <div key={name} className="p-4 bg-surface-container">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-headline-md font-light text-on-surface lowercase">{name}</h4>
+                  <span className="text-label-mono text-on-surface-variant">{s.attempted}/{s.total} topics</span>
+                </div>
+                <div className="flex flex-col gap-2 text-body-md uppercase tracking-widest text-[11px] font-semibold">
+                  <div className="flex justify-between">
+                    <span className="text-on-surface-variant">avg accuracy</span>
+                    <strong className={
+                      s.avgAccuracyNum !== null
+                        ? s.avgAccuracyNum >= 70 ? 'text-status-aligned' :
+                          s.avgAccuracyNum >= 40 ? 'text-status-weak' : 'text-error'
+                        : 'text-on-surface-variant'
+                    }>{s.avgAccuracyNum !== null ? `${s.avgAccuracyNum}%` : '—'}</strong>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-on-surface-variant">overconfident</span>
+                    <span className="text-error">{s.overconfident}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-on-surface-variant">aligned</span>
+                    <span className="text-status-aligned">{s.aligned}</span>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-6 text-body-md">
-                <span>Avg Accuracy: <strong className={
-                  s.avgAccuracyNum !== null
-                    ? s.avgAccuracyNum >= 70 ? 'text-tertiary-container' :
-                      s.avgAccuracyNum >= 40 ? 'text-status-weak' : 'text-error'
-                    : 'text-on-surface-variant'
-                }>{s.avgAccuracyNum !== null ? `${s.avgAccuracyNum}%` : '—'}</strong></span>
-                <span className="text-status-overconfident">⚠ {s.overconfident} overconfident</span>
-                <span className="text-status-aligned">✓ {s.aligned} aligned</span>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-8">
+          {/* Priority Topics */}
+          {insights.overconfident.length > 0 && (
+            <div className="bg-surface-dim border-2 border-error p-6 md:p-8">
+              <h3 className="text-label-sm-mono text-error uppercase tracking-widest mb-6 font-bold flex items-center gap-2">
+                <span className="material-symbols-outlined text-[18px]">warning</span>
+                priority review
+              </h3>
+              <div className="space-y-3">
+                {insights.overconfident.slice(0, 5).map(t => (
+                  <div
+                    key={t.topic_id}
+                    onClick={() => navigate(`/topics/${t.topic_id}`)}
+                    className="flex flex-col p-4 bg-error/10 hover:bg-error/20 cursor-pointer transition-colors"
+                  >
+                    <div className="mb-2">
+                      <span className="text-body-lg font-light text-on-surface lowercase block">{t.topic_name}</span>
+                      <span className="text-label-sm-mono text-on-surface-variant lowercase mt-1 block">{t.subject_name} / {t.chapter_name}</span>
+                    </div>
+                    <div className="flex items-center gap-6 text-label-mono uppercase tracking-widest text-[11px]">
+                      <span className="text-primary font-bold">conf: {t.confidence}</span>
+                      <span className="text-on-surface font-bold">eval: {t.evaluation_accuracy}%</span>
+                      <span className="text-error font-bold">gap: {t.gap}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
+          )}
+
+          {/* Untested topics */}
+          {insights.noData.length > 0 && (
+            <div className="bg-surface-dim border-2 border-outline-variant p-6 md:p-8">
+              <h3 className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-6">
+                needs evaluation ({insights.noData.length})
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {insights.noData.slice(0, 15).map(t => (
+                  <button
+                    key={t.topic_id}
+                    onClick={() => navigate(`/topics/${t.topic_id}`)}
+                    className="px-4 py-2 bg-surface-container hover:bg-primary/20 hover:text-primary transition-colors text-body-md font-light lowercase"
+                  >
+                    {t.topic_name}
+                  </button>
+                ))}
+                {insights.noData.length > 15 && (
+                  <span className="px-4 py-2 text-body-md text-on-surface-variant font-light lowercase">
+                    +{insights.noData.length - 15} more
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Priority Topics */}
-      {insights.overconfident.length > 0 && (
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm p-5 mb-6">
-          <h3 className="text-label-sm-mono text-error mb-4">
-            ⚠ OVERCONFIDENT TOPICS — Priority Review
-          </h3>
-          <div className="space-y-2">
-            {insights.overconfident.slice(0, 5).map(t => (
-              <div
-                key={t.topic_id}
-                onClick={() => navigate(`/topics/${t.topic_id}`)}
-                className="flex items-center justify-between p-3 rounded-lg hover:bg-surface-container-low cursor-pointer transition-colors"
-              >
-                <div>
-                  <span className="text-body-md font-semibold text-on-surface">{t.topic_name}</span>
-                  <span className="ml-2 text-label-sm-mono text-on-surface-variant">{t.subject_name} › {t.chapter_name}</span>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-label-mono text-primary">Conf: {t.confidence}/10</span>
-                  <span className="text-label-mono text-on-surface">Eval: {t.evaluation_accuracy}%</span>
-                  <span className="text-label-mono text-error font-bold">Gap: {t.gap}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Untested topics */}
-      {insights.noData.length > 0 && (
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm p-5">
-          <h3 className="text-label-sm-mono text-on-surface-variant mb-4">
-            📋 TOPICS NEEDING EVALUATION ({insights.noData.length})
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {insights.noData.slice(0, 15).map(t => (
-              <button
-                key={t.topic_id}
-                onClick={() => navigate(`/topics/${t.topic_id}`)}
-                className="px-3 py-1.5 rounded-lg border border-outline-variant/50 text-body-md text-on-surface-variant hover:border-primary hover:text-primary transition-colors"
-              >
-                {t.topic_name}
-              </button>
-            ))}
-            {insights.noData.length > 15 && (
-              <span className="px-3 py-1.5 text-body-md text-on-surface-variant">
-                +{insights.noData.length - 15} more
-              </span>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

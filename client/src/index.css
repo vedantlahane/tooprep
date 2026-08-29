@@ -1,63 +1,75 @@
 @import "tailwindcss";
 
-
 /* ============================================================
-   Design System Tokens — Scientific Precision Dashboard
+   Design System Tokens — Metro UI (Windows Phone Style)
    ============================================================ */
 
 @theme {
-  /* Colors from StitchMCP design */
-  --color-primary: #0040e0;
-  --color-primary-container: #2e5bff;
-  --color-primary-fixed: #dde1ff;
-  --color-primary-fixed-dim: #b8c3ff;
+  /* Accent Color (Cyan) */
+  --color-primary: #1BA1E2;
+  --color-primary-container: #1BA1E2;
+  --color-primary-fixed: #005073;
+  --color-primary-fixed-dim: #0073A6;
   --color-on-primary: #ffffff;
-  --color-on-primary-container: #efefff;
+  --color-on-primary-container: #ffffff;
 
-  --color-secondary: #505f76;
-  --color-secondary-container: #d0e1fb;
+  --color-secondary: #333333;
+  --color-secondary-container: #1F1F1F;
   --color-on-secondary: #ffffff;
 
-  --color-tertiary: #006242;
-  --color-tertiary-container: #007d55;
+  --color-tertiary: #A4C400; /* Lime */
+  --color-tertiary-container: #A4C400;
   --color-on-tertiary: #ffffff;
 
-  --color-error: #ba1a1a;
-  --color-error-container: #ffdad6;
+  --color-error: #E51400; /* Red */
+  --color-error-container: #E51400;
   --color-on-error: #ffffff;
 
-  --color-surface: #fbf8ff;
-  --color-surface-dim: #d9d9e6;
-  --color-surface-bright: #fbf8ff;
-  --color-surface-container: #ededfa;
-  --color-surface-container-low: #f3f2ff;
-  --color-surface-container-high: #e7e7f4;
-  --color-surface-container-highest: #e2e1ef;
-  --color-surface-container-lowest: #ffffff;
-  --color-surface-variant: #e2e1ef;
+  /* Dark mode backgrounds */
+  --color-surface: #000000;
+  --color-surface-dim: #111111;
+  --color-surface-bright: #1F1F1F;
+  --color-surface-container: #1F1F1F;
+  --color-surface-container-low: #111111;
+  --color-surface-container-high: #2B2B2B;
+  --color-surface-container-highest: #333333;
+  --color-surface-container-lowest: #000000;
+  --color-surface-variant: #333333;
 
-  --color-on-surface: #191b24;
-  --color-on-surface-variant: #434656;
-  --color-on-background: #191b24;
-  --color-background: #fbf8ff;
+  /* Text Colors */
+  --color-on-surface: #ffffff;
+  --color-on-surface-variant: #a0a0a0;
+  --color-on-background: #ffffff;
+  --color-background: #000000;
 
-  --color-outline: #747688;
-  --color-outline-variant: #c4c5d9;
+  --color-outline: #666666;
+  --color-outline-variant: #333333;
 
-  --color-inverse-surface: #2e303a;
-  --color-inverse-on-surface: #f0effd;
-  --color-inverse-primary: #b8c3ff;
+  --color-inverse-surface: #ffffff;
+  --color-inverse-on-surface: #000000;
+  --color-inverse-primary: #1BA1E2;
 
   /* Semantic status colors */
-  --color-status-aligned: #10b981;
-  --color-status-overconfident: #ef4444;
-  --color-status-underconfident: #3b82f6;
-  --color-status-weak: #f59e0b;
-  --color-status-insufficient: #9ca3af;
+  --color-status-aligned: #60A917; /* Green */
+  --color-status-overconfident: #E51400; /* Red */
+  --color-status-underconfident: #1BA1E2; /* Cyan */
+  --color-status-weak: #FA6800; /* Orange */
+  --color-status-insufficient: #333333; /* Dark Gray */
 
-  /* Font families */
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  /* Font families - Authentic Segoe UI */
+  --font-sans: 'Segoe WP', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Consolas', 'Courier New', monospace;
+
+  /* Force all border radii to 0 for Metro sharp edges */
+  --radius-xs: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
+  --radius-full: 0px; /* Note: some components might explicitly need rounded-full for circles, but classic Metro uses squares even for avatars mostly. Let's keep full as 9999px for App Bar icons. */
+  --radius-full: 9999px;
 }
 
 /* ============================================================
@@ -75,7 +87,7 @@ body {
 /* Material Symbols */
 .material-symbols-outlined {
   font-family: 'Material Symbols Outlined';
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
   font-weight: normal;
   font-style: normal;
   font-size: 24px;
@@ -91,53 +103,53 @@ body {
 }
 
 .material-symbols-outlined.filled {
-  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  font-variation-settings: 'FILL' 1, 'wght' 300, 'GRAD' 0, 'opsz' 24;
 }
 
 /* ============================================================
-   Typography Utilities
+   Typography Utilities (Metro Panoramas & Pivots)
    ============================================================ */
 
 .text-display {
   font-family: var(--font-sans);
-  font-size: 36px;
-  line-height: 44px;
-  font-weight: 700;
+  font-size: 48px;
+  line-height: 56px;
+  font-weight: 300;
   letter-spacing: -0.02em;
+  text-transform: lowercase; /* Metro panorama titles are often lowercase */
 }
 
 .text-headline-lg {
   font-family: var(--font-sans);
-  font-size: 28px;
-  line-height: 36px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-size: 32px;
+  line-height: 40px;
+  font-weight: 300;
 }
 
 .text-headline-lg-mobile {
   font-family: var(--font-sans);
-  font-size: 24px;
-  line-height: 32px;
-  font-weight: 600;
+  font-size: 28px;
+  line-height: 36px;
+  font-weight: 300;
 }
 
 .text-headline-md {
   font-family: var(--font-sans);
-  font-size: 20px;
-  line-height: 28px;
-  font-weight: 600;
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 400;
 }
 
 .text-body-lg {
   font-family: var(--font-sans);
-  font-size: 16px;
+  font-size: 18px;
   line-height: 24px;
   font-weight: 400;
 }
 
 .text-body-md {
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: 15px;
   line-height: 20px;
   font-weight: 400;
 }
@@ -146,24 +158,24 @@ body {
   font-family: var(--font-mono);
   font-size: 14px;
   line-height: 20px;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .text-label-sm-mono {
   font-family: var(--font-mono);
   font-size: 12px;
   line-height: 16px;
-  font-weight: 500;
+  font-weight: 400;
+  text-transform: uppercase;
 }
 
 /* ============================================================
-   Status Chip Styles
+   Status Chip Styles (Squares in Metro)
    ============================================================ */
 
 .status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 9999px;
+  width: 12px;
+  height: 12px;
   display: inline-block;
   flex-shrink: 0;
 }
@@ -187,12 +199,12 @@ body {
 }
 
 /* ============================================================
-   Custom Scrollbar
+   Custom Scrollbar (Minimal, blocky)
    ============================================================ */
 
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -201,7 +213,7 @@ body {
 
 ::-webkit-scrollbar-thumb {
   background-color: var(--color-outline-variant);
-  border-radius: 3px;
+  border-radius: 0px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -217,24 +229,23 @@ body {
    ============================================================ */
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.3s ease-out forwards;
+  animation: fadeIn 0.2s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
 }
 
 @keyframes pulse-soft {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+  50% { opacity: 0.5; }
 }
 
 .animate-pulse-soft {
   animation: pulse-soft 2s ease-in-out infinite;
 }
 
-/* Timer urgency */
 .timer-urgent {
   color: var(--color-error);
   animation: pulse-soft 1s ease-in-out infinite;

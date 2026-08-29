@@ -1,79 +1,70 @@
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '@/features/auth/context/AuthContext';
 
 const navItems = [
-  { path: '/', label: 'Knowledge Map', icon: 'map' },
-  { path: '/insights', label: 'Insights', icon: 'analytics' },
-  { path: '/profile', label: 'Profile', icon: 'person' },
+  { path: '/', label: 'map', icon: 'map' },
+  { path: '/insights', label: 'insights', icon: 'analytics' },
+  { path: '/profile', label: 'profile', icon: 'person' },
 ];
 
 export default function Layout({ children }) {
   const location = useLocation();
-  const { signOut } = useAuth();
 
   return (
-    <div className="min-h-screen bg-background text-on-background">
-      {/* Top App Bar */}
-      <header className="sticky top-0 z-40 bg-surface border-b border-outline-variant shadow-sm w-full">
-        <div className="flex items-center justify-between w-full px-4 h-16 max-w-[1280px] mx-auto">
-          <div className="flex items-center gap-4">
-            <Link to="/" className="text-headline-md font-bold text-primary hover:opacity-80 transition-opacity">
-              TooPrep
-            </Link>
-          </div>
-
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-2">
-            {navItems.map(item => (
+    <div className="min-h-screen bg-background text-on-surface overflow-x-hidden flex flex-col md:flex-row">
+      {/* Metro Panorama Header / Left Sidebar */}
+      <div className="w-full md:w-64 flex-shrink-0 p-6 md:p-12 z-10 bg-surface-dim md:bg-transparent">
+        <h1 className="text-display text-on-surface mb-2 font-light">tooprep</h1>
+        
+        {/* Desktop Nav */}
+        <nav className="hidden md:flex flex-col gap-6 mt-16">
+          {navItems.map(item => {
+            const isActive = location.pathname === item.path;
+            return (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`text-body-lg px-4 py-2 rounded-lg transition-colors ${
-                  location.pathname === item.path
-                    ? 'text-primary font-semibold bg-surface-container-low'
-                    : 'text-on-surface-variant hover:bg-surface-container-low'
+                className={`text-headline-md transition-all ${
+                  isActive ? 'text-primary translate-x-2' : 'text-on-surface-variant hover:text-on-surface hover:translate-x-1'
                 }`}
               >
                 {item.label}
               </Link>
-            ))}
-            <button
-              onClick={signOut}
-              className="ml-4 text-body-md text-on-surface-variant hover:text-error transition-colors px-3 py-2 rounded-lg hover:bg-error-container/30"
-            >
-              Sign Out
-            </button>
-          </nav>
-        </div>
-      </header>
+            );
+          })}
+        </nav>
+      </div>
 
-      {/* Main Content */}
-      <main className="max-w-[1280px] mx-auto px-4 md:px-6 pt-6 pb-28 md:pb-8">
-        {children}
+      {/* Main Content Area */}
+      <main className="flex-1 px-6 md:px-12 pt-4 pb-32 md:pb-12 max-w-5xl">
+        <div className="animate-fade-in">
+          {children}
+        </div>
       </main>
 
-      {/* Mobile Bottom Nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-20 px-4 bg-surface border-t border-outline-variant shadow-sm">
+      {/* Windows Phone Style Application Bar (Bottom) for Mobile */}
+      <div className="md:hidden fixed bottom-0 left-0 w-full z-50 bg-surface-dim/95 backdrop-blur-sm border-t border-outline-variant flex justify-center items-center h-24 gap-8">
         {navItems.map(item => {
           const isActive = location.pathname === item.path;
           return (
             <Link
               key={item.path}
               to={item.path}
-              className={`flex flex-col items-center justify-center px-4 py-1 rounded-2xl transition-all duration-150 ${
-                isActive
-                  ? 'bg-secondary-container text-on-surface'
-                  : 'text-on-surface-variant hover:bg-surface-container-high'
-              }`}
+              className="flex flex-col items-center group"
             >
-              <span className={`material-symbols-outlined ${isActive ? 'filled' : ''}`}>
-                {item.icon}
+              <div className={`w-14 h-14 rounded-full border-2 flex items-center justify-center transition-all ${
+                isActive 
+                  ? 'border-primary bg-primary text-on-primary' 
+                  : 'border-on-surface text-on-surface group-hover:border-primary group-hover:text-primary'
+              }`}>
+                <span className="material-symbols-outlined text-[28px]">{item.icon}</span>
+              </div>
+              <span className={`text-[11px] mt-1.5 font-semibold uppercase tracking-wider ${isActive ? 'text-primary' : 'text-on-surface-variant'}`}>
+                {item.label}
               </span>
-              <span className="text-label-sm-mono mt-1">{item.label}</span>
             </Link>
           );
         })}
-      </nav>
+      </div>
     </div>
   );
 }

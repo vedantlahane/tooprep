@@ -156,28 +156,28 @@ export default function PracticePage() {
   if (!session) {
     return (
       <div className="max-w-2xl mx-auto animate-fade-in">
-        <h2 className="text-display text-on-surface mb-2">Practice Mode</h2>
-        <p className="text-body-lg text-on-surface-variant mb-6">
-          Untimed practice with solutions revealed after each question.
+        <h2 className="text-display text-on-surface mb-2 font-light">practice mode</h2>
+        <p className="text-body-lg text-on-surface-variant mb-10 font-light">
+          untimed practice with solutions revealed after each question.
         </p>
 
         {error && (
-          <div className="mb-4 p-3 rounded-lg bg-error-container/20 border border-error/30 text-error text-body-md">{error}</div>
+          <div className="mb-6 p-4 bg-error text-white text-body-md">{error}</div>
         )}
 
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm p-6 space-y-5">
+        <div className="space-y-8">
           {/* Topic selector */}
           <div>
-            <label className="block text-label-sm-mono text-on-surface-variant mb-2">Select Topic</label>
+            <label className="block text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-3">select topic</label>
             <select
               value={selectedTopic}
               onChange={e => handleTopicSelect(e.target.value)}
-              className="w-full px-3 py-2.5 border border-outline-variant rounded-lg text-body-md bg-surface-bright outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-4 py-4 border-2 border-outline-variant text-body-lg bg-surface-dim outline-none focus:ring-0 focus:border-primary uppercase"
             >
-              <option value="">Choose a topic...</option>
+              <option value="">choose a topic...</option>
               {topics.map(t => (
                 <option key={t.id} value={t.id}>
-                  {t.subject} › {t.chapter} › {t.name}
+                  {t.subject} / {t.chapter} / {t.name}
                 </option>
               ))}
             </select>
@@ -185,47 +185,49 @@ export default function PracticePage() {
 
           {/* Initial confidence prompt */}
           {needsConfidence && selectedTopic && (
-            <div className="p-4 rounded-lg bg-primary-fixed/20 border border-primary-fixed">
-              <p className="text-body-md text-on-surface mb-3">
-                How confident do you feel about this topic? (First-time rating)
+            <div className="p-6 bg-primary/20 border-l-4 border-primary">
+              <p className="text-body-lg text-on-surface mb-4 font-light">
+                how confident do you feel about this topic?
               </p>
               <ConfidenceSlider value={confidence} onChange={setConfidence} />
               <button
                 onClick={handleSetConfidence}
-                className="mt-3 px-4 py-2 rounded-lg bg-primary text-on-primary text-body-md font-semibold hover:bg-primary-container transition-colors"
+                className="mt-6 w-full py-4 bg-primary text-white text-body-md font-semibold uppercase tracking-widest hover:bg-primary-fixed-dim transition-colors"
               >
-                Set Confidence & Continue
+                set confidence & continue
               </button>
             </div>
           )}
 
           {/* Question count */}
           <div>
-            <label className="block text-label-sm-mono text-on-surface-variant mb-2">Questions</label>
-            <div className="flex gap-2">
+            <label className="block text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-3">questions</label>
+            <div className="flex gap-4">
               {[10, 15, 20].map(n => (
                 <button
                   key={n}
                   onClick={() => setQuestionCount(n)}
-                  className={`px-4 py-2 rounded-lg border text-body-md font-semibold transition-all ${
+                  className={`flex-1 py-4 border-2 text-body-lg font-light transition-all ${
                     questionCount === n
-                      ? 'bg-primary text-on-primary border-primary'
-                      : 'bg-surface-container-lowest border-outline-variant text-on-surface-variant hover:border-primary'
+                      ? 'bg-primary text-white border-primary'
+                      : 'bg-surface-dim border-outline-variant text-on-surface hover:border-on-surface'
                   }`}
                 >
-                  {n} Qs
+                  {n}
                 </button>
               ))}
             </div>
           </div>
 
-          <button
-            onClick={startPractice}
-            disabled={!selectedTopic || loading || needsConfidence}
-            className="w-full py-3 rounded-lg bg-primary-container text-on-primary text-headline-md font-semibold hover:bg-primary transition-colors disabled:opacity-50"
-          >
-            {loading ? 'Loading questions...' : 'Start Practice'}
-          </button>
+          <div className="pt-6">
+            <button
+              onClick={startPractice}
+              disabled={!selectedTopic || loading || needsConfidence}
+              className="w-full py-4 bg-primary text-white text-headline-md font-semibold uppercase tracking-widest hover:bg-primary-fixed-dim transition-colors disabled:opacity-50"
+            >
+              {loading ? 'loading...' : 'start practice'}
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -235,47 +237,46 @@ export default function PracticePage() {
   if (completed && summary) {
     return (
       <div className="max-w-2xl mx-auto animate-fade-in">
-        <h2 className="text-display text-on-surface mb-6">Practice Complete</h2>
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm p-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="text-center p-4 rounded-lg bg-surface-container">
-              <div className="text-headline-lg text-primary font-bold">{summary.correct}/{summary.total_questions}</div>
-              <div className="text-label-sm-mono text-on-surface-variant mt-1">Correct</div>
-            </div>
-            <div className="text-center p-4 rounded-lg bg-surface-container">
-              <div className="text-headline-lg text-on-surface font-bold">{summary.accuracy}%</div>
-              <div className="text-label-sm-mono text-on-surface-variant mt-1">Accuracy</div>
-            </div>
-            <div className="text-center p-4 rounded-lg bg-surface-container">
-              <div className="text-headline-lg text-on-surface font-bold">
-                {Math.floor(summary.avg_time_seconds / 60)}:{String(summary.avg_time_seconds % 60).padStart(2, '0')}
-              </div>
-              <div className="text-label-sm-mono text-on-surface-variant mt-1">Avg Time/Q</div>
-            </div>
-            <div className="text-center p-4 rounded-lg bg-surface-container">
-              <div className="text-headline-lg text-on-surface font-bold">{summary.total_questions}</div>
-              <div className="text-label-sm-mono text-on-surface-variant mt-1">Total Qs</div>
-            </div>
+        <h2 className="text-display text-on-surface mb-8 font-light">practice complete</h2>
+        
+        <div className="grid grid-cols-2 gap-2 mb-8">
+          <div className="p-6 bg-primary text-white">
+            <div className="text-display font-light mb-1">{summary.correct}/{summary.total_questions}</div>
+            <div className="text-label-sm-mono uppercase tracking-widest opacity-80">correct</div>
           </div>
-
-          <p className="text-body-md text-on-surface-variant mb-4 text-center">
-            Practice accuracy is separate from your evaluation performance. Take a timed evaluation to update your confidence gap.
-          </p>
-
-          <div className="flex gap-3">
-            <button
-              onClick={() => navigate('/')}
-              className="flex-1 py-2.5 rounded-lg border border-outline-variant text-body-md font-semibold text-on-surface-variant hover:bg-surface-container-low transition-colors"
-            >
-              Back to Dashboard
-            </button>
-            <button
-              onClick={() => navigate(`/evaluate?topic=${session.topic_id}`)}
-              className="flex-1 py-2.5 rounded-lg bg-primary-container text-on-primary text-body-md font-semibold hover:bg-primary transition-colors"
-            >
-              Start Evaluation
-            </button>
+          <div className="p-6 bg-surface-container-high">
+            <div className="text-display font-light mb-1">{summary.accuracy}%</div>
+            <div className="text-label-sm-mono uppercase tracking-widest text-on-surface-variant">accuracy</div>
           </div>
+          <div className="p-6 bg-surface-container-high">
+            <div className="text-display font-light mb-1">
+              {Math.floor(summary.avg_time_seconds / 60)}:{String(summary.avg_time_seconds % 60).padStart(2, '0')}
+            </div>
+            <div className="text-label-sm-mono uppercase tracking-widest text-on-surface-variant">avg time / q</div>
+          </div>
+          <div className="p-6 bg-surface-container-high">
+            <div className="text-display font-light mb-1">{summary.total_questions}</div>
+            <div className="text-label-sm-mono uppercase tracking-widest text-on-surface-variant">total qs</div>
+          </div>
+        </div>
+
+        <p className="text-body-lg text-on-surface-variant font-light mb-8">
+          practice accuracy is separate from your evaluation performance. take a timed evaluation to update your confidence gap.
+        </p>
+
+        <div className="flex flex-col sm:flex-row gap-4">
+          <button
+            onClick={() => navigate('/')}
+            className="flex-1 py-4 border-2 border-outline-variant text-body-md font-semibold text-on-surface uppercase tracking-widest hover:border-on-surface transition-colors"
+          >
+            dashboard
+          </button>
+          <button
+            onClick={() => navigate(`/evaluate?topic=${session.topic_id}`)}
+            className="flex-1 py-4 bg-primary text-white text-body-md font-semibold uppercase tracking-widest hover:bg-primary-fixed-dim transition-colors"
+          >
+            start evaluation
+          </button>
         </div>
       </div>
     );
@@ -285,25 +286,26 @@ export default function PracticePage() {
   const currentQuestion = questions[currentIndex];
 
   return (
-    <div className="max-w-2xl mx-auto animate-fade-in">
-      {/* Progress bar */}
-      <div className="mb-4 flex items-center justify-between">
-        <span className="text-label-sm-mono text-on-surface-variant">
-          Practice · Question {currentIndex + 1} of {questions.length}
+    <div className="max-w-3xl mx-auto animate-fade-in">
+      {/* Progress bar (Metro flat style) */}
+      <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-2">
+        <span className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest">
+          practice / question {currentIndex + 1} of {questions.length}
         </span>
-        <span className="text-label-mono text-primary font-bold">
+        <span className="text-label-sm-mono text-primary font-bold tracking-widest uppercase">
           {attempts.filter(a => a.correct).length}/{attempts.length} correct
         </span>
       </div>
-      <div className="w-full h-1.5 bg-surface-container rounded-full mb-6 overflow-hidden">
+      
+      <div className="w-full h-1 bg-surface-container-high mb-8 overflow-hidden">
         <div
-          className="h-full bg-primary transition-all duration-300 rounded-full"
+          className="h-full bg-primary transition-all duration-300"
           style={{ width: `${((currentIndex + (submitted ? 1 : 0)) / questions.length) * 100}%` }}
         />
       </div>
 
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-error-container/20 border border-error/30 text-error text-body-md">{error}</div>
+        <div className="mb-6 p-4 bg-error text-white text-body-md">{error}</div>
       )}
 
       <QuestionCard
@@ -316,7 +318,7 @@ export default function PracticePage() {
         questionNumber={currentIndex + 1}
       />
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-6 space-y-6">
         {/* Mistake type for wrong answers */}
         {submitted && !attempts[attempts.length - 1]?.correct && (
           <MistakeTypeSelector value={mistakeType} onChange={setMistakeType} />
@@ -327,16 +329,16 @@ export default function PracticePage() {
           <button
             onClick={handleSubmitAnswer}
             disabled={!selectedAnswer || loading}
-            className="w-full py-3 rounded-lg bg-primary-container text-on-primary text-headline-md font-semibold hover:bg-primary transition-colors disabled:opacity-50"
+            className="w-full py-4 bg-primary text-white text-body-md font-semibold uppercase tracking-widest hover:bg-primary-fixed-dim transition-colors disabled:opacity-50"
           >
-            Submit Answer
+            submit answer
           </button>
         ) : (
           <button
             onClick={handleNext}
-            className="w-full py-3 rounded-lg bg-primary-container text-on-primary text-headline-md font-semibold hover:bg-primary transition-colors"
+            className="w-full py-4 bg-primary text-white text-body-md font-semibold uppercase tracking-widest hover:bg-primary-fixed-dim transition-colors"
           >
-            {currentIndex < questions.length - 1 ? 'Next Question →' : 'Complete Practice'}
+            {currentIndex < questions.length - 1 ? 'next question' : 'complete practice'}
           </button>
         )}
       </div>
