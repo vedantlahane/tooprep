@@ -1,16 +1,16 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
-import ProtectedRoute from './components/ProtectedRoute';
-import Layout from './components/Layout';
-import AuthPage from './pages/AuthPage';
-import OnboardingPage from './pages/OnboardingPage';
-import DashboardPage from './pages/DashboardPage';
-import TopicDetailPage from './pages/TopicDetailPage';
-import PracticePage from './pages/PracticePage';
-import EvaluationPage from './pages/EvaluationPage';
-import ResultsPage from './pages/ResultsPage';
-import InsightsPage from './pages/InsightsPage';
-import ProfilePage from './pages/ProfilePage';
+import { AuthProvider } from '@/features/auth/context/AuthContext';
+import ProtectedRoute from '@/features/auth/components/ProtectedRoute';
+import Layout from '@/shared/components/Layout';
+import AuthPage from '@/features/auth/pages/AuthPage';
+import OnboardingPage from '@/features/auth/pages/OnboardingPage';
+import DashboardPage from '@/features/dashboard/pages/DashboardPage';
+import TopicDetailPage from '@/features/topics/pages/TopicDetailPage';
+import PracticePage from '@/features/practice/pages/PracticePage';
+import EvaluationPage from '@/features/evaluations/pages/EvaluationPage';
+import ResultsPage from '@/features/evaluations/pages/ResultsPage';
+import InsightsPage from '@/features/insights/pages/InsightsPage';
+import ProfilePage from '@/features/profile/pages/ProfilePage';
 
 function App() {
   return (

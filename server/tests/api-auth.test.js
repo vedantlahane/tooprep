@@ -1,7 +1,7 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth } from '../src/middleware/auth.js';
 
 describe('TooPrep - Server Auth Middleware & Security Integration Tests', () => {
 

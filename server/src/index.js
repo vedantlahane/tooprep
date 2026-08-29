@@ -2,13 +2,13 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { requireAuth } from './middleware/auth.js';
-import profileRoutes from './routes/profile.js';
-import topicsRoutes from './routes/topics.js';
-import questionsRoutes from './routes/questions.js';
-import confidenceRoutes from './routes/confidence.js';
-import practiceRoutes from './routes/practice.js';
-import evaluationsRoutes from './routes/evaluations.js';
-import dashboardRoutes from './routes/dashboard.js';
+import profileRoutes from './features/profile/profile.routes.js';
+import topicsRoutes from './features/topics/topics.routes.js';
+import questionsRoutes from './features/questions/questions.routes.js';
+import confidenceRoutes from './features/confidence/confidence.routes.js';
+import practiceRoutes from './features/practice/practice.routes.js';
+import evaluationsRoutes from './features/evaluations/evaluations.routes.js';
+import dashboardRoutes from './features/dashboard/dashboard.routes.js';
 
 dotenv.config({ path: '../.env' });
 
@@ -64,7 +64,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/profile', requireAuth, profileRoutes);
 app.use('/api/topics', requireAuth, topicsRoutes);
 app.use('/api/questions', requireAuth, questionsRoutes);
-app.use('/api/topics', requireAuth, confidenceRoutes);  // Mounts under /api/topics/:id/confidence
+app.use('/api/topics', requireAuth, confidenceRoutes);  // Mounts /api/topics/:id/confidence & /api/topics/:id/confidence-history
 app.use('/api/practice-sessions', requireAuth, practiceRoutes);
 app.use('/api/evaluations', requireAuth, evaluationsRoutes);
 app.use('/api/dashboard', requireAuth, dashboardRoutes);
