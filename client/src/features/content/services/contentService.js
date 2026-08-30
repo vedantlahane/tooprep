@@ -8,6 +8,7 @@ export const contentService = {
   uploadPdf: (file, metadata) => {
     const form = new FormData();
     form.append('file', file);
+    form.append('filename', file.name);
     if (metadata.exam) form.append('exam', metadata.exam);
     if (metadata.year) form.append('year', metadata.year);
     return request('POST', `${base}/ingestion-jobs/upload`, form);

@@ -19,11 +19,16 @@ export async function request(method, path, body = null) {
   if (body) options.body = isFormData ? body : JSON.stringify(body);
 
   const res = await fetch(`${API_BASE}${path}`, options);
-  const data = await res.json();
-
-  if (!res.ok) {
-    throw new Error(data.error || `Request failed: ${res.status}`);
+  
+  const contentType = res.headers.get('content-type');
+  if (contentType && contentType.includes('application/json')) {
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `Request failed: ${res.status}`);
+    return data;
+  } else {
+    if (!res.ok) {
+      throw new Error(`Server returned ${res.status} ${res.statusText}. Ensure backend is running and endpoint exists.`);
+    }
+    return await res.text();
   }
-
-  return data;
 }
