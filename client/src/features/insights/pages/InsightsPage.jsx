@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+﻿import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '@/shared/lib/api';
+import { dashboardService } from '@/features/dashboard/services/dashboardService';
 
 export default function InsightsPage() {
   const [data, setData] = useState([]);
@@ -13,7 +13,7 @@ export default function InsightsPage() {
 
   const loadData = async () => {
     try {
-      const result = await api.getDashboard();
+      const result = await dashboardService.getDashboard();
       setData(result);
     } catch (err) {
       console.error(err);
@@ -122,7 +122,7 @@ export default function InsightsPage() {
                         ? s.avgAccuracyNum >= 70 ? 'text-status-aligned' :
                           s.avgAccuracyNum >= 40 ? 'text-status-weak' : 'text-error'
                         : 'text-on-surface-variant'
-                    }>{s.avgAccuracyNum !== null ? `${s.avgAccuracyNum}%` : '—'}</strong>
+                    }>{s.avgAccuracyNum !== null ? `${s.avgAccuracyNum}%` : 'â€”'}</strong>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-on-surface-variant">overconfident</span>
@@ -197,3 +197,4 @@ export default function InsightsPage() {
     </div>
   );
 }
+

@@ -1,6 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { api } from '@/shared/lib/api';
+import { practiceService } from '../services/practiceService';
+import { topicsService } from '@/features/topics/services/topicsService';
+import { confidenceService } from '@/features/confidence/services/confidenceService';
 import QuestionCard from '@/features/questions/components/QuestionCard';
 import MistakeTypeSelector from '@/features/questions/components/MistakeTypeSelector';
 import ConfidenceSlider from '@/features/confidence/components/ConfidenceSlider';
@@ -39,7 +41,7 @@ export default function PracticePage() {
 
   const loadTopics = async () => {
     try {
-      const hierarchy = await api.getTopics();
+      const hierarchy = await topicsService.getTopics();
       const allTopics = [];
       for (const subject of hierarchy) {
         for (const chapter of subject.chapters || []) {
@@ -78,7 +80,7 @@ export default function PracticePage() {
 
   const handleSetConfidence = async () => {
     try {
-      await api.setConfidence(selectedTopic, confidence, 'INITIAL');
+      await confidenceService.setConfidence(selectedTopic, confidence, 'INITIAL');
       setNeedsConfidence(false);
     } catch (err) {
       setError(err.message);
@@ -89,7 +91,7 @@ export default function PracticePage() {
     setLoading(true);
     setError('');
     try {
-      const result = await api.startPractice(selectedTopic, questionCount);
+      const result = await practiceService.startPractice(selectedTopic, questionCount);
       setSession(result.session);
       setQuestions(result.questions);
       setCurrentIndex(0);
@@ -109,7 +111,7 @@ export default function PracticePage() {
     const timeSpent = Math.round((Date.now() - startTimeRef.current) / 1000);
 
     try {
-      const result = await api.submitPracticeAttempt(session.id, {
+      const result = await practiceService.submitPracticeAttempt(session.id, {
         question_id: questions[currentIndex].id,
         selected_answer: selectedAnswer,
         time_spent_seconds: timeSpent,
@@ -144,7 +146,7 @@ export default function PracticePage() {
 
   const completePractice = async () => {
     try {
-      const result = await api.completePractice(session.id);
+      const result = await practiceService.completePractice(session.id);
       setSummary(result.summary);
       setCompleted(true);
     } catch (err) {
@@ -345,3 +347,4 @@ export default function PracticePage() {
     </div>
   );
 }
+

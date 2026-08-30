@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import { api } from '@/shared/lib/api';
+import { evaluationsService } from '../services/evaluationsService';
+import { confidenceService } from '@/features/confidence/services/confidenceService';
 import ConfidenceSlider from '@/features/confidence/components/ConfidenceSlider';
 import { MathText } from '@/features/questions/components/QuestionCard';
 
@@ -28,7 +29,7 @@ export default function ResultsPage() {
 
   const loadResults = async () => {
     try {
-      const data = await api.getEvaluation(id);
+      const data = await evaluationsService.getEvaluation(id);
       setResult(data);
       setTopicId(data.evaluation?.topic_id);
     } catch (err) {
@@ -42,7 +43,7 @@ export default function ResultsPage() {
     if (!topicId) return;
     setConfidenceLoading(true);
     try {
-      await api.setConfidence(topicId, newConfidence, 'POST_EVALUATION');
+      await confidenceService.setConfidence(topicId, newConfidence, 'POST_EVALUATION');
       setConfidenceSubmitted(true);
       setShowConfidencePrompt(false);
     } catch (err) {
@@ -149,7 +150,7 @@ export default function ResultsPage() {
               summary.pyq_accuracy !== null && summary.pyq_accuracy >= 70 ? 'text-tertiary-container' :
               summary.pyq_accuracy !== null && summary.pyq_accuracy >= 40 ? 'text-status-weak' : 'text-on-surface-variant'
             }`}>
-              {summary.pyq_accuracy !== null ? `${summary.pyq_accuracy}%` : '—'}
+              {summary.pyq_accuracy !== null ? `${summary.pyq_accuracy}%` : 'â€”'}
             </div>
             <div className="text-label-sm-mono text-on-surface-variant mt-1">PYQ Accuracy</div>
           </div>
@@ -170,7 +171,7 @@ export default function ResultsPage() {
                     diff === 'easy' ? 'text-tertiary-container' :
                     diff === 'medium' ? 'text-status-weak' : 'text-error'
                   }`}>
-                    {d.accuracy !== null ? `${d.accuracy}%` : '—'}
+                    {d.accuracy !== null ? `${d.accuracy}%` : 'â€”'}
                   </div>
                   <div className="text-body-md text-on-surface mt-1 capitalize">{diff}</div>
                   <div className="text-label-sm-mono text-on-surface-variant">{d.correct}/{d.total}</div>
@@ -250,3 +251,4 @@ export default function ResultsPage() {
     </div>
   );
 }
+

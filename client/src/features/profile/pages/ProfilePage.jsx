@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '@/shared/lib/api';
+import { profileService } from '../services/profileService';
+import { dashboardService } from '@/features/dashboard/services/dashboardService';
 import { useAuth } from '@/features/auth/context/AuthContext';
 
 export default function ProfilePage() {
@@ -20,8 +21,8 @@ export default function ProfilePage() {
   const loadData = async () => {
     try {
       const [profileData, gapData] = await Promise.all([
-        api.getProfile(),
-        api.getBiggestGap().catch(() => null)
+        profileService.getProfile(),
+        dashboardService.getBiggestGap().catch(() => null)
       ]);
       setProfile(profileData);
       setBiggestGap(gapData);
@@ -36,7 +37,7 @@ export default function ProfilePage() {
 
   const handleSave = async () => {
     try {
-      await api.updateProfile({ display_name: displayName, target_exam_year: targetYear });
+      await profileService.updateProfile({ display_name: displayName, target_exam_year: targetYear });
       setEditing(false);
       loadData();
     } catch (err) {
@@ -235,3 +236,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+

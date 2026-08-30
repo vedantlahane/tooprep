@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { api } from '@/shared/lib/api';
+import { topicsService } from '../services/topicsService';
+import { confidenceService } from '@/features/confidence/services/confidenceService';
 import ConfidenceSlider from '@/features/confidence/components/ConfidenceSlider';
 
 export default function TopicDetailPage() {
@@ -22,7 +23,7 @@ export default function TopicDetailPage() {
 
   const loadTopic = async () => {
     try {
-      const result = await api.getTopicDetail(id);
+      const result = await topicsService.getTopicDetail(id);
       setData(result);
       if (!result.topic.confidence) {
         setShowConfidenceInput(true);
@@ -37,7 +38,7 @@ export default function TopicDetailPage() {
   const handleSetConfidence = async () => {
     setConfidenceLoading(true);
     try {
-      await api.setConfidence(id, newConfidence, 'INITIAL');
+      await confidenceService.setConfidence(id, newConfidence, 'INITIAL');
       setShowConfidenceInput(false);
       loadTopic();
     } catch (err) {
@@ -48,7 +49,7 @@ export default function TopicDetailPage() {
   };
 
   const formatDate = (dateStr) => {
-    if (!dateStr) return '—';
+    if (!dateStr) return 'â€”';
     return new Date(dateStr).toLocaleDateString('en-IN', {
       day: 'numeric', month: 'short', year: 'numeric',
     });
@@ -99,19 +100,19 @@ export default function TopicDetailPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-10">
         <div className="p-6 bg-primary text-on-primary">
           <div className="text-display font-light mb-1">
-            {topic.confidence ? `${topic.confidence}` : '—'}
+            {topic.confidence ? `${topic.confidence}` : 'â€”'}
           </div>
           <div className="text-label-sm-mono opacity-70">CONFIDENCE</div>
         </div>
         <div className="p-6 bg-surface-container-high text-on-surface">
           <div className="text-display font-light mb-1">
-            {topic.evaluation_accuracy !== null ? `${topic.evaluation_accuracy}%` : '—'}
+            {topic.evaluation_accuracy !== null ? `${topic.evaluation_accuracy}%` : 'â€”'}
           </div>
           <div className="text-label-sm-mono text-on-surface-variant">EVAL ACCURACY</div>
         </div>
         <div className="p-6 bg-surface-container-high text-on-surface">
           <div className={`text-display font-light ${getStatusColor(topic.status)}`}>
-            {topic.gap !== null ? (topic.gap >= 0 ? `+${topic.gap}` : topic.gap) : '—'}
+            {topic.gap !== null ? (topic.gap >= 0 ? `+${topic.gap}` : topic.gap) : 'â€”'}
           </div>
           <div className="text-label-sm-mono text-on-surface-variant">PERFORMANCE GAP</div>
         </div>
@@ -194,7 +195,7 @@ export default function TopicDetailPage() {
             </div>
             <div className="p-4 bg-surface-container-high">
               <div className="text-headline-md font-light">
-                {topic.pyq_accuracy !== null ? `${topic.pyq_accuracy}%` : '—'}
+                {topic.pyq_accuracy !== null ? `${topic.pyq_accuracy}%` : 'â€”'}
               </div>
               <div className="text-label-sm-mono text-on-surface-variant">PYQ ACCURACY</div>
             </div>
@@ -204,3 +205,4 @@ export default function TopicDetailPage() {
     </div>
   );
 }
+

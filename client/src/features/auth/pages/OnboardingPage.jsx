@@ -1,6 +1,6 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '@/shared/lib/api';
+import { profileService } from '@/features/profile/services/profileService';
 
 export default function OnboardingPage() {
   const [displayName, setDisplayName] = useState('');
@@ -15,7 +15,7 @@ export default function OnboardingPage() {
     setError('');
 
     try {
-      await api.updateProfile({
+      await profileService.updateProfile({
         display_name: displayName,
         target_exam_year: targetYear
       });
@@ -87,3 +87,4 @@ export default function OnboardingPage() {
     </div>
   );
 }
+

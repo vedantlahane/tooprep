@@ -52,6 +52,20 @@ export const authService = {
     return data;
   },
 
+  async signInWithGoogle() {
+    if (DEMO_MODE) {
+      throw new Error('Google sign-in is not supported in demo mode');
+    }
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin,
+      },
+    });
+    if (error) throw error;
+    return data;
+  },
+
   async signOut() {
     if (DEMO_MODE) {
       localStorage.removeItem(DEMO_STORAGE_KEY);

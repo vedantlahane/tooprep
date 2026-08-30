@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+﻿import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '@/shared/lib/api';
+import { dashboardService } from '../services/dashboardService';
 
 export default function DashboardPage() {
   const [data, setData] = useState([]);
@@ -15,7 +15,7 @@ export default function DashboardPage() {
 
   const loadDashboard = async () => {
     try {
-      const result = await api.getDashboard();
+      const result = await dashboardService.getDashboard();
       setData(result);
     } catch (err) {
       setError(err.message);
@@ -38,7 +38,7 @@ export default function DashboardPage() {
   const groupedByChapter = useMemo(() => {
     const groups = {};
     filtered.forEach(topic => {
-      const groupName = `${topic.subject_name} — ${topic.chapter_name}`;
+      const groupName = `${topic.subject_name} â€” ${topic.chapter_name}`;
       if (!groups[groupName]) groups[groupName] = [];
       groups[groupName].push(topic);
     });
@@ -164,3 +164,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

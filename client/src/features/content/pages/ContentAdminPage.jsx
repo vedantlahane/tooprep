@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { api } from '@/shared/lib/api';
+﻿import { useEffect, useState } from 'react';
+import { contentService } from '../services/contentService';
+import { topicsService } from '@/features/topics/services/topicsService';
 
 const defaultOptions = '[{"id":"A","text":""},{"id":"B","text":""}]';
 
@@ -18,7 +19,7 @@ function Candidate({ candidate, jobId, topics, onReviewed }) {
   const accept = async () => {
     setSaving(true); setError('');
     try {
-      await api.acceptIngestionCandidate(jobId, candidate.candidate_key, {
+      await contentService.acceptCandidate(jobId, candidate.candidate_key, {
         question_text: questionText,
         options: JSON.parse(options),
         correct_answer: correctAnswer,
@@ -33,14 +34,14 @@ function Candidate({ candidate, jobId, topics, onReviewed }) {
 
   const reject = async () => {
     setSaving(true); setError('');
-    try { await api.rejectIngestionCandidate(jobId, candidate.candidate_key, reason); onReviewed(); }
+    try { await contentService.rejectCandidate(jobId, candidate.candidate_key, reason); onReviewed(); }
     catch (err) { setError(err.message); } finally { setSaving(false); }
   };
 
   const findSimilar = async () => {
     setSearchingSimilar(true);
     try {
-      const results = await api.searchQuestions(questionText, 3);
+      const results = await contentService.searchQuestions(questionText, 3);
       setSimilarQuestions(results);
     } catch (err) { setError(err.message); } finally { setSearchingSimilar(false); }
   };
@@ -48,7 +49,7 @@ function Candidate({ candidate, jobId, topics, onReviewed }) {
   return (
     <article className="border-2 border-outline-variant bg-surface-dim p-5 space-y-4">
       <div className="flex justify-between items-center">
-        <div className="text-label-sm-mono uppercase tracking-widest text-primary">page {candidate.source_pages.join(', ')} · q{candidate.source_question_number}</div>
+        <div className="text-label-sm-mono uppercase tracking-widest text-primary">page {candidate.source_pages.join(', ')} Â· q{candidate.source_question_number}</div>
         <button onClick={findSimilar} disabled={searchingSimilar} className="text-label-sm-mono text-on-surface-variant hover:text-primary uppercase tracking-widest disabled:opacity-50">
           {searchingSimilar ? 'searching...' : 'find similar'}
         </button>
@@ -102,22 +103,22 @@ export default function ContentAdminPage() {
   const [error, setError] = useState('');
 
   const loadJobs = async () => {
-    try { setJobs(await api.listIngestionJobs()); } catch (err) { setError(err.message); } finally { setLoading(false); }
+    try { setJobs(await contentService.listJobs()); } catch (err) { setError(err.message); } finally { setLoading(false); }
   };
   const chooseJob = async (job) => {
     setSelectedJob(job); setCandidates([]); setError('');
-    try { setCandidates(await api.getIngestionCandidates(job.job_id)); } catch (err) { setError(err.message); }
+    try { setCandidates(await contentService.getCandidates(job.job_id)); } catch (err) { setError(err.message); }
   };
   const upload = async (event) => {
     event.preventDefault();
     if (!file) return;
     setUploading(true); setError('');
-    try { const job = await api.uploadIngestionPdf(file, { exam, year }); await loadJobs(); await chooseJob(job); setFile(null); event.target.reset(); }
+    try { const job = await contentService.uploadPdf(file, { exam, year }); await loadJobs(); await chooseJob(job); setFile(null); event.target.reset(); }
     catch (err) { setError(err.message); } finally { setUploading(false); }
   };
   useEffect(() => {
     loadJobs();
-    api.getTopics().then(hierarchy => setTopics(hierarchy.flatMap(subject =>
+    topicsService.getTopics().then(hierarchy => setTopics(hierarchy.flatMap(subject =>
       (subject.chapters || []).flatMap(chapter => (chapter.topics || []).map(topic => ({
         id: topic.id, name: topic.name, chapter: chapter.name, subject: subject.name
       })))
@@ -134,9 +135,10 @@ export default function ContentAdminPage() {
       </form>
       {error && <p className="border-l-4 border-error bg-error/10 p-4 text-error">{error}</p>}
       <section className="grid lg:grid-cols-[1fr_2fr] gap-6">
-        <div className="space-y-2"><h3 className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-3">jobs</h3>{loading ? <p>loading...</p> : jobs.map(job => <button key={job.job_id} onClick={() => chooseJob(job)} className={`w-full text-left p-4 border-2 ${selectedJob?.job_id === job.job_id ? 'border-primary bg-primary/10' : 'border-outline-variant bg-surface-dim'}`}><div className="font-semibold text-on-surface">{job.source.filename || job.job_id}</div><div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mt-1">{job.stage} · {job.progress.questions_extracted} candidates</div></button>)}</div>
-        <div><h3 className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-3">{selectedJob ? `review · ${selectedJob.job_id}` : 'select a job'}</h3><div className="space-y-5">{candidates.map(candidate => <Candidate key={candidate.candidate_key} candidate={candidate} jobId={selectedJob.job_id} topics={topics} onReviewed={() => chooseJob(selectedJob)} />)}</div></div>
+        <div className="space-y-2"><h3 className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-3">jobs</h3>{loading ? <p>loading...</p> : jobs.map(job => <button key={job.job_id} onClick={() => chooseJob(job)} className={`w-full text-left p-4 border-2 ${selectedJob?.job_id === job.job_id ? 'border-primary bg-primary/10' : 'border-outline-variant bg-surface-dim'}`}><div className="font-semibold text-on-surface">{job.source.filename || job.job_id}</div><div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mt-1">{job.stage} Â· {job.progress.questions_extracted} candidates</div></button>)}</div>
+        <div><h3 className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-3">{selectedJob ? `review Â· ${selectedJob.job_id}` : 'select a job'}</h3><div className="space-y-5">{candidates.map(candidate => <Candidate key={candidate.candidate_key} candidate={candidate} jobId={selectedJob.job_id} topics={topics} onReviewed={() => chooseJob(selectedJob)} />)}</div></div>
       </section>
     </div>
   );
 }
+

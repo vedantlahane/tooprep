@@ -1,17 +1,8 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+﻿import { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/shared/lib/supabase';
+import { authService } from '../services/authService';
 
 const DEMO_MODE = import.meta.env.DEV || String(import.meta.env.VITE_DEMO_AUTH ?? '').toLowerCase() === 'true';
-const DEMO_STORAGE_KEY = 'tooprep-demo-user';
-
-function getStoredDemoUser() {
-  try {
-    const raw = localStorage.getItem(DEMO_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
 
 const AuthContext = createContext(null);
 
@@ -22,15 +13,16 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (DEMO_MODE) {
-      const demoUser = getStoredDemoUser();
-      setUser(demoUser);
-      setSession(demoUser ? { user: demoUser, access_token: 'demo-token' } : null);
-      setLoading(false);
+      authService.getSession().then(session => {
+        setUser(session?.user ?? null);
+        setSession(session);
+        setLoading(false);
+      });
       return;
     }
 
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    authService.getSession().then((session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -47,62 +39,38 @@ export function AuthProvider({ children }) {
   }, []);
 
   const signUp = async (email, password) => {
-    if (DEMO_MODE) {
-      const nextUser = {
-        id: 'demo-user',
-        email: email.trim() || 'demo@tooprep.dev',
-        user_metadata: { name: 'Demo Student' },
-      };
-
-      localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(nextUser));
-      setUser(nextUser);
-      setSession({ user: nextUser, access_token: 'demo-token' });
-      return { user: nextUser, session: { user: nextUser, access_token: 'demo-token' } };
+    const data = await authService.signUp(email, password);
+    if (DEMO_MODE && data.user) {
+      setUser(data.user);
+      setSession(data.session);
     }
-
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) throw error;
     return data;
   };
 
   const signIn = async (email, password) => {
-    if (DEMO_MODE) {
-      const trimmedEmail = (email || '').trim();
-      if (!trimmedEmail || !password) {
-        throw new Error('Email and password are required');
-      }
-
-      const nextUser = {
-        id: 'demo-user',
-        email: trimmedEmail,
-        user_metadata: { name: 'Demo Student' },
-      };
-
-      localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(nextUser));
-      setUser(nextUser);
-      setSession({ user: nextUser, access_token: 'demo-token' });
-      return { user: nextUser, session: { user: nextUser, access_token: 'demo-token' } };
+    const data = await authService.signIn(email, password);
+    if (DEMO_MODE && data.user) {
+      setUser(data.user);
+      setSession(data.session);
     }
+    return data;
+  };
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+  const signInWithGoogle = async () => {
+    const data = await authService.signInWithGoogle();
     return data;
   };
 
   const signOut = async () => {
+    await authService.signOut();
     if (DEMO_MODE) {
-      localStorage.removeItem(DEMO_STORAGE_KEY);
       setUser(null);
       setSession(null);
-      return;
     }
-
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signInWithGoogle, signOut }}>
       {children}
     </AuthContext.Provider>
   );
@@ -113,3 +81,4 @@ export function useAuth() {
   if (!context) throw new Error('useAuth must be used within AuthProvider');
   return context;
 }
+

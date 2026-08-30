@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+﻿import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { api } from '@/shared/lib/api';
+import { evaluationsService } from '../services/evaluationsService';
+import { topicsService } from '@/features/topics/services/topicsService';
 import QuestionCard from '@/features/questions/components/QuestionCard';
 import Timer from '@/shared/components/Timer';
 
@@ -32,7 +33,7 @@ export default function EvaluationPage() {
 
   const loadTopics = async () => {
     try {
-      const hierarchy = await api.getTopics();
+      const hierarchy = await topicsService.getTopics();
       const allTopics = [];
       for (const subject of hierarchy) {
         for (const chapter of subject.chapters || []) {
@@ -56,7 +57,7 @@ export default function EvaluationPage() {
     setLoading(true);
     setError('');
     try {
-      const result = await api.startEvaluation(
+      const result = await evaluationsService.startEvaluation(
         selectedTopic,
         questionCount,
         durationMinutes * 60
@@ -111,7 +112,7 @@ export default function EvaluationPage() {
         const timeSpent = startTime ? Math.round((Date.now() - startTime) / 1000) : 0;
 
         if (answer) {
-          await api.submitEvalAttempt(evaluation.id, {
+          await evaluationsService.submitEvalAttempt(evaluation.id, {
             question_id: q.id,
             selected_answer: answer,
             time_spent_seconds: Math.min(timeSpent, durationMinutes * 60)
@@ -120,7 +121,7 @@ export default function EvaluationPage() {
       }
 
       // Complete evaluation
-      const result = await api.completeEvaluation(evaluation.id);
+      const result = await evaluationsService.completeEvaluation(evaluation.id);
 
       // Navigate to results
       navigate(`/results/${evaluation.id}`, {
@@ -142,7 +143,7 @@ export default function EvaluationPage() {
       <div className="max-w-2xl mx-auto animate-fade-in">
         <h2 className="text-display text-on-surface mb-2 font-light">timed evaluation</h2>
         <p className="text-body-lg text-on-surface-variant mb-10 font-light">
-          test under exam conditions — no hints, no solutions until the end.
+          test under exam conditions â€” no hints, no solutions until the end.
         </p>
 
         {error && (
@@ -356,10 +357,10 @@ export default function EvaluationPage() {
             <div className="space-y-3 mb-8 text-body-lg text-on-surface-variant font-light">
               <p>answered: <span className="font-bold text-white">{answeredCount}/{questions.length}</span></p>
               {unansweredCount > 0 && (
-                <p className="text-error uppercase tracking-widest text-sm font-bold">⚠ {unansweredCount} unanswered</p>
+                <p className="text-error uppercase tracking-widest text-sm font-bold">âš  {unansweredCount} unanswered</p>
               )}
               {markedForReview.size > 0 && (
-                <p className="text-status-weak uppercase tracking-widest text-sm font-bold">📌 {markedForReview.size} marked for review</p>
+                <p className="text-status-weak uppercase tracking-widest text-sm font-bold">ðŸ“Œ {markedForReview.size} marked for review</p>
               )}
             </div>
             <div className="flex flex-col gap-4">
@@ -383,3 +384,4 @@ export default function EvaluationPage() {
     </div>
   );
 }
+
