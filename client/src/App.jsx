@@ -11,6 +11,7 @@ import EvaluationPage from '@/features/evaluations/pages/EvaluationPage';
 import ResultsPage from '@/features/evaluations/pages/ResultsPage';
 import InsightsPage from '@/features/insights/pages/InsightsPage';
 import ProfilePage from '@/features/profile/pages/ProfilePage';
+import ContentAdminPage from '@/features/content/pages/ContentAdminPage';
 
 function App() {
   return (
@@ -95,6 +96,10 @@ function App() {
                 </Layout>
               </ProtectedRoute>
             }
+          />
+          <Route
+            path="/admin/content"
+            element={<ProtectedRoute><Layout><ContentAdminPage /></Layout></ProtectedRoute>}
           />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

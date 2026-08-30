@@ -40,6 +40,7 @@ const router = Router();
  * query-string filters: ?topic_id=&difficulty=&source_type=&verified=true.
  * The controller forwards them to the service's dynamic query builder.
  * ────────────────────────────────────────────────────────────────────────── */
+router.get('/admin', requireAdmin, questionsController.getQuestionsForAdmin);
 router.get('/', questionsController.getQuestions);
 
 /* ──────────────────────────────────────────────────────────────────────────

@@ -33,6 +33,7 @@ create table if not exists topics (
 -- Questions
 create table if not exists questions (
   id uuid primary key default gen_random_uuid(),
+  canonical_question_id text not null unique default ('q_' || replace(gen_random_uuid()::text, '-', '')),
   topic_id uuid not null references topics(id) on delete cascade,
   source_type text not null check (source_type in ('PYQ','ORIGINAL','LICENSED')),
   provider text,
@@ -46,6 +47,10 @@ create table if not exists questions (
   solution_text text,
   difficulty text not null check (difficulty in ('easy','medium','hard')),
   verified boolean not null default false,
+  publication_status text not null default 'PUBLISHED' check (publication_status in ('DRAFT','PUBLISHED','ARCHIVED')),
+  content_version int not null default 1 check (content_version > 0),
+  source_pages jsonb not null default '[]'::jsonb,
+  published_at timestamptz,
   created_at timestamptz not null default now()
 );
 

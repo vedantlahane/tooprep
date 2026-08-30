@@ -63,7 +63,8 @@ export const practiceService = {
       .from('questions')
       .select('id, difficulty, source_type')
       .eq('topic_id', topicId)
-      .eq('verified', true);
+      .eq('verified', true)
+      .eq('publication_status', 'PUBLISHED');
 
     if (qErr) throw new Error(qErr.message);
     if (!questions || questions.length === 0) {

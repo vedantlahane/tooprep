@@ -6,6 +6,7 @@ import { questionsService } from '@/features/questions/services/questionsService
 import { practiceService } from '@/features/practice/services/practiceService';
 import { evaluationsService } from '@/features/evaluations/services/evaluationsService';
 import { authService } from '@/features/auth/services/authService';
+import { contentService } from '@/features/content/services/contentService';
 
 export const api = {
   // Auth
@@ -45,6 +46,13 @@ export const api = {
   getEvaluation: evaluationsService.getEvaluation,
   submitEvalAttempt: evaluationsService.submitEvalAttempt,
   completeEvaluation: evaluationsService.completeEvaluation,
+
+  // Admin content ingestion and review
+  listIngestionJobs: contentService.listJobs,
+  getIngestionCandidates: contentService.getCandidates,
+  uploadIngestionPdf: contentService.uploadPdf,
+  acceptIngestionCandidate: contentService.acceptCandidate,
+  rejectIngestionCandidate: contentService.rejectCandidate,
 };
 
 export default api;

@@ -38,6 +38,8 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { requireAuth } from './middleware/auth.js';
+import { requestContext } from './platform/request-context.js';
+import { logger } from './platform/logger.js';
 
 /* Feature route modules — each encapsulates its own router with controller bindings */
 import profileRoutes from './features/profile/profile.routes.js';
@@ -47,6 +49,7 @@ import confidenceRoutes from './features/confidence/confidence.routes.js';
 import practiceRoutes from './features/practice/practice.routes.js';
 import evaluationsRoutes from './features/evaluations/evaluations.routes.js';
 import dashboardRoutes from './features/dashboard/dashboard.routes.js';
+import contentRoutes from './features/content/content.routes.js';
 
 /*
  * Load environment variables early so every subsequent import/module
@@ -123,6 +126,7 @@ function isOriginAllowed(origin) {
  * then body parsing, before any route handler executes.
  */
 
+app.use(requestContext);
 app.use(cors({
   /*
    * Dynamic origin callback — invoked for every request.
@@ -143,7 +147,7 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
-app.use(express.json()); // Parse JSON request bodies (application/json)
+app.use(express.json({ limit: '1mb' })); // Parse JSON request bodies (application/json)
 
 /*
  * -------------------------------------------------------------------------
@@ -157,7 +161,7 @@ app.use(express.json()); // Parse JSON request bodies (application/json)
  * to verify the server is running and responsive.
  */
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', timestamp: new Date().toISOString(), request_id: req.requestId });
 });
 
 /*
@@ -178,6 +182,7 @@ app.use('/api/topics', requireAuth, confidenceRoutes);  // Mounts /api/topics/:i
 app.use('/api/practice-sessions', requireAuth, practiceRoutes);
 app.use('/api/evaluations', requireAuth, evaluationsRoutes);
 app.use('/api/dashboard', requireAuth, dashboardRoutes);
+app.use('/api/admin/content', requireAuth, contentRoutes);
 
 /*
  * -------------------------------------------------------------------------
@@ -192,11 +197,22 @@ app.use('/api/dashboard', requireAuth, dashboardRoutes);
  * logged server-side for debugging.
  */
 app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
-  res.status(500).json({ error: 'Internal server error' });
+  const statusCode = err.type === 'entity.too.large' ? 413 : 500;
+  logger.error('request.failed', {
+    request_id: req.requestId,
+    method: req.method,
+    path: req.originalUrl,
+    status_code: statusCode,
+    error_name: err.name,
+    error_message: err.message
+  });
+  res.status(statusCode).json({
+    error: statusCode === 413 ? 'Request payload too large' : 'Internal server error',
+    request_id: req.requestId
+  });
 });
 
 /* Start the HTTP server */
 app.listen(PORT, () => {
-  console.log(`TooPrep API running on port ${PORT}`);
+  logger.info('server.started', { port: PORT });
 });

@@ -84,7 +84,8 @@ export const evaluationsService = {
       .from('questions')
       .select('id, difficulty, source_type')
       .eq('topic_id', topic_id)
-      .eq('verified', true);
+      .eq('verified', true)
+      .eq('publication_status', 'PUBLISHED');
 
     if (qErr) throw new Error(qErr.message);
     if (!allQuestions || allQuestions.length === 0) {

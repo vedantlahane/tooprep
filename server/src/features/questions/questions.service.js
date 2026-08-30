@@ -30,6 +30,9 @@
 /* Supabase admin client — provides unrestricted access to the `questions`
    table. Auth and role checks are handled upstream by route middleware. */
 import { supabaseAdmin } from '../../lib/supabase.js';
+import { toStudentQuestion } from './question.dto.js';
+import { createQuestionId } from '../content/content.contracts.js';
+import { validateQuestionInput } from './question.validation.js';
 
 export const questionsService = {
 
@@ -62,9 +65,16 @@ export const questionsService = {
    *   newest first.
    * @throws  {Error} If the Supabase query fails.
    */
-  async getQuestions({ topic_id, difficulty, source_type, verified }) {
+  async getQuestions({ topic_id, difficulty, source_type, verified }, { includeAnswers = false } = {}) {
     /* Start with a base query that selects every column. */
-    let query = supabaseAdmin.from('questions').select('*');
+    const fields = includeAnswers
+      ? '*'
+      : 'id, canonical_question_id, topic_id, source_type, provider, exam_year, exam_session, exam_shift, question_type, question_text, options, difficulty, created_at';
+    let query = supabaseAdmin.from('questions').select(fields);
+
+    // The student bank is a projection of published content only. Admins use
+    // the dedicated /api/questions/admin route when they need drafts too.
+    if (!includeAnswers) query = query.eq('publication_status', 'PUBLISHED');
 
     /* ── Dynamic filter chaining ────────────────────────────────────────
      * Each filter is only appended when its value is truthy / defined.
@@ -83,7 +93,7 @@ export const questionsService = {
 
     const { data, error } = await query;
     if (error) throw new Error(error.message);
-    return data;
+    return includeAnswers ? data : data.map(toStudentQuestion);
   },
 
   /**
@@ -121,7 +131,7 @@ export const questionsService = {
     /* Destructure all possible fields from the incoming payload. */
     const {
       topic_id, source_type, provider, exam_year, exam_session, exam_shift,
-      question_type, question_text, options, correct_answer, solution_text,
+      canonical_question_id, question_type, question_text, options, correct_answer, solution_text,
       difficulty, verified
     } = questionData;
 
@@ -129,11 +139,7 @@ export const questionsService = {
      * A 400-level error is thrown (with a custom statusCode property) so
      * the controller can distinguish validation failures from unexpected
      * server errors and respond with the correct HTTP status. */
-    if (!topic_id || !source_type || !question_text || !options || !correct_answer || !difficulty) {
-      const err = new Error('Missing required fields');
-      err.statusCode = 400;
-      throw err;
-    }
+    validateQuestionInput(questionData);
 
     /* ── Insert with sensible defaults ─────────────────────────────────
      * question_type defaults to 'single_correct' (most common format).
@@ -142,10 +148,13 @@ export const questionsService = {
     const { data, error } = await supabaseAdmin
       .from('questions')
       .insert({
+        canonical_question_id: canonical_question_id || createQuestionId(),
         topic_id, source_type, provider, exam_year, exam_session, exam_shift,
         question_type: question_type || 'single_correct',
         question_text, options, correct_answer, solution_text,
-        difficulty, verified: verified || false
+        difficulty,
+        verified: verified ?? false,
+        publication_status: verified ? 'PUBLISHED' : 'DRAFT'
       })
       .select()
       .single();

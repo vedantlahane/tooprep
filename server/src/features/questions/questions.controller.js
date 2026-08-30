@@ -52,6 +52,20 @@ export const questionsController = {
   },
 
   /**
+   * GET /api/questions/admin — full-fidelity management view. This is kept
+   * separate from the student-safe endpoint to make answer exposure explicit.
+   */
+  async getQuestionsForAdmin(req, res) {
+    try {
+      const data = await questionsService.getQuestions(req.query, { includeAnswers: true });
+      return res.json(data);
+    } catch (err) {
+      console.error('GET /questions/admin error:', err);
+      return res.status(500).json({ error: 'Server error', request_id: req.requestId });
+    }
+  },
+
+  /**
    * POST /api/questions — Create a new question (admin-only).
    *
    * @description Passes the full request body to the service for validation

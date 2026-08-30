@@ -212,7 +212,7 @@ export default function ProfilePage() {
           <div className="bg-surface-dim border-2 border-outline-variant p-6 md:p-8">
             <h3 className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-6">admin</h3>
             <button
-              onClick={() => navigate('/admin/questions')}
+              onClick={() => navigate('/admin/content')}
               className="w-full p-4 border-2 border-tertiary-container text-left flex items-start gap-4 hover:bg-tertiary-container/10 transition-colors"
             >
               <span className="material-symbols-outlined text-tertiary-container text-[32px]">add_circle</span>

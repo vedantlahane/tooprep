@@ -2,21 +2,21 @@ import { supabase } from './supabase';
 
 const API_BASE = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api';
 
-async function getAuthHeaders() {
+async function getAuthHeaders(includeContentType = true) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.access_token) {
     throw new Error('Not authenticated');
   }
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${session.access_token}`
-  };
+  return includeContentType
+    ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` }
+    : { 'Authorization': `Bearer ${session.access_token}` };
 }
 
 export async function request(method, path, body = null) {
-  const headers = await getAuthHeaders();
+  const isFormData = body instanceof FormData;
+  const headers = await getAuthHeaders(!isFormData);
   const options = { method, headers };
-  if (body) options.body = JSON.stringify(body);
+  if (body) options.body = isFormData ? body : JSON.stringify(body);
 
   const res = await fetch(`${API_BASE}${path}`, options);
   const data = await res.json();
