@@ -340,10 +340,18 @@ export default function ContentAdminPage() {
               </div>
             )}
             
-            {selectedJob && candidates.length === 0 && (
+            {selectedJob && candidates.length === 0 && (selectedJob.stage === 'COMPLETED' || selectedJob.stage === 'AWAITING_REVIEW') && (
               <div className="border border-status-aligned bg-status-aligned/10 p-12 flex flex-col items-center justify-center text-status-aligned rounded-md">
                 <span className="material-symbols-outlined text-4xl mb-4">task_alt</span>
                 <p className="font-semibold">All candidates verified!</p>
+              </div>
+            )}
+            
+            {selectedJob && candidates.length === 0 && selectedJob.stage !== 'COMPLETED' && selectedJob.stage !== 'AWAITING_REVIEW' && (
+              <div className="border border-primary bg-primary/5 p-12 flex flex-col items-center justify-center text-primary rounded-md">
+                <span className="material-symbols-outlined text-4xl mb-4 animate-spin">sync</span>
+                <p className="font-semibold">AI is parsing and extracting questions...</p>
+                <p className="text-sm mt-2 opacity-80">Status: {selectedJob.stage}</p>
               </div>
             )}
             
@@ -362,3 +370,4 @@ export default function ContentAdminPage() {
     </div>
   );
 }
+
