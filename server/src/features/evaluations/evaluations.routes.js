@@ -40,7 +40,9 @@ const router = Router();
  * recent-question exclusion). Returns questions WITHOUT answers.
  * Request body: { topic_id: string, question_count?: number, duration_seconds?: number }
  * Response: 201 { evaluation, questions } */
+router.get('/', evaluationsController.listEvaluations);
 router.post('/', evaluationsController.startEvaluation);
+
 
 /* GET /api/evaluations/:id — Retrieve evaluation details.
  * Returns evaluation metadata and attempts. Questions with solutions are

@@ -43,6 +43,33 @@
 import { supabaseAdmin } from '../../lib/supabase.js';
 
 export const evaluationsService = {
+  async listEvaluations(userId, limit = 50) {
+    const { data, error } = await supabaseAdmin
+      .from('evaluations')
+      .select('id, topic_id, started_at, ended_at, question_count, duration_seconds, topics(name, chapters(name, subjects(name)))')
+      .eq('user_id', userId)
+      .not('ended_at', 'is', null)
+      .order('started_at', { ascending: false })
+      .limit(limit);
+    if (error) throw new Error(error.message);
+
+    const enriched = await Promise.all((data || []).map(async (ev) => {
+      const { data: attempts } = await supabaseAdmin
+        .from('evaluation_attempts')
+        .select('correct')
+        .eq('evaluation_id', ev.id);
+      const total = (attempts || []).length;
+      const correct = (attempts || []).filter(a => a.correct).length;
+      return {
+        ...ev,
+        total_questions: total,
+        correct_count: correct,
+        accuracy: total > 0 ? Math.round((correct / total) * 100) : null
+      };
+    }));
+    return enriched;
+  },
+
   /**
    * Start a new timed evaluation for a user on a given topic.
    *

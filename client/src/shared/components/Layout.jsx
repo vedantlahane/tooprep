@@ -2,16 +2,14 @@ import { Link, useLocation } from 'react-router-dom';
 
 const navItems = [
   { path: '/', label: 'map', icon: 'map' },
-  { path: '/timeline', label: 'timeline', icon: 'schedule' },
-  { path: '/subjects', label: 'subjects', icon: 'category' },
-  { path: '/trends', label: 'trends', icon: 'trending_up' },
-  { path: '/plan', label: 'plan', icon: 'task_alt' },
-  { path: '/practice', label: 'practice', icon: 'school' },
-  { path: '/evaluate', label: 'evaluate', icon: 'quiz' },
+  { path: '/plan', label: 'study plan', icon: 'checklist' },
   { path: '/insights', label: 'insights', icon: 'analytics' },
-  { path: '/history', label: 'history', icon: 'history' },
+  { path: '/trends', label: 'trends', icon: 'trending_up' },
+  { path: '/questions', label: 'questions', icon: 'quiz' },
   { path: '/profile', label: 'profile', icon: 'person' },
 ];
+
+const mobileNavItems = navItems.filter(i => ['/', '/plan', '/insights', '/profile'].includes(i.path));
 
 export default function Layout({ children }) {
   const location = useLocation();
@@ -64,7 +62,7 @@ export default function Layout({ children }) {
       </main>
 
       <div className="md:hidden fixed bottom-0 left-0 w-full z-50 bg-surface-dim/95 backdrop-blur-sm border-t border-outline-variant flex justify-center items-center h-24 gap-4">
-        {navItems.map(item => {
+        {mobileNavItems.map(item => {
           const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
           return (
             <Link

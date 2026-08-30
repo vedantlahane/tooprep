@@ -289,5 +289,44 @@ export const practiceService = {
         avg_time_seconds: avgTime
       }
     };
+  },
+
+  /**
+   * Start a targeted practice session with explicit question IDs (re-drill).
+   * Used for re-drilling wrong answers from an evaluation.
+   * @param {string} userId
+   * @param {string} topicId - topic_id for the session record
+   * @param {string[]} questionIds - explicit list of question IDs to use
+   */
+  async startTargetedSession(userId, topicId, questionIds) {
+    if (!topicId || !questionIds?.length) {
+      const err = new Error('topic_id and question_ids are required');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const { data: questions, error: qErr } = await supabaseAdmin
+      .from('questions')
+      .select('id, question_text, options, difficulty, source_type, correct_answer, solution_text')
+      .in('id', questionIds)
+      .eq('verified', true);
+
+    if (qErr) throw new Error(qErr.message);
+    if (!questions?.length) {
+      const err = new Error('No verified questions found for the provided IDs');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const { data: session, error: sErr } = await supabaseAdmin
+      .from('practice_sessions')
+      .insert({ user_id: userId, topic_id: topicId, started_at: new Date().toISOString() })
+      .select()
+      .single();
+
+    if (sErr) throw new Error(sErr.message);
+
+    return { session, questions };
   }
 };
+

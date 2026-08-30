@@ -1,5 +1,5 @@
-﻿import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { practiceService } from '../services/practiceService';
 import { topicsService } from '@/features/topics/services/topicsService';
 import { confidenceService } from '@/features/confidence/services/confidenceService';
@@ -9,6 +9,7 @@ import ConfidenceSlider from '@/features/confidence/components/ConfidenceSlider'
 
 export default function PracticePage() {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const navigate = useNavigate();
 
   // Setup state
@@ -16,9 +17,9 @@ export default function PracticePage() {
   const [selectedTopic, setSelectedTopic] = useState(searchParams.get('topic') || '');
   const [questionCount, setQuestionCount] = useState(15);
 
-  // Session state
-  const [session, setSession] = useState(null);
-  const [questions, setQuestions] = useState([]);
+  // Session state (supports direct pre-loading from re-drill)
+  const [session, setSession] = useState(location.state?.session || null);
+  const [questions, setQuestions] = useState(location.state?.questions || []);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [submitted, setSubmitted] = useState(false);
@@ -31,12 +32,20 @@ export default function PracticePage() {
   const [error, setError] = useState('');
   const startTimeRef = useRef(null);
 
-  // Need initial confidence?
+  // Initial confidence prompt state
   const [needsConfidence, setNeedsConfidence] = useState(false);
   const [confidence, setConfidence] = useState(5);
 
+  // Post-session confidence update
+  const [postSessionConfidence, setPostSessionConfidence] = useState(5);
+  const [confidenceUpdated, setConfidenceUpdated] = useState(false);
+  const [confidenceUpdating, setConfidenceUpdating] = useState(false);
+
   useEffect(() => {
     loadTopics();
+    if (location.state?.session && location.state?.questions) {
+      startTimeRef.current = Date.now();
+    }
   }, []);
 
   const loadTopics = async () => {
@@ -154,6 +163,19 @@ export default function PracticePage() {
     }
   };
 
+  const handlePostSessionConfidenceUpdate = async () => {
+    if (!session?.topic_id) return;
+    setConfidenceUpdating(true);
+    try {
+      await confidenceService.setConfidence(session.topic_id, postSessionConfidence, 'POST_EVALUATION');
+      setConfidenceUpdated(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setConfidenceUpdating(false);
+    }
+  };
+
   // Setup screen
   if (!session) {
     return (
@@ -262,8 +284,42 @@ export default function PracticePage() {
           </div>
         </div>
 
+        {/* Post-Session Confidence Rating Prompt */}
+        {!confidenceUpdated ? (
+          <div className="mb-8 p-6 bg-primary/10 border border-primary/30 rounded-md space-y-4 animate-fade-in">
+            <div className="flex items-center gap-2 text-label-sm-mono text-primary uppercase tracking-widest font-semibold">
+              <span className="material-symbols-outlined text-[20px]">psychology</span>
+              Update Confidence?
+            </div>
+            <p className="text-body-md text-on-surface-variant">
+              You scored <strong>{summary.accuracy}%</strong>. Based on this session, how confident do you feel about this topic now?
+            </p>
+            <ConfidenceSlider value={postSessionConfidence} onChange={setPostSessionConfidence} />
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={handlePostSessionConfidenceUpdate}
+                disabled={confidenceUpdating}
+                className="flex-1 py-3 bg-primary text-white text-label-sm-mono uppercase tracking-widest font-semibold hover:bg-primary-fixed-dim transition-colors rounded-sm"
+              >
+                {confidenceUpdating ? 'Updating...' : 'Update Confidence'}
+              </button>
+              <button
+                onClick={() => setConfidenceUpdated(true)}
+                className="px-6 py-3 border border-outline-variant text-on-surface-variant text-label-sm-mono uppercase tracking-widest hover:border-on-surface transition-colors rounded-sm"
+              >
+                Skip
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="mb-8 p-4 bg-status-aligned/10 border border-status-aligned text-status-aligned text-body-md rounded-md flex items-center gap-2">
+            <span className="material-symbols-outlined text-[20px]">check_circle</span>
+            Confidence rating updated successfully!
+          </div>
+        )}
+
         <p className="text-body-lg text-on-surface-variant font-light mb-8">
-          practice accuracy is separate from your evaluation performance. take a timed evaluation to update your confidence gap.
+          Practice accuracy is separate from your evaluation performance. Take a timed evaluation to officially update your confidence gap.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4">
@@ -347,4 +403,3 @@ export default function PracticePage() {
     </div>
   );
 }
-

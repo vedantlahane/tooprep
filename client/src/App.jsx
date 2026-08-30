@@ -17,8 +17,11 @@ import InsightsPage from '@/features/insights/pages/InsightsPage';
 import ProfilePage from '@/features/profile/pages/ProfilePage';
 import SessionHistoryPage from '@/features/profile/pages/SessionHistoryPage';
 import ContentAdminPage from '@/features/content/pages/ContentAdminPage';
+import QuestionsPage from '@/features/questions/pages/QuestionsPage';
+import AdminQuestionsPage from '@/features/questions/pages/AdminQuestionsPage';
 
 import ContentSyncPage from '@/features/content/pages/ContentSyncPage';
+
 
 function App() {
   return (
@@ -146,6 +149,26 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <SessionHistoryPage />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/questions"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <QuestionsPage />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/questions"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <AdminQuestionsPage />
                 </Layout>
               </ProtectedRoute>
             }

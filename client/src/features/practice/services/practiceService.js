@@ -12,5 +12,7 @@ export const practiceService = {
     const params = new URLSearchParams();
     if (topicId) params.append('topic_id', topicId);
     return request('GET', `/practice-sessions?${params}`);
-  }
+  },
+  startTargetedSession: (topicId, questionIds) =>
+    request('POST', '/practice-sessions/targeted', { topic_id: topicId, question_ids: questionIds }),
 };

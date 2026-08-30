@@ -49,6 +49,11 @@ export default function DashboardPage() {
     return data.filter(r => r.subject_name === subjectFilter);
   }, [data, subjectFilter]);
 
+  const biggestGapTopic = useMemo(() => {
+    const overconfident = data.filter(d => d.status === 'OVERCONFIDENT').sort((a, b) => a.gap - b.gap);
+    return overconfident[0] || null;
+  }, [data]);
+
   const groupedByChapter = useMemo(() => {
     const groups = {};
     filtered.forEach(topic => {
@@ -133,6 +138,23 @@ export default function DashboardPage() {
             View Timeline
             <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
           </button>
+        </div>
+      )}
+
+      {biggestGapTopic && (
+        <div
+          onClick={() => navigate(`/topics/${biggestGapTopic.topic_id}`)}
+          className="border border-error/30 bg-error/5 rounded-md p-4 flex items-center gap-4 cursor-pointer hover:bg-error/10 transition-colors"
+        >
+          <span className="material-symbols-outlined text-error text-[28px] flex-shrink-0">warning</span>
+          <div className="flex-1 min-w-0">
+            <span className="text-body-lg text-error font-semibold">Priority: </span>
+            <span className="text-body-lg text-on-surface">{biggestGapTopic.topic_name}</span>
+            <span className="text-body-md text-on-surface-variant ml-2">
+              — Confidence {biggestGapTopic.confidence}/10 vs {biggestGapTopic.evaluation_accuracy}% accuracy
+            </span>
+          </div>
+          <span className="material-symbols-outlined text-error/60 flex-shrink-0">arrow_forward</span>
         </div>
       )}
 

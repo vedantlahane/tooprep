@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { evaluationsService } from '../services/evaluationsService';
 import { topicsService } from '@/features/topics/services/topicsService';
@@ -13,7 +13,7 @@ export default function EvaluationPage() {
   const [topics, setTopics] = useState([]);
   const [selectedTopic, setSelectedTopic] = useState(searchParams.get('topic') || '');
   const [questionCount, setQuestionCount] = useState(15);
-  const [durationMinutes, setDurationMinutes] = useState(30);
+  const [durationSeconds, setDurationSeconds] = useState(1800);
 
   // Evaluation state
   const [evaluation, setEvaluation] = useState(null);
@@ -60,7 +60,7 @@ export default function EvaluationPage() {
       const result = await evaluationsService.startEvaluation(
         selectedTopic,
         questionCount,
-        durationMinutes * 60
+        durationSeconds
       );
       setEvaluation(result.evaluation);
       setQuestions(result.questions);
@@ -115,7 +115,7 @@ export default function EvaluationPage() {
           await evaluationsService.submitEvalAttempt(evaluation.id, {
             question_id: q.id,
             selected_answer: answer,
-            time_spent_seconds: Math.min(timeSpent, durationMinutes * 60)
+            time_spent_seconds: Math.min(timeSpent, durationSeconds)
           });
         }
       }
@@ -131,7 +131,7 @@ export default function EvaluationPage() {
       setError(err.message);
       setSubmitting(false);
     }
-  }, [answers, evaluation, questions, navigate, submitting, durationMinutes]);
+  }, [answers, evaluation, questions, navigate, submitting, durationSeconds]);
 
   const handleTimerExpire = useCallback(() => {
     handleSubmitEvaluation();
@@ -169,12 +169,12 @@ export default function EvaluationPage() {
 
           <div>
             <label className="block text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-3">questions</label>
-            <div className="flex gap-4">
-              {[10, 15, 20].map(n => (
+            <div className="flex flex-wrap gap-3">
+              {[5, 10, 15, 20, 25, 30].map(n => (
                 <button
                   key={n}
                   onClick={() => setQuestionCount(n)}
-                  className={`flex-1 py-4 border-2 text-body-lg font-light transition-all ${
+                  className={`flex-1 min-w-[3.5rem] py-4 border-2 text-body-lg font-light transition-all ${
                     questionCount === n
                       ? 'bg-primary text-white border-primary'
                       : 'bg-surface-dim border-outline-variant text-on-surface hover:border-on-surface'
@@ -188,18 +188,23 @@ export default function EvaluationPage() {
 
           <div>
             <label className="block text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-3">duration</label>
-            <div className="flex gap-4">
-              {[15, 20, 30, 45].map(m => (
+            <div className="flex gap-3">
+              {[
+                { label: '15 min', val: 900 },
+                { label: '30 min', val: 1800 },
+                { label: '45 min', val: 2700 },
+                { label: '60 min', val: 3600 },
+              ].map(({ label, val }) => (
                 <button
-                  key={m}
-                  onClick={() => setDurationMinutes(m)}
+                  key={val}
+                  onClick={() => setDurationSeconds(val)}
                   className={`flex-1 py-4 border-2 text-body-lg font-light transition-all ${
-                    durationMinutes === m
+                    durationSeconds === val
                       ? 'bg-primary text-white border-primary'
                       : 'bg-surface-dim border-outline-variant text-on-surface hover:border-on-surface'
                   }`}
                 >
-                  {m} min
+                  {label}
                 </button>
               ))}
             </div>
@@ -241,7 +246,7 @@ export default function EvaluationPage() {
             evaluation / q{currentIndex + 1} of {questions.length}
           </span>
           <Timer
-            durationSeconds={durationMinutes * 60}
+            durationSeconds={durationSeconds}
             onExpire={handleTimerExpire}
             running={true}
           />

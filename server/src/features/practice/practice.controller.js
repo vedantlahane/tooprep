@@ -27,6 +27,17 @@
 import { practiceService } from './practice.service.js';
 
 export const practiceController = {
+  async startTargetedSession(req, res) {
+    try {
+      const { topic_id, question_ids } = req.body;
+      const data = await practiceService.startTargetedSession(req.user.id, topic_id, question_ids);
+      return res.status(201).json(data);
+    } catch (err) {
+      if (err.statusCode) return res.status(err.statusCode).json({ error: err.message });
+      return res.status(500).json({ error: err.message || 'Server error' });
+    }
+  },
+
   /**
    * Start a new practice session.
    *

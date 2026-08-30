@@ -8,9 +8,5 @@ export const evaluationsService = {
     request('POST', `/evaluations/${evalId}/attempts`, body),
   completeEvaluation: (evalId) =>
     request('POST', `/evaluations/${evalId}/complete`),
-  listEvaluations: (topicId = null) => {
-    const params = new URLSearchParams();
-    if (topicId) params.append('topic_id', topicId);
-    return request('GET', `/evaluations?${params}`);
-  }
+  listEvaluations: (limit = 50) => request('GET', `/evaluations?limit=${limit}`),
 };

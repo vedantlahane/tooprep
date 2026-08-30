@@ -222,7 +222,17 @@ export default function ProfilePage() {
         {profile?.is_admin && (
           <div className="col-span-1 md:col-span-2 acrylic border border-primary/30 p-8 rounded-md mt-4">
             <h3 className="text-label-sm-mono text-primary uppercase tracking-widest mb-6">Administration</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <button
+                onClick={() => navigate('/admin/questions')}
+                className="p-6 border border-outline-variant bg-surface-container hover:border-primary transition-colors text-left rounded-sm group flex gap-4"
+              >
+                <span className="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">quiz</span>
+                <div>
+                  <div className="text-body-lg font-semibold text-on-surface">Question Bank</div>
+                  <div className="text-body-sm text-on-surface-variant mt-1">Manage & verify questions with solutions</div>
+                </div>
+              </button>
               <button
                 onClick={() => navigate('/admin/content')}
                 className="p-6 border border-outline-variant bg-surface-container hover:border-primary transition-colors text-left rounded-sm group flex gap-4"

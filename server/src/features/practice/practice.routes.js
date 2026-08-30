@@ -36,7 +36,9 @@ const router = Router();
  * Creates a session record and selects random verified questions for the topic.
  * Request body: { topic_id: string, question_count?: number }
  * Response: 201 { session, questions } */
+router.post('/targeted', practiceController.startTargetedSession);
 router.post('/', practiceController.startSession);
+
 
 /* GET /api/practice-sessions/:id — Retrieve an existing session.
  * Returns session details (with topic hierarchy) and all recorded attempts.

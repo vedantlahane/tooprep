@@ -22,8 +22,8 @@ export default function SessionHistoryPage() {
         practiceService.listPracticeSessions().catch(() => []),
         evaluationsService.listEvaluations().catch(() => [])
       ]);
-      setPracticeSessions(practice || []);
-      setEvaluations(evals || []);
+      setPracticeSessions(Array.isArray(practice) ? practice : []);
+      setEvaluations(Array.isArray(evals) ? evals : []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -33,8 +33,18 @@ export default function SessionHistoryPage() {
 
   const allSessions = useMemo(() => {
     const combined = [
-      ...practiceSessions.map(s => ({ ...s, type: 'PRACTICE', sessionId: s.id })),
-      ...evaluations.map(e => ({ ...e, type: 'EVALUATION', sessionId: e.id }))
+      ...practiceSessions.map(s => ({
+        ...s,
+        type: 'PRACTICE',
+        sessionId: s.id,
+        topicName: s.topics?.name || s.topic?.name || s.topic_name || 'Practice Session'
+      })),
+      ...evaluations.map(e => ({
+        ...e,
+        type: 'EVALUATION',
+        sessionId: e.id,
+        topicName: e.topics?.name || e.topic?.name || e.topic_name || 'Timed Evaluation'
+      }))
     ];
 
     // Filter
@@ -47,12 +57,9 @@ export default function SessionHistoryPage() {
     if (sortBy === 'DATE_DESC') {
       filtered.sort((a, b) => new Date(b.started_at || b.created_at) - new Date(a.started_at || a.created_at));
     } else if (sortBy === 'ACCURACY_DESC') {
-      filtered.sort((a, b) => (b.summary?.accuracy || 0) - (a.summary?.accuracy || 0));
+      filtered.sort((a, b) => (b.accuracy || b.summary?.accuracy || 0) - (a.accuracy || a.summary?.accuracy || 0));
     } else if (sortBy === 'DURATION_DESC') {
-      const getDuration = (s) => {
-        if (s.type === 'EVALUATION') return s.summary?.duration_seconds || 0;
-        return (s.summary?.total_time_seconds || 0);
-      };
+      const getDuration = (s) => (s.duration_seconds || s.summary?.duration_seconds || s.summary?.total_time_seconds || 0);
       filtered.sort((a, b) => getDuration(b) - getDuration(a));
     }
 
@@ -65,24 +72,24 @@ export default function SessionHistoryPage() {
     const totalSessions = allSessions.length;
     const totalTime = allSessions.reduce((sum, s) => {
       const time = s.type === 'EVALUATION'
-        ? s.summary?.duration_seconds || 0
-        : s.summary?.total_time_seconds || 0;
+        ? (s.duration_seconds || s.summary?.duration_seconds || 0)
+        : (s.summary?.total_time_seconds || 0);
       return sum + time;
     }, 0);
     const totalHours = (totalTime / 3600).toFixed(1);
 
     const accuracies = allSessions
-      .filter(s => s.summary?.accuracy !== null && s.summary?.accuracy !== undefined)
-      .map(s => s.summary.accuracy);
+      .map(s => s.accuracy ?? s.summary?.accuracy)
+      .filter(a => a !== null && a !== undefined);
     const avgAccuracy = accuracies.length > 0
-      ? Math.round(accuracies.reduce((a, b) => a + b) / accuracies.length)
+      ? Math.round(accuracies.reduce((a, b) => a + b, 0) / accuracies.length)
       : 0;
 
     const topics = {};
     allSessions.forEach(s => {
-      const topicName = s.topic?.name || s.topic_name || 'Unknown';
-      if (!topics[topicName]) topics[topicName] = 0;
-      topics[topicName]++;
+      const name = s.topicName || 'Unknown';
+      if (!topics[name]) topics[name] = 0;
+      topics[name]++;
     });
     const topTopics = Object.entries(topics)
       .sort((a, b) => b[1] - a[1])
@@ -91,10 +98,10 @@ export default function SessionHistoryPage() {
 
     const recent7 = allSessions.slice(0, 7);
     const recentAccuracies = recent7
-      .filter(s => s.summary?.accuracy !== null)
-      .map(s => s.summary.accuracy);
+      .map(s => s.accuracy ?? s.summary?.accuracy)
+      .filter(a => a !== null && a !== undefined);
     const recentAvg = recentAccuracies.length > 0
-      ? Math.round(recentAccuracies.reduce((a, b) => a + b) / recentAccuracies.length)
+      ? Math.round(recentAccuracies.reduce((a, b) => a + b, 0) / recentAccuracies.length)
       : null;
 
     return {
@@ -178,7 +185,7 @@ export default function SessionHistoryPage() {
                 <div className={`text-display font-light mb-1 flex items-center gap-2 ${
                   analytics.trend === 'improving' ? 'text-status-aligned' : 'text-on-surface-variant'
                 }`}>
-                  {analytics.recentAvg}%
+                  {analytics.recentAvg !== null ? `${analytics.recentAvg}%` : '—'}
                   {analytics.trend === 'improving' && <span className="material-symbols-outlined text-[20px]">trending_up</span>}
                 </div>
                 <div className="text-body-sm text-on-surface-variant">last 7 sessions</div>
@@ -191,7 +198,7 @@ export default function SessionHistoryPage() {
             <div className="border border-outline-variant bg-surface-container rounded-lg p-6">
               <h3 className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-4">Most Practiced</h3>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                {analytics.topTopics.map((topic, i) => (
+                {analytics.topTopics.map((topic) => (
                   <div key={topic.name} className="p-3 bg-surface-dim rounded-lg text-center border border-outline-variant">
                     <div className="text-headline-md font-light text-primary">{topic.count}</div>
                     <div className="text-body-sm text-on-surface-variant mt-1 line-clamp-2">{topic.name}</div>
@@ -238,99 +245,91 @@ export default function SessionHistoryPage() {
 
           {/* Sessions Timeline */}
           <div className="space-y-3">
-            {allSessions.map((session, idx) => (
-              <div
-                key={`${session.type}-${session.sessionId}`}
-                className="border border-outline-variant bg-surface-container rounded-lg p-5 hover:border-primary transition-colors cursor-pointer group"
-                onClick={() => {
-                  if (session.type === 'EVALUATION') {
-                    navigate(`/results/${session.sessionId}`);
-                  }
-                }}
-              >
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  {/* Left: Type + Topic + Time */}
-                  <div className="flex items-start gap-4 flex-1">
-                    <div className={`px-3 py-2 rounded-lg text-label-sm-mono uppercase tracking-widest font-semibold ${
-                      session.type === 'PRACTICE'
-                        ? 'bg-primary/10 text-primary'
-                        : 'bg-status-overconfident/10 text-status-overconfident'
-                    }`}>
-                      {session.type === 'PRACTICE' ? '⚡ Practice' : '📝 Eval'}
-                    </div>
-                    <div className="flex-1">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/topics/${session.topic_id || session.topic?.id}`);
-                        }}
-                        className="text-body-lg font-semibold text-on-surface hover:text-primary transition-colors"
-                      >
-                        {session.topic?.name || session.topic_name || 'Unknown Topic'}
-                      </button>
-                      <div className="text-body-sm text-on-surface-variant mt-1">
-                        {new Date(session.started_at || session.created_at).toLocaleString('en-IN', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </div>
-                    </div>
-                  </div>
+            {allSessions.map((session) => {
+              const accuracy = session.accuracy ?? session.summary?.accuracy;
+              const isEval = session.type === 'EVALUATION';
 
-                  {/* Right: Stats */}
-                  <div className="flex items-center gap-6">
-                    {/* Accuracy */}
-                    {session.summary?.accuracy !== null && session.summary?.accuracy !== undefined && (
-                      <div className="text-center">
-                        <div className={`text-headline-md font-bold ${
-                          session.summary.accuracy >= 70 ? 'text-status-aligned' :
-                          session.summary.accuracy >= 40 ? 'text-status-weak' : 'text-error'
-                        }`}>
-                          {session.summary.accuracy}%
+              return (
+                <div
+                  key={`${session.type}-${session.sessionId}`}
+                  className="border border-outline-variant bg-surface-container rounded-lg p-5 hover:border-primary transition-colors cursor-pointer group"
+                  onClick={() => {
+                    if (isEval) {
+                      navigate(`/results/${session.sessionId}`);
+                    } else if (session.topic_id) {
+                      navigate(`/topics/${session.topic_id}`);
+                    }
+                  }}
+                >
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    {/* Left: Type + Topic + Time */}
+                    <div className="flex items-start gap-4 flex-1">
+                      <div className={`px-3 py-2 rounded-lg text-label-sm-mono uppercase tracking-widest font-semibold ${
+                        session.type === 'PRACTICE'
+                          ? 'bg-primary/10 text-primary'
+                          : 'bg-status-overconfident/10 text-status-overconfident'
+                      }`}>
+                        {session.type === 'PRACTICE' ? '⚡ Practice' : '📝 Eval'}
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-body-lg font-semibold text-on-surface group-hover:text-primary transition-colors">
+                          {session.topicName}
                         </div>
-                        <div className="text-label-sm-mono text-on-surface-variant uppercase">Accuracy</div>
-                      </div>
-                    )}
-
-                    {/* Questions */}
-                    <div className="text-center">
-                      <div className="text-headline-md font-light text-on-surface">
-                        {session.summary?.total_questions || session.question_count || '—'}
-                      </div>
-                      <div className="text-label-sm-mono text-on-surface-variant uppercase">Questions</div>
-                    </div>
-
-                    {/* Time */}
-                    <div className="text-center">
-                      <div className="text-headline-md font-light text-on-surface">
-                        {session.type === 'EVALUATION'
-                          ? `${Math.floor((session.summary?.duration_seconds || 0) / 60)}m`
-                          : `${Math.round((session.summary?.total_time_seconds || 0) / 60)}m`
-                        }
-                      </div>
-                      <div className="text-label-sm-mono text-on-surface-variant uppercase">Time</div>
-                    </div>
-
-                    {/* Score if evaluation */}
-                    {session.type === 'EVALUATION' && session.summary?.correct_count && (
-                      <div className="text-center">
-                        <div className="text-headline-md font-bold text-primary">
-                          {session.summary.correct_count}/{session.summary.total_questions}
+                        <div className="text-body-sm text-on-surface-variant mt-1">
+                          {new Date(session.started_at || session.created_at).toLocaleString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
                         </div>
-                        <div className="text-label-sm-mono text-on-surface-variant uppercase">Score</div>
                       </div>
-                    )}
+                    </div>
 
-                    <span className="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">
-                      arrow_forward
-                    </span>
+                    {/* Right: Stats */}
+                    <div className="flex items-center gap-6">
+                      {accuracy !== null && accuracy !== undefined && (
+                        <div className="text-center">
+                          <div className={`text-headline-md font-bold ${
+                            accuracy >= 70 ? 'text-status-aligned' :
+                            accuracy >= 40 ? 'text-status-weak' : 'text-error'
+                          }`}>
+                            {accuracy}%
+                          </div>
+                          <div className="text-label-sm-mono text-on-surface-variant uppercase">Accuracy</div>
+                        </div>
+                      )}
+
+                      <div className="text-center">
+                        <div className="text-headline-md font-light text-on-surface">
+                          {session.correct_count !== undefined && session.total_questions !== undefined
+                            ? `${session.correct_count}/${session.total_questions}`
+                            : session.summary?.total_questions || session.question_count || '—'}
+                        </div>
+                        <div className="text-label-sm-mono text-on-surface-variant uppercase">
+                          {session.correct_count !== undefined ? 'Score' : 'Questions'}
+                        </div>
+                      </div>
+
+                      <div className="text-center">
+                        <div className="text-headline-md font-light text-on-surface">
+                          {isEval
+                            ? `${Math.floor((session.duration_seconds || session.summary?.duration_seconds || 0) / 60)}m`
+                            : `${Math.round((session.summary?.total_time_seconds || 0) / 60)}m`
+                          }
+                        </div>
+                        <div className="text-label-sm-mono text-on-surface-variant uppercase">Time</div>
+                      </div>
+
+                      <span className="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">
+                        arrow_forward
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </>
       )}

@@ -30,6 +30,15 @@
 import { evaluationsService } from './evaluations.service.js';
 
 export const evaluationsController = {
+  async listEvaluations(req, res) {
+    try {
+      const data = await evaluationsService.listEvaluations(req.user.id, Number(req.query.limit) || 50);
+      return res.json(data);
+    } catch (err) {
+      return res.status(500).json({ error: err.message || 'Server error' });
+    }
+  },
+
   /**
    * Start a new timed evaluation.
    *

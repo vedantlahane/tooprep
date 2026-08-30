@@ -1,7 +1,8 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { evaluationsService } from '../services/evaluationsService';
 import { confidenceService } from '@/features/confidence/services/confidenceService';
+import { practiceService } from '@/features/practice/services/practiceService';
 import ConfidenceSlider from '@/features/confidence/components/ConfidenceSlider';
 import { MathText } from '@/features/questions/components/QuestionCard';
 
@@ -20,6 +21,9 @@ export default function ResultsPage() {
   const [newConfidence, setNewConfidence] = useState(5);
   const [confidenceSubmitted, setConfidenceSubmitted] = useState(false);
   const [confidenceLoading, setConfidenceLoading] = useState(false);
+
+  // Re-drill state
+  const [reDrillLoading, setReDrillLoading] = useState(false);
 
   useEffect(() => {
     if (!result) {
@@ -50,6 +54,22 @@ export default function ResultsPage() {
       setError(err.message);
     } finally {
       setConfidenceLoading(false);
+    }
+  };
+
+  const handleReDrill = async () => {
+    if (!topicId || mistakes.length === 0) return;
+    setReDrillLoading(true);
+    try {
+      const data = await practiceService.startTargetedSession(
+        topicId,
+        mistakes.map(m => m.question_id)
+      );
+      navigate('/practice', { state: { session: data.session, questions: data.questions } });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setReDrillLoading(false);
     }
   };
 
@@ -177,40 +197,48 @@ export default function ResultsPage() {
 
       {/* Score Cards */}
       {summary && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-          <div className="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant text-center">
-            <div className="text-headline-lg text-primary font-bold">{summary.correct}/{summary.total_questions}</div>
-            <div className="text-label-sm-mono text-on-surface-variant mt-1">Score</div>
-          </div>
-          <div className="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant text-center">
-            <div className={`text-headline-lg font-bold ${
-              summary.accuracy >= 70 ? 'text-tertiary-container' :
-              summary.accuracy >= 40 ? 'text-status-weak' : 'text-error'
-            }`}>
-              {summary.accuracy}%
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3">
+            <div className="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant text-center">
+              <div className="text-headline-lg text-primary font-bold">{summary.correct}/{summary.total_questions}</div>
+              <div className="text-label-sm-mono text-on-surface-variant mt-1">Score</div>
             </div>
-            <div className="text-label-sm-mono text-on-surface-variant mt-1">Accuracy</div>
-          </div>
-          <div className="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant text-center">
-            <div className="text-headline-lg text-on-surface font-bold">{summary.attempt_rate}%</div>
-            <div className="text-label-sm-mono text-on-surface-variant mt-1">Attempt Rate</div>
-          </div>
-          <div className="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant text-center">
-            <div className="text-headline-lg text-on-surface font-bold font-mono">
-              {Math.floor(summary.avg_time_seconds / 60)}:{String(summary.avg_time_seconds % 60).padStart(2, '0')}
+            <div className="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant text-center">
+              <div className={`text-headline-lg font-bold ${
+                summary.accuracy >= 70 ? 'text-tertiary-container' :
+                summary.accuracy >= 40 ? 'text-status-weak' : 'text-error'
+              }`}>
+                {summary.accuracy}%
+              </div>
+              <div className="text-label-sm-mono text-on-surface-variant mt-1">Accuracy</div>
             </div>
-            <div className="text-label-sm-mono text-on-surface-variant mt-1">Avg Time/Q</div>
-          </div>
-          <div className="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant text-center">
-            <div className={`text-headline-lg font-bold ${
-              summary.pyq_accuracy !== null && summary.pyq_accuracy >= 70 ? 'text-tertiary-container' :
-              summary.pyq_accuracy !== null && summary.pyq_accuracy >= 40 ? 'text-status-weak' : 'text-on-surface-variant'
-            }`}>
-              {summary.pyq_accuracy !== null ? `${summary.pyq_accuracy}%` : 'â€”'}
+            <div className="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant text-center">
+              <div className="text-headline-lg text-on-surface font-bold">{summary.attempt_rate}%</div>
+              <div className="text-label-sm-mono text-on-surface-variant mt-1">Attempt Rate</div>
             </div>
-            <div className="text-label-sm-mono text-on-surface-variant mt-1">PYQ Accuracy</div>
+            <div className="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant text-center">
+              <div className="text-headline-lg text-on-surface font-bold font-mono">
+                {Math.floor(summary.avg_time_seconds / 60)}:{String(summary.avg_time_seconds % 60).padStart(2, '0')}
+              </div>
+              <div className="text-label-sm-mono text-on-surface-variant mt-1">Avg Time/Q</div>
+            </div>
+            <div className="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant text-center">
+              <div className={`text-headline-lg font-bold ${
+                summary.pyq_accuracy !== null && summary.pyq_accuracy >= 70 ? 'text-tertiary-container' :
+                summary.pyq_accuracy !== null && summary.pyq_accuracy >= 40 ? 'text-status-weak' : 'text-on-surface-variant'
+              }`}>
+                {summary.pyq_accuracy !== null ? `${summary.pyq_accuracy}%` : '—'}
+              </div>
+              <div className="text-label-sm-mono text-on-surface-variant mt-1">PYQ Accuracy</div>
+            </div>
           </div>
-        </div>
+          {summary.attempt_rate < 100 && (
+            <div className="mb-6 px-4 py-2 bg-error/10 border-l-4 border-error text-error text-body-sm rounded-r-md flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px]">warning</span>
+              <span>You left {summary.total_questions - summary.answered} questions unanswered. In real exams, unattempted questions yield 0 marks — practice pacing to attempt all questions.</span>
+            </div>
+          )}
+        </>
       )}
 
       {/* Difficulty Breakdown */}
@@ -227,7 +255,7 @@ export default function ResultsPage() {
                     diff === 'easy' ? 'text-tertiary-container' :
                     diff === 'medium' ? 'text-status-weak' : 'text-error'
                   }`}>
-                    {d.accuracy !== null ? `${d.accuracy}%` : 'â€”'}
+                    {d.accuracy !== null ? `${d.accuracy}%` : '—'}
                   </div>
                   <div className="text-body-md text-on-surface mt-1 capitalize">{diff}</div>
                   <div className="text-label-sm-mono text-on-surface-variant">{d.correct}/{d.total}</div>
@@ -251,9 +279,19 @@ export default function ResultsPage() {
       {/* Mistakes List */}
       {mistakes.length > 0 && (
         <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm p-5 mb-6">
-          <h3 className="text-label-sm-mono text-on-surface-variant mb-4">
-            MISTAKES ({mistakes.length})
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-label-sm-mono text-on-surface-variant">
+              MISTAKES ({mistakes.length})
+            </h3>
+            <button
+              onClick={handleReDrill}
+              disabled={reDrillLoading}
+              className="px-4 py-2 bg-error text-white text-label-sm-mono uppercase tracking-widest font-semibold hover:bg-error/80 transition-colors rounded-sm flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-[16px]">bolt</span>
+              {reDrillLoading ? 'Starting Drill...' : 'Re-drill Mistakes'}
+            </button>
+          </div>
           <div className="space-y-4">
             {mistakes.map((m, i) => (
               <div key={i} className="p-4 rounded-lg bg-error-container/5 border border-error/10">
@@ -284,6 +322,14 @@ export default function ResultsPage() {
               </div>
             ))}
           </div>
+          <button
+            onClick={handleReDrill}
+            disabled={reDrillLoading}
+            className="w-full mt-6 py-3.5 bg-error text-white text-body-md font-semibold uppercase tracking-widest hover:bg-error/80 transition-colors rounded-sm flex items-center justify-center gap-2"
+          >
+            <span className="material-symbols-outlined text-[20px]">bolt</span>
+            {reDrillLoading ? 'Starting Targeted Session...' : `Practice All ${mistakes.length} Mistakes Now`}
+          </button>
         </div>
       )}
 
