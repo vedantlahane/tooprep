@@ -1,8 +1,8 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const DEMO_MODE = import.meta.env.DEV || String(import.meta.env.VITE_DEMO_AUTH ?? '').toLowerCase() === 'true';
+const DEMO_MODE = String(import.meta.env.VITE_DEMO_AUTH ?? '').toLowerCase() === 'true';
 
 export default function AuthPage() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -188,3 +188,4 @@ export default function AuthPage() {
     </div>
   );
 }
+

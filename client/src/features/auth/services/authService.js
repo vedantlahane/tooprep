@@ -1,6 +1,6 @@
-import { supabase } from '@/shared/lib/supabase';
+﻿import { supabase } from '@/shared/lib/supabase';
 
-const DEMO_MODE = import.meta.env.DEV || String(import.meta.env.VITE_DEMO_AUTH ?? '').toLowerCase() === 'true';
+const DEMO_MODE = String(import.meta.env.VITE_DEMO_AUTH ?? '').toLowerCase() === 'true';
 const DEMO_STORAGE_KEY = 'tooprep-demo-user';
 
 function getStoredDemoUser() {
@@ -85,3 +85,4 @@ export const authService = {
     return session;
   }
 };
+

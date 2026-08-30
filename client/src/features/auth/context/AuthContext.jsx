@@ -2,7 +2,7 @@
 import { supabase } from '@/shared/lib/supabase';
 import { authService } from '../services/authService';
 
-const DEMO_MODE = import.meta.env.DEV || String(import.meta.env.VITE_DEMO_AUTH ?? '').toLowerCase() === 'true';
+const DEMO_MODE = String(import.meta.env.VITE_DEMO_AUTH ?? '').toLowerCase() === 'true';
 
 const AuthContext = createContext(null);
 
@@ -81,4 +81,5 @@ export function useAuth() {
   if (!context) throw new Error('useAuth must be used within AuthProvider');
   return context;
 }
+
 
