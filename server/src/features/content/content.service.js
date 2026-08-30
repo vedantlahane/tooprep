@@ -239,5 +239,26 @@ export const contentService = {
     });
     if (!updated) throw applicationError('Ingestion job changed concurrently; reload and retry', 409);
     return updated;
+  },
+
+  async searchQuestions(queryText, limit = 10) {
+    if (!queryText || queryText.trim() === '') return [];
+    const { embedSearchQuery } = await import('./embedding.provider.js');
+    const { searchQuestionVectors } = await import('./qdrant.repository.js');
+    
+    const vector = await embedSearchQuery(queryText);
+    const searchResults = await searchQuestionVectors(vector, limit);
+    if (!searchResults || searchResults.length === 0) return [];
+    
+    const questionIds = searchResults.map(res => res.payload?.question_id).filter(Boolean);
+    const fullQuestions = await contentRepository.findQuestionsByIds(questionIds);
+    
+    return searchResults.map(res => {
+      const question = fullQuestions.find(q => q.question_id === res.payload?.question_id);
+      return {
+        score: res.score,
+        question: question || res.payload
+      };
+    }).filter(item => item.question);
   }
 };

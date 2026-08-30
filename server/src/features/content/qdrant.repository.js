@@ -52,3 +52,21 @@ export async function upsertQuestionVector({ pointId, vector, payload }) {
   const { collection } = qdrantConfig();
   return request(`/collections/${encodeURIComponent(collection)}/points?wait=true`, { method: 'PUT', body: JSON.stringify({ points: [{ id: pointId, vector, payload }] }) });
 }
+
+export async function searchQuestionVectors(vector, limit = 10, filter = null) {
+  await ensureQuestionCollection();
+  const { collection } = qdrantConfig();
+  const body = {
+    vector,
+    limit,
+    with_payload: true
+  };
+  if (filter) {
+    body.filter = filter;
+  }
+  const response = await request(`/collections/${encodeURIComponent(collection)}/points/search`, {
+    method: 'POST',
+    body: JSON.stringify(body)
+  });
+  return response?.result || [];
+}

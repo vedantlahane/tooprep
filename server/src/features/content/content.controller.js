@@ -77,5 +77,10 @@ export const contentController = {
         req.params.jobId, req.body.stage, req.user.id, req.body.reason
       ));
     } catch (error) { return sendError(res, req, error); }
+  },
+  async searchQuestions(req, res) {
+    try {
+      return res.json(await contentService.searchQuestions(req.query.q, req.query.limit ? Number(req.query.limit) : 10));
+    } catch (error) { return sendError(res, req, error); }
   }
 };

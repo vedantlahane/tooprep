@@ -7,6 +7,7 @@ const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024, files: 1 } });
 router.use(requireAdmin);
 router.post('/questions', contentController.createDraft);
+router.get('/questions/search', contentController.searchQuestions);
 router.get('/questions/:questionId', contentController.getDraft);
 router.post('/questions/:questionId/transitions', contentController.transitionQuestion);
 router.post('/questions/:questionId/publish', contentController.publishQuestion);

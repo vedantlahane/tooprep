@@ -37,6 +37,11 @@ export const contentRepository = {
     return questions.findOne({ question_id: questionId }, { projection: { _id: 0 } });
   },
 
+  async findQuestionsByIds(questionIds) {
+    const { questions } = await collections();
+    return questions.find({ question_id: { $in: questionIds } }, { projection: { _id: 0 } }).toArray();
+  },
+
   async updateQuestionLifecycle(questionId, expectedStatus, status, changes, event) {
     const { questions } = await collections();
     return questions.findOneAndUpdate(

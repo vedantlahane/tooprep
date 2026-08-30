@@ -12,6 +12,8 @@ function Candidate({ candidate, jobId, topics, onReviewed }) {
   const [reason, setReason] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [similarQuestions, setSimilarQuestions] = useState([]);
+  const [searchingSimilar, setSearchingSimilar] = useState(false);
 
   const accept = async () => {
     setSaving(true); setError('');
@@ -35,9 +37,35 @@ function Candidate({ candidate, jobId, topics, onReviewed }) {
     catch (err) { setError(err.message); } finally { setSaving(false); }
   };
 
+  const findSimilar = async () => {
+    setSearchingSimilar(true);
+    try {
+      const results = await api.searchQuestions(questionText, 3);
+      setSimilarQuestions(results);
+    } catch (err) { setError(err.message); } finally { setSearchingSimilar(false); }
+  };
+
   return (
     <article className="border-2 border-outline-variant bg-surface-dim p-5 space-y-4">
-      <div className="text-label-sm-mono uppercase tracking-widest text-primary">page {candidate.source_pages.join(', ')} · q{candidate.source_question_number}</div>
+      <div className="flex justify-between items-center">
+        <div className="text-label-sm-mono uppercase tracking-widest text-primary">page {candidate.source_pages.join(', ')} · q{candidate.source_question_number}</div>
+        <button onClick={findSimilar} disabled={searchingSimilar} className="text-label-sm-mono text-on-surface-variant hover:text-primary uppercase tracking-widest disabled:opacity-50">
+          {searchingSimilar ? 'searching...' : 'find similar'}
+        </button>
+      </div>
+      
+      {similarQuestions.length > 0 && (
+        <div className="bg-surface-container border border-outline-variant p-3 space-y-2">
+          <div className="text-label-sm-mono text-primary uppercase tracking-widest mb-2">potential duplicates</div>
+          {similarQuestions.map((sim, i) => (
+            <div key={i} className="text-body-sm text-on-surface-variant border-l-2 border-primary pl-2">
+              <span className="font-mono mr-2">{(sim.score * 100).toFixed(0)}%</span>
+              {sim.question.question_text || sim.question.content?.question_text}
+            </div>
+          ))}
+        </div>
+      )}
+
       <textarea value={questionText} onChange={e => setQuestionText(e.target.value)} rows="7" className="w-full bg-surface-container border-2 border-outline-variant p-3 text-on-surface outline-none focus:border-primary" />
       <label className="block text-label-sm-mono text-on-surface-variant uppercase tracking-widest">options JSON</label>
       <textarea value={options} onChange={e => setOptions(e.target.value)} rows="3" className="w-full bg-surface-container border-2 border-outline-variant p-3 font-mono text-sm text-on-surface outline-none focus:border-primary" />

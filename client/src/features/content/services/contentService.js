@@ -15,5 +15,7 @@ export const contentService = {
   acceptCandidate: (jobId, candidateKey, draft) =>
     request('POST', `${base}/ingestion-jobs/${jobId}/candidates/${candidateKey}/accept`, draft),
   rejectCandidate: (jobId, candidateKey, reason) =>
-    request('POST', `${base}/ingestion-jobs/${jobId}/candidates/${candidateKey}/reject`, { reason })
+    request('POST', `${base}/ingestion-jobs/${jobId}/candidates/${candidateKey}/reject`, { reason }),
+  searchQuestions: (query, limit = 5) =>
+    request('GET', `${base}/questions/search?q=${encodeURIComponent(query)}&limit=${limit}`)
 };
