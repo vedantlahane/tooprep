@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { profileService } from '../services/profileService';
 import { dashboardService } from '@/features/dashboard/services/dashboardService';
@@ -49,7 +49,7 @@ export default function ProfilePage() {
     switch (status) {
       case 'ALIGNED': return 'text-status-aligned';
       case 'OVERCONFIDENT': return 'text-status-overconfident';
-      case 'UNDERCONFIDENT': return 'text-status-underconfident';
+      case 'UNDERCONFIDENT': return 'text-primary';
       case 'WEAK_ALIGNED': return 'text-status-weak';
       default: return 'text-on-surface-variant';
     }
@@ -57,8 +57,8 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-display text-primary font-light animate-pulse-soft">loading...</div>
+      <div className="flex flex-col items-center justify-center py-32 space-y-4">
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -66,174 +66,186 @@ export default function ProfilePage() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <div className="max-w-4xl mx-auto animate-fade-in">
-      <h2 className="text-display text-on-surface mb-8 font-light lowercase">profile</h2>
+    <div className="max-w-5xl mx-auto animate-fade-in space-y-8 pb-12">
+      <h2 className="text-display text-on-surface font-light lowercase">profile</h2>
 
-      {/* Profile Card */}
-      <div className="bg-surface-dim border-2 border-outline-variant p-6 md:p-8 mb-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
-          <div className="flex items-center gap-6">
-            <div className="w-20 h-20 bg-primary flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-white text-[40px]">person</span>
-            </div>
-            <div>
-              <h3 className="text-headline-lg font-light text-on-surface lowercase">{profile?.display_name || 'student'}</h3>
-              <p className="text-body-lg text-on-surface-variant font-light">{user?.email}</p>
-              {profile?.target_exam_year && (
-                <span className="inline-block mt-2 text-label-sm-mono px-3 py-1 bg-primary/20 text-primary uppercase tracking-widest font-bold">
-                  jee {profile.target_exam_year}
-                </span>
-              )}
-            </div>
+      {/* Profile Header Card */}
+      <div className="acrylic border border-outline-variant rounded-md overflow-hidden">
+        <div className="h-32 bg-gradient-to-r from-primary/20 to-tertiary/20"></div>
+        <div className="p-6 md:p-10 relative">
+          <div className="absolute -top-12 left-6 md:left-10 w-24 h-24 bg-surface border-4 border-surface-dim rounded-md flex items-center justify-center shadow-lg">
+            <span className="material-symbols-outlined text-primary text-[48px]">person</span>
           </div>
           
-          {!editing && (
-            <button
-              onClick={() => setEditing(true)}
-              className="py-3 px-6 border-2 border-primary text-primary text-body-md font-semibold uppercase tracking-widest hover:bg-primary/10 transition-colors whitespace-nowrap"
-            >
-              edit profile
-            </button>
+          <div className="mt-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div>
+              <h3 className="text-headline-lg font-light text-on-surface lowercase">{profile?.display_name || 'Student'}</h3>
+              <p className="text-body-lg text-on-surface-variant font-light mt-1">{user?.email}</p>
+              {profile?.target_exam_year && (
+                <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 bg-primary/10 border border-primary/30 text-primary rounded-sm text-label-sm-mono uppercase tracking-widest">
+                  <span className="material-symbols-outlined text-[16px]">school</span>
+                  JEE {profile.target_exam_year}
+                </div>
+              )}
+            </div>
+
+            {!editing && (
+              <button
+                onClick={() => setEditing(true)}
+                className="px-6 py-2 border border-primary text-primary text-label-sm-mono uppercase tracking-widest hover:bg-primary hover:text-white transition-colors rounded-sm"
+              >
+                Edit Profile
+              </button>
+            )}
+          </div>
+
+          {/* Edit Form */}
+          {editing && (
+            <div className="mt-8 pt-8 border-t border-outline-variant space-y-6 max-w-md animate-fade-in">
+              <div className="space-y-2">
+                <label className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest block">Display Name</label>
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={e => setDisplayName(e.target.value)}
+                  className="w-full px-4 py-3 border border-outline-variant bg-surface-container focus:border-primary text-on-surface outline-none rounded-sm transition-colors"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest block">Target Exam Year</label>
+                <select
+                  value={targetYear}
+                  onChange={e => setTargetYear(parseInt(e.target.value))}
+                  className="w-full px-4 py-3 border border-outline-variant bg-surface-container focus:border-primary text-on-surface outline-none rounded-sm transition-colors"
+                >
+                  {[currentYear, currentYear + 1, currentYear + 2, currentYear + 3].map(y => (
+                    <option key={y} value={y}>JEE {y}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-4 pt-2">
+                <button
+                  onClick={handleSave}
+                  className="flex-1 py-3 bg-primary text-white text-label-sm-mono uppercase tracking-widest hover:brightness-110 transition-all rounded-sm"
+                >
+                  Save Changes
+                </button>
+                <button
+                  onClick={() => setEditing(false)}
+                  className="flex-1 py-3 border border-outline-variant text-on-surface text-label-sm-mono uppercase tracking-widest hover:bg-surface-container transition-colors rounded-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           )}
         </div>
-
-        {editing && (
-          <div className="space-y-6 pt-6 border-t-2 border-surface-container">
-            <div>
-              <label className="block text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-2">display name</label>
-              <input
-                type="text"
-                value={displayName}
-                onChange={e => setDisplayName(e.target.value)}
-                className="w-full max-w-sm px-4 py-3 border-2 border-outline-variant bg-surface-container focus:ring-0 focus:border-primary focus:bg-surface-bright text-body-lg text-on-surface outline-none transition-all"
-              />
-            </div>
-            <div>
-              <label className="block text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-2">target exam year</label>
-              <select
-                value={targetYear}
-                onChange={e => setTargetYear(parseInt(e.target.value))}
-                className="w-full max-w-sm px-4 py-3 border-2 border-outline-variant bg-surface-container focus:ring-0 focus:border-primary focus:bg-surface-bright text-body-lg text-on-surface outline-none transition-all"
-              >
-                {[currentYear, currentYear + 1, currentYear + 2, currentYear + 3].map(y => (
-                  <option key={y} value={y}>JEE {y}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex gap-4 pt-2">
-              <button
-                onClick={handleSave}
-                className="py-3 px-8 bg-primary text-white text-body-md font-semibold uppercase tracking-widest hover:bg-primary-fixed-dim transition-colors"
-              >
-                save
-              </button>
-              <button
-                onClick={() => setEditing(false)}
-                className="py-3 px-8 border-2 border-outline-variant text-body-md text-on-surface uppercase tracking-widest hover:border-on-surface transition-colors"
-              >
-                cancel
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Biggest Gap Insight */}
-      {biggestGap && biggestGap.name && (
-        <div className="bg-surface-dim border-2 border-outline-variant p-6 md:p-8 mb-8">
-          <h3 className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-6 flex items-center gap-2">
-            <span className="material-symbols-outlined text-[20px]">insights</span>
-            biggest confidence gap
-          </h3>
-          <div
-            className="cursor-pointer group transition-colors"
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Biggest Gap Live Tile */}
+        {biggestGap && biggestGap.name && (
+          <div 
             onClick={() => navigate(`/topics/${biggestGap.id}`)}
+            className="metro-tile cursor-pointer col-span-1 md:col-span-2 bg-error text-white p-6 md:p-8 rounded-md relative overflow-hidden group"
           >
-            <p className="text-body-lg text-on-surface-variant font-light mb-1 lowercase">
-              {biggestGap.chapters?.subjects?.name} / {biggestGap.chapters?.name}
-            </p>
-            <h4 className="text-headline-lg font-light text-on-surface mb-6 group-hover:text-primary transition-colors lowercase">{biggestGap.name}</h4>
+            <div className="absolute top-0 right-0 p-8 opacity-20 transform translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform duration-500">
+              <span className="material-symbols-outlined text-[120px]">warning</span>
+            </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-surface-container p-4">
-                <span className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest">confidence</span>
-                <div className="text-headline-lg text-primary font-light mt-1">{biggestGap.confidence}/10</div>
+            <div className="relative z-10">
+              <h3 className="text-label-sm-mono text-white/80 uppercase tracking-widest mb-2 flex items-center gap-2">
+                <span className="material-symbols-outlined text-[18px]">insights</span>
+                Priority Focus Required
+              </h3>
+              
+              <div className="text-body-md text-white/80 lowercase mb-1 mt-6">
+                {biggestGap.chapters?.subjects?.name} &rsaquo; {biggestGap.chapters?.name}
               </div>
-              <div className="bg-surface-container p-4">
-                <span className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest">eval accuracy</span>
-                <div className="text-headline-lg text-on-surface font-light mt-1">{biggestGap.evaluation_accuracy}%</div>
-              </div>
-              <div className="bg-surface-container p-4 border-l-4 border-status-overconfident">
-                <span className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest">gap</span>
-                <div className={`text-headline-lg font-light mt-1 ${getGapColor(biggestGap.status)}`}>
-                  {biggestGap.gap >= 0 ? `+${biggestGap.gap}` : biggestGap.gap}
+              <h4 className="text-headline-lg font-light lowercase mb-8">{biggestGap.name}</h4>
+              
+              <div className="grid grid-cols-3 gap-4 border-t border-white/20 pt-6">
+                <div>
+                  <span className="text-label-sm-mono text-white/60 uppercase tracking-widest">Confidence</span>
+                  <div className="text-headline-md font-light mt-1">{biggestGap.confidence}/10</div>
                 </div>
-              </div>
-              <div className="bg-surface-container p-4">
-                <span className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest">status</span>
-                <div className={`text-headline-md font-semibold mt-2 uppercase tracking-widest ${getGapColor(biggestGap.status)}`}>
-                  {biggestGap.status?.replace('_', ' ')}
+                <div>
+                  <span className="text-label-sm-mono text-white/60 uppercase tracking-widest">Accuracy</span>
+                  <div className="text-headline-md font-light mt-1">{biggestGap.evaluation_accuracy}%</div>
+                </div>
+                <div>
+                  <span className="text-label-sm-mono text-white/60 uppercase tracking-widest">Gap</span>
+                  <div className="text-headline-md font-bold mt-1">
+                    {biggestGap.gap >= 0 ? `+${biggestGap.gap}` : biggestGap.gap}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-        {/* Quick Actions */}
-        <div className="bg-surface-dim border-2 border-outline-variant p-6 md:p-8">
-          <h3 className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-6">quick actions</h3>
-          <div className="flex flex-col gap-4">
-            <button
-              onClick={() => navigate('/practice')}
-              className="p-4 border-2 border-primary text-left flex items-start gap-4 hover:bg-primary/10 transition-colors"
-            >
-              <span className="material-symbols-outlined text-primary text-[32px]">school</span>
-              <div>
-                <div className="text-body-lg font-semibold text-primary uppercase tracking-widest">practice</div>
-                <div className="text-body-md text-on-surface-variant font-light lowercase mt-1">untimed, with solutions</div>
-              </div>
-            </button>
-            <button
-              onClick={() => navigate('/evaluate')}
-              className="p-4 border-2 border-error text-left flex items-start gap-4 hover:bg-error/10 transition-colors"
-            >
-              <span className="material-symbols-outlined text-error text-[32px]">quiz</span>
-              <div>
-                <div className="text-body-lg font-semibold text-error uppercase tracking-widest">evaluation</div>
-                <div className="text-body-md text-on-surface-variant font-light lowercase mt-1">timed, exam conditions</div>
-              </div>
-            </button>
+        {/* Action Tiles */}
+        <div 
+          onClick={() => navigate('/practice')}
+          className="metro-tile cursor-pointer bg-tertiary text-white p-8 rounded-md flex flex-col justify-between aspect-square"
+        >
+          <span className="material-symbols-outlined text-[48px] mb-6">school</span>
+          <div>
+            <h3 className="text-headline-md font-light lowercase">Practice Mode</h3>
+            <p className="text-body-md text-white/80 font-light mt-2">Untimed sessions with immediate solutions to build foundation.</p>
           </div>
         </div>
 
-        {/* Admin link */}
+        <div 
+          onClick={() => navigate('/evaluate')}
+          className="metro-tile cursor-pointer bg-primary text-white p-8 rounded-md flex flex-col justify-between aspect-square"
+        >
+          <span className="material-symbols-outlined text-[48px] mb-6">quiz</span>
+          <div>
+            <h3 className="text-headline-md font-light lowercase">Evaluation</h3>
+            <p className="text-body-md text-white/80 font-light mt-2">Timed, exam-like conditions to measure your true accuracy.</p>
+          </div>
+        </div>
+
+        {/* Admin Section */}
         {profile?.is_admin && (
-          <div className="bg-surface-dim border-2 border-outline-variant p-6 md:p-8">
-            <h3 className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-6">admin</h3>
-            <button
-              onClick={() => navigate('/admin/content')}
-              className="w-full p-4 border-2 border-tertiary-container text-left flex items-start gap-4 hover:bg-tertiary-container/10 transition-colors"
-            >
-              <span className="material-symbols-outlined text-tertiary-container text-[32px]">add_circle</span>
-              <div>
-                <div className="text-body-lg font-semibold text-tertiary-container uppercase tracking-widest">manage questions</div>
-                <div className="text-body-md text-on-surface-variant font-light lowercase mt-1">add questions to the bank</div>
-              </div>
-            </button>
+          <div className="col-span-1 md:col-span-2 acrylic border border-primary/30 p-8 rounded-md mt-4">
+            <h3 className="text-label-sm-mono text-primary uppercase tracking-widest mb-6">Administration</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <button
+                onClick={() => navigate('/admin/content')}
+                className="p-6 border border-outline-variant bg-surface-container hover:border-primary transition-colors text-left rounded-sm group flex gap-4"
+              >
+                <span className="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">upload_file</span>
+                <div>
+                  <div className="text-body-lg font-semibold text-on-surface">Content Ops</div>
+                  <div className="text-body-sm text-on-surface-variant mt-1">Upload PDFs and verify extracted candidates</div>
+                </div>
+              </button>
+              <button
+                onClick={() => navigate('/admin/syncs')}
+                className="p-6 border border-outline-variant bg-surface-container hover:border-primary transition-colors text-left rounded-sm group flex gap-4"
+              >
+                <span className="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">sync_problem</span>
+                <div>
+                  <div className="text-body-lg font-semibold text-on-surface">Sync Status</div>
+                  <div className="text-body-sm text-on-surface-variant mt-1">Monitor Vector DB synchronization</div>
+                </div>
+              </button>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Sign Out */}
-      <button
-        onClick={signOut}
-        className="py-4 px-8 border-2 border-outline-variant text-on-surface text-body-md font-semibold uppercase tracking-widest hover:border-on-surface transition-colors"
-      >
-        sign out
-      </button>
+      <div className="pt-12 pb-8 flex justify-center">
+        <button
+          onClick={signOut}
+          className="flex items-center gap-2 px-6 py-3 border border-outline-variant text-on-surface-variant text-label-sm-mono uppercase tracking-widest hover:text-error hover:border-error transition-colors rounded-sm"
+        >
+          <span className="material-symbols-outlined text-[18px]">logout</span>
+          Sign Out
+        </button>
+      </div>
     </div>
   );
 }
-
