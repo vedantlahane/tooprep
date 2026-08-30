@@ -5,6 +5,7 @@ import Layout from '@/shared/components/Layout';
 import AuthPage from '@/features/auth/pages/AuthPage';
 import OnboardingPage from '@/features/auth/pages/OnboardingPage';
 import DashboardPage from '@/features/dashboard/pages/DashboardPage';
+import StudyPlanPage from '@/features/dashboard/pages/StudyPlanPage';
 import TopicDetailPage from '@/features/topics/pages/TopicDetailPage';
 import PracticePage from '@/features/practice/pages/PracticePage';
 import EvaluationPage from '@/features/evaluations/pages/EvaluationPage';
@@ -35,6 +36,16 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <DashboardPage />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/plan"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <StudyPlanPage />
                 </Layout>
               </ProtectedRoute>
             }

@@ -12,7 +12,6 @@ export default function TopicDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Confidence rating
   const [showConfidenceInput, setShowConfidenceInput] = useState(false);
   const [newConfidence, setNewConfidence] = useState(5);
   const [confidenceLoading, setConfidenceLoading] = useState(false);
@@ -49,7 +48,7 @@ export default function TopicDetailPage() {
   };
 
   const formatDate = (dateStr) => {
-    if (!dateStr) return 'â€”';
+    if (!dateStr) return '—';
     return new Date(dateStr).toLocaleDateString('en-IN', {
       day: 'numeric', month: 'short', year: 'numeric',
     });
@@ -65,6 +64,15 @@ export default function TopicDetailPage() {
     }
   };
 
+  const getRecommendation = (status, gap) => {
+    if (status === 'OVERCONFIDENT') return 'Your confidence is higher than your actual performance. Do a short foundation practice set before your next evaluation.';
+    if (status === 'WEAK_ALIGNED') return 'You are close, but inconsistent. Focus on the weakest subtopics and retest at the same chapter level.';
+    if (status === 'UNDERCONFIDENT') return 'You are stronger than you think. Use one timed eval to confirm the feeling and then move on.';
+    if (status === 'ALIGNED') return 'This topic is stable. Keep a maintenance cycle and review one mixed set every few days.';
+    if (status === 'INSUFFICIENT_DATA') return 'Not enough evidence yet. Start with a small practice round and then take a timed evaluation to calibrate.';
+    return 'Increase exposure to this topic with a focused practice block and a short evaluation.';
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -78,10 +86,11 @@ export default function TopicDetailPage() {
   }
 
   const { topic, confidence_history, evaluation_history } = data;
-  const confidencePercent = topic.confidence ? (topic.confidence / 10) * 100 : null;
+  const confidenceTrend = confidence_history || [];
+  const maxTrend = Math.max(10, ...confidenceTrend.map(item => item.confidence || 0), topic.confidence || 0);
 
   return (
-    <div className="animate-fade-in max-w-4xl">
+    <div className="animate-fade-in max-w-5xl">
       <button
         onClick={() => navigate('/')}
         className="flex items-center gap-2 text-body-md text-on-surface-variant hover:text-on-surface mb-6 uppercase tracking-widest"
@@ -100,19 +109,19 @@ export default function TopicDetailPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-10">
         <div className="p-6 bg-primary text-on-primary">
           <div className="text-display font-light mb-1">
-            {topic.confidence ? `${topic.confidence}` : 'â€”'}
+            {topic.confidence ? `${topic.confidence}` : '—'}
           </div>
           <div className="text-label-sm-mono opacity-70">CONFIDENCE</div>
         </div>
         <div className="p-6 bg-surface-container-high text-on-surface">
           <div className="text-display font-light mb-1">
-            {topic.evaluation_accuracy !== null ? `${topic.evaluation_accuracy}%` : 'â€”'}
+            {topic.evaluation_accuracy !== null ? `${topic.evaluation_accuracy}%` : '—'}
           </div>
           <div className="text-label-sm-mono text-on-surface-variant">EVAL ACCURACY</div>
         </div>
         <div className="p-6 bg-surface-container-high text-on-surface">
           <div className={`text-display font-light ${getStatusColor(topic.status)}`}>
-            {topic.gap !== null ? (topic.gap >= 0 ? `+${topic.gap}` : topic.gap) : 'â€”'}
+            {topic.gap !== null ? (topic.gap >= 0 ? `+${topic.gap}` : topic.gap) : '—'}
           </div>
           <div className="text-label-sm-mono text-on-surface-variant">PERFORMANCE GAP</div>
         </div>
@@ -141,6 +150,14 @@ export default function TopicDetailPage() {
         </div>
       )}
 
+      <div className="mb-10 rounded-md border border-outline-variant bg-surface-container p-5">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-label-sm-mono uppercase tracking-[0.18em] text-on-surface-variant">study recommendation</h3>
+          <span className={`text-label-sm-mono uppercase tracking-[0.18em] ${getStatusColor(topic.status)}`}>{topic.status?.replace('_', ' ')}</span>
+        </div>
+        <p className="text-body-lg text-on-surface leading-relaxed">{getRecommendation(topic.status, topic.gap)}</p>
+      </div>
+
       <div className="flex gap-4 mb-12">
         <button
           onClick={() => navigate(`/practice?topic=${id}`)}
@@ -158,16 +175,61 @@ export default function TopicDetailPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div>
-          <h3 className="text-headline-md font-light mb-4">history</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+        <div className="border border-outline-variant bg-surface-container rounded-md p-5">
+          <h3 className="text-headline-md font-light mb-4">confidence trend</h3>
+          {confidenceTrend.length > 0 ? (
+            <div className="flex h-36 items-end gap-2 pt-4">
+              {confidenceTrend.map((point, index) => (
+                <div key={point.id || index} className="flex-1 flex flex-col items-center gap-2">
+                  <div className="w-full h-full flex items-end justify-center">
+                    <div
+                      className="w-full rounded-t-sm bg-primary/80"
+                      style={{ height: `${Math.max(12, (point.confidence / maxTrend) * 100)}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] text-on-surface-variant uppercase tracking-widest">
+                    {new Date(point.recorded_at).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-body-md text-on-surface-variant">No confidence history yet.</p>
+          )}
+        </div>
+
+        <div className="border border-outline-variant bg-surface-container rounded-md p-5">
+          <h3 className="text-headline-md font-light mb-4">metrics</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-4 bg-surface-dim">
+              <div className="text-headline-md font-light">{topic.questions_attempted || 0}</div>
+              <div className="text-label-sm-mono text-on-surface-variant">ATTEMPTED</div>
+            </div>
+            <div className="p-4 bg-surface-dim">
+              <div className="text-headline-md font-light">
+                {topic.pyq_accuracy !== null ? `${topic.pyq_accuracy}%` : '—'}
+              </div>
+              <div className="text-label-sm-mono text-on-surface-variant">PYQ ACCURACY</div>
+            </div>
+            <div className="p-4 bg-surface-dim col-span-2">
+              <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-2">last practiced</div>
+              <div className="text-body-lg text-on-surface">{formatDate(topic.last_practiced_at)}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-8">
+        <div className="border border-outline-variant bg-surface-container rounded-md p-5">
+          <h3 className="text-headline-md font-light mb-4">evaluation history</h3>
           {evaluation_history && evaluation_history.length > 0 ? (
             <div className="space-y-2">
               {evaluation_history.map((ev, i) => (
                 <div
                   key={ev.id || i}
                   onClick={() => navigate(`/results/${ev.id}`)}
-                  className="flex items-center justify-between p-4 bg-surface-container-high hover:bg-surface-variant cursor-pointer transition-colors"
+                  className="flex items-center justify-between p-4 bg-surface-dim hover:bg-surface-bright cursor-pointer transition-colors rounded-sm"
                 >
                   <div className="flex items-center gap-4">
                     <span className="text-headline-md font-light w-16">
@@ -182,24 +244,8 @@ export default function TopicDetailPage() {
               ))}
             </div>
           ) : (
-            <p className="text-body-md text-on-surface-variant">no evaluations yet.</p>
+            <p className="text-body-md text-on-surface-variant">No evaluations yet.</p>
           )}
-        </div>
-
-        <div>
-          <h3 className="text-headline-md font-light mb-4">metrics</h3>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="p-4 bg-surface-container-high">
-              <div className="text-headline-md font-light">{topic.questions_attempted || 0}</div>
-              <div className="text-label-sm-mono text-on-surface-variant">ATTEMPTED</div>
-            </div>
-            <div className="p-4 bg-surface-container-high">
-              <div className="text-headline-md font-light">
-                {topic.pyq_accuracy !== null ? `${topic.pyq_accuracy}%` : 'â€”'}
-              </div>
-              <div className="text-label-sm-mono text-on-surface-variant">PYQ ACCURACY</div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
