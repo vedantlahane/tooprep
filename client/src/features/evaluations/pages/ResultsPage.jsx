@@ -76,6 +76,38 @@ export default function ResultsPage() {
   const mistakes = result?.mistakes || [];
   const diffBreakdown = summary?.difficulty_breakdown;
 
+  const recommendation = (() => {
+    if (!summary) return null;
+
+    if (summary.accuracy < 45) {
+      return {
+        title: 'Reset fundamentals first',
+        tone: 'error',
+        description: 'This topic is currently weak. Start with short foundation practice and only return to timed tests after your accuracy climbs above 60%.',
+        cta: 'Practice foundation',
+        target: '/practice'
+      };
+    }
+
+    if (summary.accuracy < 70) {
+      return {
+        title: 'Focus on consistency, not speed',
+        tone: 'primary',
+        description: 'You have enough base knowledge to improve quickly. Revisit the missed concepts with targeted practice and then re-evaluate in 24–48 hours.',
+        cta: 'Take a targeted drill',
+        target: '/practice'
+      };
+    }
+
+    return {
+      title: 'Strong grasp—tighten the edges',
+      tone: 'success',
+      description: 'Your scores indicate solid command. Use the next session to push speed and reduce silly mistakes, then schedule a timed check on the same topic.',
+      cta: 'Re-test this topic',
+      target: '/evaluate'
+    };
+  })();
+
   return (
     <div className="max-w-3xl mx-auto animate-fade-in">
       {/* POST_EVALUATION Confidence Re-Rating Prompt */}
@@ -118,6 +150,30 @@ export default function ResultsPage() {
 
       {/* Results Header */}
       <h2 className="text-display text-on-surface mb-6">Evaluation Results</h2>
+
+      {recommendation && (
+        <div className={`mb-6 rounded-xl border p-6 ${
+          recommendation.tone === 'error'
+            ? 'border-error bg-error/10 text-error'
+            : recommendation.tone === 'primary'
+              ? 'border-primary bg-primary/5 text-primary'
+              : 'border-status-aligned bg-status-aligned/10 text-status-aligned'
+        }`}>
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <div className="text-label-sm-mono uppercase tracking-widest">Next recommendation</div>
+              <div className="mt-2 text-headline-md">{recommendation.title}</div>
+              <p className="mt-2 text-body-md max-w-2xl">{recommendation.description}</p>
+            </div>
+            <button
+              onClick={() => navigate(recommendation.target, { state: topicId ? { topic: topicId } : undefined })}
+              className="px-4 py-3 rounded-lg border border-current bg-white/10 text-body-md font-semibold hover:opacity-90 transition-colors"
+            >
+              {recommendation.cta}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Score Cards */}
       {summary && (
