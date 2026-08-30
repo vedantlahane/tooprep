@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -14,6 +14,17 @@ export default function AuthPage() {
 
   const { signIn, signUp, signInWithGoogle, user } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Catch OAuth callback errors (e.g., from Supabase redirect mismatch)
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const hashError = hashParams.get('error_description') || hashParams.get('error');
+    if (hashError) {
+      setError(decodeURIComponent(hashError).replace(/\+/g, ' '));
+      // Clean up the URL
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, []);
 
   if (user) return <Navigate to="/" replace />;
 
