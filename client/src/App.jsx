@@ -13,6 +13,8 @@ import InsightsPage from '@/features/insights/pages/InsightsPage';
 import ProfilePage from '@/features/profile/pages/ProfilePage';
 import ContentAdminPage from '@/features/content/pages/ContentAdminPage';
 
+import ContentSyncPage from '@/features/content/pages/ContentSyncPage';
+
 function App() {
   return (
     <AuthProvider>
@@ -100,6 +102,10 @@ function App() {
           <Route
             path="/admin/content"
             element={<ProtectedRoute><Layout><ContentAdminPage /></Layout></ProtectedRoute>}
+          />
+          <Route
+            path="/admin/syncs"
+            element={<ProtectedRoute><Layout><ContentSyncPage /></Layout></ProtectedRoute>}
           />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

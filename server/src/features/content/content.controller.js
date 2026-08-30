@@ -82,5 +82,15 @@ export const contentController = {
     try {
       return res.json(await contentService.searchQuestions(req.query.q, req.query.limit ? Number(req.query.limit) : 10));
     } catch (error) { return sendError(res, req, error); }
+  },
+  async listFailedSyncs(req, res) {
+    try {
+      return res.json(await contentService.listFailedSyncs());
+    } catch (error) { return sendError(res, req, error); }
+  },
+  async retrySync(req, res) {
+    try {
+      return res.json(await contentService.retrySync(req.body.type, req.body.id, req.user.id));
+    } catch (error) { return sendError(res, req, error); }
   }
 };

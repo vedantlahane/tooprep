@@ -260,5 +260,29 @@ export const contentService = {
         question: question || res.payload
       };
     }).filter(item => item.question);
+  },
+
+  async listFailedSyncs() {
+    const { listFailedSupabaseSyncs } = await import('./publication.repository.js');
+    const [supabase, vector] = await Promise.all([
+      listFailedSupabaseSyncs(),
+      contentRepository.listFailedVectorSyncs()
+    ]);
+    return { supabase, vector };
+  },
+
+  async retrySync(type, id, actorId) {
+    if (type === 'SUPABASE') {
+      const { retrySupabaseSync } = await import('./publication.repository.js');
+      const retried = await retrySupabaseSync(id);
+      if (!retried) throw applicationError('Failed to requeue Supabase sync', 404);
+      return retried;
+    } else if (type === 'VECTOR') {
+      const retried = await contentRepository.retryVectorSync(id, actorId);
+      if (!retried) throw applicationError('Failed to requeue Vector sync or question not found', 404);
+      return retried;
+    } else {
+      throw applicationError('Invalid sync type', 400);
+    }
   }
 };

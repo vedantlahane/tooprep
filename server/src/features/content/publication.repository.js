@@ -50,3 +50,24 @@ export async function markSupabaseSync(questionId, version, status, error = null
     }, { onConflict: 'sync_key' });
   if (syncError) throw new Error(`Unable to record publication sync: ${syncError.message}`);
 }
+
+export async function listFailedSupabaseSyncs() {
+  const { data, error } = await supabaseAdmin
+    .from('content_sync_events')
+    .select('*')
+    .eq('status', 'FAILED')
+    .order('updated_at', { ascending: false });
+  if (error) throw new Error(`Unable to fetch failed syncs: ${error.message}`);
+  return data;
+}
+
+export async function retrySupabaseSync(syncKey) {
+  const { data, error } = await supabaseAdmin
+    .from('content_sync_events')
+    .update({ status: 'PENDING', next_attempt_at: new Date().toISOString() })
+    .eq('sync_key', syncKey)
+    .select()
+    .single();
+  if (error) throw new Error(`Unable to retry sync: ${error.message}`);
+  return data;
+}

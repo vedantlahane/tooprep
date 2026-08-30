@@ -112,6 +112,30 @@ export const contentRepository = {
     );
   },
 
+  async listFailedVectorSyncs() {
+    const { questions } = await collections();
+    return questions.find({ 'synchronization.vector.status': 'FAILED' }, { projection: { _id: 0 } })
+      .sort({ 'synchronization.vector.failed_at': -1 }).toArray();
+  },
+
+  async retryVectorSync(questionId, actorId) {
+    const { questions } = await collections();
+    const now = new Date();
+    return questions.findOneAndUpdate(
+      { question_id: questionId, 'synchronization.vector.status': 'FAILED' },
+      {
+        $set: {
+          'synchronization.vector.status': 'PENDING',
+          'synchronization.vector.next_attempt_at': now,
+          'synchronization.vector.lease': null,
+          updated_at: now
+        },
+        $push: { audit_history: { event: 'VECTOR_INDEX_RETRY_QUEUED', actor_id: actorId, occurred_at: now } }
+      },
+      { returnDocument: 'after', projection: { _id: 0 } }
+    );
+  },
+
   async insertJob(document) {
     const { jobs } = await collections();
     await jobs.insertOne(document);

@@ -19,5 +19,7 @@ router.get('/ingestion-jobs/:jobId/candidates', contentController.listCandidates
 router.post('/ingestion-jobs/:jobId/candidates/:candidateKey/accept', contentController.acceptCandidate);
 router.post('/ingestion-jobs/:jobId/candidates/:candidateKey/reject', contentController.rejectCandidate);
 router.post('/ingestion-jobs/:jobId/transitions', contentController.transitionIngestionJob);
+router.get('/syncs/failed', contentController.listFailedSyncs);
+router.post('/syncs/retry', contentController.retrySync);
 
 export default router;
