@@ -17,5 +17,7 @@ export const contentService = {
   rejectCandidate: (jobId, candidateKey, reason) =>
     request('POST', `${base}/ingestion-jobs/${jobId}/candidates/${candidateKey}/reject`, { reason }),
   searchQuestions: (query, limit = 5) =>
-    request('GET', `${base}/questions/search?q=${encodeURIComponent(query)}&limit=${limit}`)
+    request('GET', `${base}/questions/search?q=${encodeURIComponent(query)}&limit=${limit}`),
+  getFailedSyncs: () => request('GET', `${base}/syncs/failed`),
+  retrySync: (type, id) => request('POST', `${base}/syncs/retry`, { type, id })
 };

@@ -1,19 +1,20 @@
-﻿import { useEffect, useState } from 'react';
-import { request } from '@/shared/lib/apiClient';
+import { useEffect, useState } from 'react';
+import { contentService } from '../services/contentService';
 
 export default function ContentSyncPage() {
   const [failedSyncs, setFailedSyncs] = useState({ supabase: [], vector: [] });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [retrying, setRetrying] = useState({});
+  const [error, setError] = useState(null);
+  const [retrying, setRetrying] = useState(null);
 
   const loadSyncs = async () => {
     setLoading(true);
     try {
-      const data = await request('GET', '/admin/content/syncs/failed');
+      const data = await contentService.getFailedSyncs();
       setFailedSyncs(data);
+      setError(null);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to load sync ops');
     } finally {
       setLoading(false);
     }
@@ -24,15 +25,14 @@ export default function ContentSyncPage() {
   }, []);
 
   const retry = async (type, id) => {
-    const key = `${type}:${id}`;
-    setRetrying(prev => ({ ...prev, [key]: true }));
+    setRetrying(`${type}-${id}`);
     try {
-      await request('POST', '/admin/content/syncs/retry', { type, id });
+      await contentService.retrySync(type, id);
       await loadSyncs();
     } catch (err) {
-      alert(`Retry failed: ${err.message}`);
+      setError(err.message || 'Retry failed');
     } finally {
-      setRetrying(prev => ({ ...prev, [key]: false }));
+      setRetrying(null);
     }
   };
 
