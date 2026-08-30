@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { dashboardService } from '@/features/dashboard/services/dashboardService';
+import QuickDrillModal from '@/features/practice/components/QuickDrillModal';
 
 export default function InsightsPage() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const [drillTopic, setDrillTopic] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -168,24 +170,32 @@ export default function InsightsPage() {
                 {insights.overconfident.slice(0, 5).map(t => (
                   <div
                     key={t.topic_id}
-                    onClick={() => navigate(`/topics/${t.topic_id}`)}
-                    className="flex flex-col p-4 bg-surface-container hover:bg-error/20 border-l-4 border-error cursor-pointer transition-colors rounded-r-sm"
+                    className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 p-4 bg-surface-container hover:bg-error/20 border-l-4 border-error cursor-pointer transition-colors rounded-r-sm group"
                   >
-                    <div className="mb-2">
+                    <div
+                      onClick={() => navigate(`/topics/${t.topic_id}`)}
+                      className="flex-1"
+                    >
                       <span className="text-body-lg font-semibold text-on-surface">{t.topic_name}</span>
                       <span className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mt-1 block">{t.subject_name} &rsaquo; {t.chapter_name}</span>
+                      <div className="flex gap-4 mt-2">
+                        <div className="bg-surface-dim px-3 py-1 rounded-sm text-label-sm-mono uppercase">
+                          <span className="text-on-surface-variant mr-2">Conf:</span><span className="text-primary font-bold">{t.confidence}/10</span>
+                        </div>
+                        <div className="bg-surface-dim px-3 py-1 rounded-sm text-label-sm-mono uppercase">
+                          <span className="text-on-surface-variant mr-2">Eval:</span><span className="text-on-surface font-bold">{t.evaluation_accuracy}%</span>
+                        </div>
+                        <div className="bg-error/20 px-3 py-1 rounded-sm text-label-sm-mono uppercase">
+                          <span className="text-error font-bold">Gap: {t.gap}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex gap-4 mt-2">
-                      <div className="bg-surface-dim px-3 py-1 rounded-sm text-label-sm-mono uppercase">
-                        <span className="text-on-surface-variant mr-2">Conf:</span><span className="text-primary font-bold">{t.confidence}/10</span>
-                      </div>
-                      <div className="bg-surface-dim px-3 py-1 rounded-sm text-label-sm-mono uppercase">
-                        <span className="text-on-surface-variant mr-2">Eval:</span><span className="text-on-surface font-bold">{t.evaluation_accuracy}%</span>
-                      </div>
-                      <div className="bg-error/20 px-3 py-1 rounded-sm text-label-sm-mono uppercase">
-                        <span className="text-error font-bold">Gap: {t.gap}</span>
-                      </div>
-                    </div>
+                    <button
+                      onClick={() => setDrillTopic(t)}
+                      className="px-4 py-2 bg-error/10 border border-error text-error text-label-sm-mono uppercase tracking-widest hover:bg-error/20 transition-colors rounded-sm font-semibold"
+                    >
+                      drill now
+                    </button>
                   </div>
                 ))}
               </div>
@@ -219,6 +229,14 @@ export default function InsightsPage() {
           )}
         </div>
       </div>
+
+      <QuickDrillModal
+        topicId={drillTopic?.topic_id}
+        topicName={drillTopic?.topic_name}
+        isOpen={!!drillTopic}
+        onClose={() => setDrillTopic(null)}
+        onComplete={() => loadData()}
+      />
     </div>
   );
 }

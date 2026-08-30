@@ -8,4 +8,9 @@ export const practiceService = {
     request('POST', `/practice-sessions/${sessionId}/attempts`, body),
   completePractice: (sessionId) =>
     request('POST', `/practice-sessions/${sessionId}/complete`),
+  listPracticeSessions: (topicId = null) => {
+    const params = new URLSearchParams();
+    if (topicId) params.append('topic_id', topicId);
+    return request('GET', `/practice-sessions?${params}`);
+  }
 };

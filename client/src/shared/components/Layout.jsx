@@ -2,10 +2,14 @@ import { Link, useLocation } from 'react-router-dom';
 
 const navItems = [
   { path: '/', label: 'map', icon: 'map' },
+  { path: '/timeline', label: 'timeline', icon: 'schedule' },
+  { path: '/subjects', label: 'subjects', icon: 'category' },
+  { path: '/trends', label: 'trends', icon: 'trending_up' },
   { path: '/plan', label: 'plan', icon: 'task_alt' },
   { path: '/practice', label: 'practice', icon: 'school' },
   { path: '/evaluate', label: 'evaluate', icon: 'quiz' },
   { path: '/insights', label: 'insights', icon: 'analytics' },
+  { path: '/history', label: 'history', icon: 'history' },
   { path: '/profile', label: 'profile', icon: 'person' },
 ];
 

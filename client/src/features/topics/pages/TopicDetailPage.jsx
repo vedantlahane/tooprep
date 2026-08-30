@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { topicsService } from '../services/topicsService';
 import { confidenceService } from '@/features/confidence/services/confidenceService';
 import ConfidenceSlider from '@/features/confidence/components/ConfidenceSlider';
+import QuickDrillModal from '@/features/practice/components/QuickDrillModal';
 
 export default function TopicDetailPage() {
   const { id } = useParams();
@@ -15,6 +16,8 @@ export default function TopicDetailPage() {
   const [showConfidenceInput, setShowConfidenceInput] = useState(false);
   const [newConfidence, setNewConfidence] = useState(5);
   const [confidenceLoading, setConfidenceLoading] = useState(false);
+  
+  const [showDrill, setShowDrill] = useState(false);
 
   useEffect(() => {
     loadTopic();
@@ -158,7 +161,14 @@ export default function TopicDetailPage() {
         <p className="text-body-lg text-on-surface leading-relaxed">{getRecommendation(topic.status, topic.gap)}</p>
       </div>
 
-      <div className="flex gap-4 mb-12">
+      <div className="flex gap-3 mb-12 flex-wrap md:flex-nowrap">
+        <button
+          onClick={() => setShowDrill(true)}
+          className="flex-1 py-4 border-2 border-status-aligned text-status-aligned text-body-md font-semibold uppercase tracking-widest hover:bg-status-aligned/10 transition-colors flex items-center justify-center gap-2"
+        >
+          <span className="material-symbols-outlined">bolt</span>
+          quick drill
+        </button>
         <button
           onClick={() => navigate(`/practice?topic=${id}`)}
           className="flex-1 py-4 border-2 border-primary text-primary text-body-md font-semibold uppercase tracking-widest hover:bg-primary/10 transition-colors flex items-center justify-center gap-2"
@@ -174,6 +184,14 @@ export default function TopicDetailPage() {
           evaluate
         </button>
       </div>
+
+      <QuickDrillModal
+        topicId={id}
+        topicName={data?.topic?.name}
+        isOpen={showDrill}
+        onClose={() => setShowDrill(false)}
+        onComplete={() => loadTopic()}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
         <div className="border border-outline-variant bg-surface-container rounded-md p-5">

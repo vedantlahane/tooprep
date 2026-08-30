@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { dashboardService } from '../services/dashboardService';
+import { profileService } from '@/features/profile/services/profileService';
 
 const STATUS_ORDER = {
   OVERCONFIDENT: 0,
@@ -16,6 +17,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('ALL');
+  const [profile, setProfile] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -24,8 +26,12 @@ export default function DashboardPage() {
 
   const loadDashboard = async () => {
     try {
-      const result = await dashboardService.getDashboard();
+      const [result, prof] = await Promise.all([
+        dashboardService.getDashboard(),
+        profileService.getProfile().catch(() => null)
+      ]);
       setData(result);
+      setProfile(prof);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -108,6 +114,27 @@ export default function DashboardPage() {
           <button onClick={() => navigate('/evaluate')} className="px-5 py-3 bg-primary text-white text-label-sm-mono uppercase tracking-widest hover:brightness-110 transition-colors rounded-sm">Evaluate</button>
         </div>
       </div>
+
+      {profile?.target_exam_year && (
+        <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/30 rounded-xl p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <span className="material-symbols-outlined text-primary text-[40px]">schedule</span>
+            <div>
+              <div className="text-label-sm-mono text-primary uppercase tracking-widest">Exam Countdown</div>
+              <div className="text-headline-md text-on-surface font-light">
+                JEE {profile.target_exam_year}
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/timeline')}
+            className="px-6 py-3 bg-primary text-on-primary text-body-md font-semibold uppercase tracking-widest hover:brightness-110 transition-all rounded-lg flex items-center gap-2 whitespace-nowrap"
+          >
+            View Timeline
+            <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="border border-outline-variant bg-surface-container p-4 rounded-md">

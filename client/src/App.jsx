@@ -6,12 +6,16 @@ import AuthPage from '@/features/auth/pages/AuthPage';
 import OnboardingPage from '@/features/auth/pages/OnboardingPage';
 import DashboardPage from '@/features/dashboard/pages/DashboardPage';
 import StudyPlanPage from '@/features/dashboard/pages/StudyPlanPage';
+import TimelineProgressPage from '@/features/dashboard/pages/TimelineProgressPage';
+import SubjectMasteryPage from '@/features/dashboard/pages/SubjectMasteryPage';
+import PerformanceTrendPage from '@/features/dashboard/pages/PerformanceTrendPage';
 import TopicDetailPage from '@/features/topics/pages/TopicDetailPage';
 import PracticePage from '@/features/practice/pages/PracticePage';
 import EvaluationPage from '@/features/evaluations/pages/EvaluationPage';
 import ResultsPage from '@/features/evaluations/pages/ResultsPage';
 import InsightsPage from '@/features/insights/pages/InsightsPage';
 import ProfilePage from '@/features/profile/pages/ProfilePage';
+import SessionHistoryPage from '@/features/profile/pages/SessionHistoryPage';
 import ContentAdminPage from '@/features/content/pages/ContentAdminPage';
 
 import ContentSyncPage from '@/features/content/pages/ContentSyncPage';
@@ -40,8 +44,16 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/plan"
+          <Route            path="/trends"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <PerformanceTrendPage />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route            path="/plan"
             element={
               <ProtectedRoute>
                 <Layout>
@@ -51,7 +63,25 @@ function App() {
             }
           />
           <Route
-            path="/topics/:id"
+            path="/timeline"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <TimelineProgressPage />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route            path="/subjects"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <SubjectMasteryPage />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route            path="/topics/:id"
             element={
               <ProtectedRoute>
                 <Layout>
@@ -106,6 +136,16 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <ProfilePage />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/history"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <SessionHistoryPage />
                 </Layout>
               </ProtectedRoute>
             }

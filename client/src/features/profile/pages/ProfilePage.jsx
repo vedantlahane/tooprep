@@ -186,6 +186,17 @@ export default function ProfilePage() {
 
         {/* Action Tiles */}
         <div 
+          onClick={() => navigate('/history')}
+          className="metro-tile cursor-pointer bg-tertiary/80 text-white p-8 rounded-md flex flex-col justify-between aspect-square"
+        >
+          <span className="material-symbols-outlined text-[48px] mb-6">history</span>
+          <div>
+            <h3 className="text-headline-md font-light lowercase">Session History</h3>
+            <p className="text-body-md text-white/80 font-light mt-2">Track all your practice & evaluation sessions.</p>
+          </div>
+        </div>
+
+        <div 
           onClick={() => navigate('/practice')}
           className="metro-tile cursor-pointer bg-tertiary text-white p-8 rounded-md flex flex-col justify-between aspect-square"
         >
