@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { dashboardService } from '../services/dashboardService';
 
@@ -107,7 +107,7 @@ export default function DashboardPage() {
                 <div
                   key={topic.topic_id}
                   onClick={() => navigate(`/topics/${topic.topic_id}`)}
-                  className={`relative cursor-pointer transition-transform hover:scale-[0.98] active:scale-95 p-3 flex flex-col justify-between overflow-hidden group ${getTileSize(topic)} ${getTileColor(topic.status)}`}
+                  className={`relative cursor-pointer metro-tile p-3 flex flex-col justify-between overflow-hidden group rounded-md ${getTileSize(topic)} ${getTileColor(topic.status)}`}
                 >
                   {/* Top-right icon based on status */}
                   <span className="material-symbols-outlined absolute top-3 right-3 text-white/50 text-3xl">

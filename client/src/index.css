@@ -1,79 +1,78 @@
 @import "tailwindcss";
 
 /* ============================================================
-   Design System Tokens — Metro UI (Windows Phone Style)
+   Design System Tokens — Modern Windows Phone UI (Fluent DNA)
    ============================================================ */
 
 @theme {
-  /* Accent Color (Cyan) */
-  --color-primary: #1BA1E2;
-  --color-primary-container: #1BA1E2;
-  --color-primary-fixed: #005073;
-  --color-primary-fixed-dim: #0073A6;
+  /* Accent Color (Cyan) - More vibrant for modern displays */
+  --color-primary: #00BFFF;
+  --color-primary-container: #0078D7;
+  --color-primary-fixed: #005A9E;
+  --color-primary-fixed-dim: #004275;
   --color-on-primary: #ffffff;
   --color-on-primary-container: #ffffff;
 
-  --color-secondary: #333333;
+  --color-secondary: #2D2D2D;
   --color-secondary-container: #1F1F1F;
   --color-on-secondary: #ffffff;
 
-  --color-tertiary: #A4C400; /* Lime */
-  --color-tertiary-container: #A4C400;
+  --color-tertiary: #92C300; /* Vibrant Lime */
+  --color-tertiary-container: #7BA800;
   --color-on-tertiary: #ffffff;
 
-  --color-error: #E51400; /* Red */
+  --color-error: #FF3333; /* Brighter Red */
   --color-error-container: #E51400;
   --color-on-error: #ffffff;
 
-  /* Dark mode backgrounds */
-  --color-surface: #000000;
-  --color-surface-dim: #111111;
-  --color-surface-bright: #1F1F1F;
-  --color-surface-container: #1F1F1F;
-  --color-surface-container-low: #111111;
+  /* Dark mode backgrounds - Not pure black, deep acrylic grays */
+  --color-surface: #111111;
+  --color-surface-dim: #0A0A0A;
+  --color-surface-bright: #252525;
+  --color-surface-container: #1A1A1A;
+  --color-surface-container-low: #141414;
   --color-surface-container-high: #2B2B2B;
   --color-surface-container-highest: #333333;
   --color-surface-container-lowest: #000000;
-  --color-surface-variant: #333333;
+  --color-surface-variant: #2A2A2A;
 
   /* Text Colors */
-  --color-on-surface: #ffffff;
-  --color-on-surface-variant: #a0a0a0;
-  --color-on-background: #ffffff;
+  --color-on-surface: #F2F2F2;
+  --color-on-surface-variant: #B3B3B3;
+  --color-on-background: #F2F2F2;
   --color-background: #000000;
 
-  --color-outline: #666666;
-  --color-outline-variant: #333333;
+  --color-outline: #4D4D4D;
+  --color-outline-variant: #2B2B2B;
 
   --color-inverse-surface: #ffffff;
   --color-inverse-on-surface: #000000;
-  --color-inverse-primary: #1BA1E2;
+  --color-inverse-primary: #00BFFF;
 
   /* Semantic status colors */
-  --color-status-aligned: #60A917; /* Green */
-  --color-status-overconfident: #E51400; /* Red */
-  --color-status-underconfident: #1BA1E2; /* Cyan */
-  --color-status-weak: #FA6800; /* Orange */
-  --color-status-insufficient: #333333; /* Dark Gray */
+  --color-status-aligned: #4CAF50;
+  --color-status-overconfident: #FF3B30;
+  --color-status-underconfident: #00BFFF;
+  --color-status-weak: #FF9500;
+  --color-status-insufficient: #4D4D4D;
 
-  /* Font families - Authentic Segoe UI */
-  --font-sans: 'Segoe WP', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  --font-mono: 'Consolas', 'Courier New', monospace;
+  /* Font families */
+  --font-sans: 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Cascadia Code', 'Consolas', monospace;
 
-  /* Force all border radii to 0 for Metro sharp edges */
-  --radius-xs: 0px;
-  --radius-sm: 0px;
-  --radius-md: 0px;
-  --radius-lg: 0px;
-  --radius-xl: 0px;
-  --radius-2xl: 0px;
-  --radius-3xl: 0px;
-  --radius-full: 0px; /* Note: some components might explicitly need rounded-full for circles, but classic Metro uses squares even for avatars mostly. Let's keep full as 9999px for App Bar icons. */
+  /* Modern rounding (Fluent Design) rather than strict 0px Metro */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+  --radius-3xl: 32px;
   --radius-full: 9999px;
 }
 
 /* ============================================================
-   Base Styles
+   Base Styles & Modern Window Phone DNA
    ============================================================ */
 
 body {
@@ -82,6 +81,11 @@ body {
   color: var(--color-on-surface);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Subtle mesh gradient background for modern feel */
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(0, 191, 255, 0.05) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(146, 195, 0, 0.05) 0px, transparent 50%);
+  background-attachment: fixed;
 }
 
 /* Material Symbols */
@@ -249,4 +253,50 @@ body {
 .timer-urgent {
   color: var(--color-error);
   animation: pulse-soft 1s ease-in-out infinite;
+}
+/* ============================================================
+   Modern Metro / Fluent UI Utilities
+   ============================================================ */
+
+/* Acrylic Glass Effect */
+.acrylic {
+  background-color: rgba(30, 30, 30, 0.6);
+  backdrop-filter: blur(20px) saturate(120%);
+  -webkit-backdrop-filter: blur(20px) saturate(120%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.acrylic-primary {
+  background-color: rgba(0, 191, 255, 0.15);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid rgba(0, 191, 255, 0.3);
+}
+
+/* Classic Windows Phone Tile Tilt Animation */
+.metro-tile {
+  transition: transform 0.15s cubic-bezier(0.2, 0, 0, 1), background-color 0.2s ease, border-color 0.2s ease;
+  will-change: transform;
+}
+
+.metro-tile:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.metro-tile:active {
+  transform: scale(0.96);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.metro-tile-primary {
+  transition: transform 0.15s cubic-bezier(0.2, 0, 0, 1), filter 0.2s ease;
+}
+
+.metro-tile-primary:hover {
+  filter: brightness(1.1);
+}
+
+.metro-tile-primary:active {
+  transform: scale(0.96);
+  filter: brightness(1.2);
 }
