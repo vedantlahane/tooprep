@@ -1148,7 +1148,10 @@ export default function ContentAdminPage() {
                       onChange={e => setOnlyDiagrams(e.target.checked)}
                       className="accent-primary w-3.5 h-3.5 cursor-pointer"
                     />
-                    <span>Diagrams 📷</span>
+                    <span className="flex items-center gap-1">
+                      <span>Diagrams</span>
+                      <ImageIcon className="w-3 h-3 text-on-surface-variant" />
+                    </span>
                   </label>
 
                   <div className="relative">

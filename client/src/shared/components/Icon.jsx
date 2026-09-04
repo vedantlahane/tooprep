@@ -62,7 +62,11 @@ import {
   LogOut,
   Palette,
   ListCheck,
-  Calendar
+  Calendar,
+  Smartphone,
+  Monitor,
+  Camera,
+  Apple
 } from 'lucide-react';
 
 const ICON_MAP = {
@@ -229,5 +233,10 @@ export {
   LogOut,
   Palette,
   ListCheck,
-  Calendar
+  Grid,
+  Calendar,
+  Smartphone,
+  Apple,
+  Monitor,
+  Camera
 };

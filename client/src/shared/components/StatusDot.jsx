@@ -1,11 +1,11 @@
 export default function StatusDot({ status }) {
   const config = {
-    ALIGNED: { color: 'status-dot-aligned', label: 'Aligned', emoji: '🟢' },
-    OVERCONFIDENT: { color: 'status-dot-overconfident', label: 'Overconfident', emoji: '🔴' },
-    UNDERCONFIDENT: { color: 'status-dot-underconfident', label: 'Underconfident', emoji: '🔵' },
-    WEAK_ALIGNED: { color: 'status-dot-weak', label: 'Weak', emoji: '🟡' },
-    PRELIMINARY: { color: 'status-dot-insufficient', label: 'Preliminary', emoji: '⚪' },
-    INSUFFICIENT_DATA: { color: 'status-dot-insufficient', label: 'No Data', emoji: '⚪' },
+    ALIGNED: { color: 'status-dot-aligned', label: 'Aligned' },
+    OVERCONFIDENT: { color: 'status-dot-overconfident', label: 'Overconfident' },
+    UNDERCONFIDENT: { color: 'status-dot-underconfident', label: 'Underconfident' },
+    WEAK_ALIGNED: { color: 'status-dot-weak', label: 'Weak' },
+    PRELIMINARY: { color: 'status-dot-insufficient', label: 'Preliminary' },
+    INSUFFICIENT_DATA: { color: 'status-dot-insufficient', label: 'No Data' },
   };
 
   const c = config[status] || config.INSUFFICIENT_DATA;

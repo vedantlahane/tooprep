@@ -11,6 +11,7 @@ import Icon, {
   Play,
   Timer,
   ChevronDown,
+  ChevronUp,
   Layers,
   Sparkles
 } from '@/shared/components/Icon';
@@ -109,7 +110,17 @@ function QuestionBrowserCard({ q, onPracticeTopic }) {
           onClick={() => setShowAnswer(v => !v)}
           className="text-xs font-mono uppercase tracking-widest text-primary hover:underline flex items-center gap-1.5"
         >
-          <span>{showAnswer ? '▲ Hide Answer & Solution' : '▼ Reveal Answer & Solution'}</span>
+          {showAnswer ? (
+            <>
+              <ChevronUp className="w-3.5 h-3.5" />
+              <span>Hide Answer & Solution</span>
+            </>
+          ) : (
+            <>
+              <ChevronDown className="w-3.5 h-3.5" />
+              <span>Reveal Answer & Solution</span>
+            </>
+          )}
         </button>
 
         {q.topic_id && onPracticeTopic && (

@@ -20,7 +20,11 @@ import Icon, {
   History,
   ListTodo,
   Activity,
-  Zap
+  Zap,
+  Grid,
+  Smartphone,
+  Apple,
+  Monitor
 } from '@/shared/components/Icon';
 
 export default function LandingPage({ defaultTab = 'overview' }) {
@@ -212,8 +216,9 @@ export default function LandingPage({ defaultTab = 'overview' }) {
                   <td className="p-2.5 text-center border-r border-neutral-800 text-status-aligned font-bold">75%</td>
                   <td className="p-2.5 text-center border-r border-neutral-800 text-status-aligned font-bold">+5%</td>
                   <td className="p-2.5 text-center">
-                    <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-status-aligned/20 text-status-aligned border border-status-aligned/40">
-                      Aligned 🎯
+                    <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-status-aligned/20 text-status-aligned border border-status-aligned/40 inline-flex items-center gap-1">
+                      <span>Aligned</span>
+                      <Target className="w-3 h-3 text-status-aligned" />
                     </span>
                   </td>
                 </tr>
@@ -225,8 +230,9 @@ export default function LandingPage({ defaultTab = 'overview' }) {
                   <td className="p-2.5 text-center border-r border-neutral-800 text-primary font-bold">80%</td>
                   <td className="p-2.5 text-center border-r border-neutral-800 text-primary font-bold">+40%</td>
                   <td className="p-2.5 text-center">
-                    <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-primary/20 text-primary border border-primary/40">
-                      Underconfident 📈
+                    <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-primary/20 text-primary border border-primary/40 inline-flex items-center gap-1">
+                      <span>Underconfident</span>
+                      <TrendingUp className="w-3 h-3 text-primary" />
                     </span>
                   </td>
                 </tr>
@@ -255,7 +261,7 @@ export default function LandingPage({ defaultTab = 'overview' }) {
             {/* Tile 1 */}
             <div className="bg-surface-container/60 border border-white/10 hover:border-primary p-6 rounded-sm space-y-4 transition-colors group">
               <div className="w-10 h-10 rounded bg-primary/10 border border-primary/30 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                <span className="font-mono font-bold text-sm">⊞</span>
+                <Grid className="w-5 h-5" />
               </div>
               <h3 className="text-xl font-light text-white lowercase">Excel-Style Knowledge Map</h3>
               <p className="text-xs font-mono text-white/50 leading-relaxed">
@@ -347,7 +353,7 @@ export default function LandingPage({ defaultTab = 'overview' }) {
                   : 'text-white/60 hover:text-white'
               }`}
             >
-              <span>🤖</span>
+              <Smartphone className="w-4 h-4" />
               <span>Android (Chrome)</span>
             </button>
 
@@ -359,7 +365,7 @@ export default function LandingPage({ defaultTab = 'overview' }) {
                   : 'text-white/60 hover:text-white'
               }`}
             >
-              <span>🍏</span>
+              <Apple className="w-4 h-4" />
               <span>iPhone (Safari)</span>
             </button>
 
@@ -371,7 +377,7 @@ export default function LandingPage({ defaultTab = 'overview' }) {
                   : 'text-white/60 hover:text-white'
               }`}
             >
-              <span>💻</span>
+              <Monitor className="w-4 h-4" />
               <span>Desktop (Chrome/Edge)</span>
             </button>
           </div>
@@ -384,7 +390,7 @@ export default function LandingPage({ defaultTab = 'overview' }) {
             <div className="space-y-6 animate-fade-in">
               <div className="flex items-center gap-3 border-b border-white/10 pb-4">
                 <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xl shrink-0">
-                  🤖
+                  <Smartphone className="w-5 h-5 text-emerald-400" />
                 </div>
                 <div>
                   <h3 className="text-lg font-medium text-white font-sans">Android Installation (Chrome / Brave / Edge)</h3>
@@ -433,7 +439,7 @@ export default function LandingPage({ defaultTab = 'overview' }) {
             <div className="space-y-6 animate-fade-in">
               <div className="flex items-center gap-3 border-b border-white/10 pb-4">
                 <div className="w-10 h-10 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xl shrink-0">
-                  🍏
+                  <Apple className="w-5 h-5 text-cyan-400" />
                 </div>
                 <div>
                   <h3 className="text-lg font-medium text-white font-sans">iPhone & iPad Installation (Apple Safari)</h3>
@@ -454,7 +460,7 @@ export default function LandingPage({ defaultTab = 'overview' }) {
                   <span className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold shrink-0">2</span>
                   <div className="space-y-1">
                     <strong className="text-white">Tap the Share button</strong>
-                    <p className="text-white/60">The square icon with an upward arrow (⎋) in the bottom toolbar.</p>
+                    <p className="text-white/60">The square icon with an upward arrow in the bottom toolbar.</p>
                   </div>
                 </div>
 
@@ -462,7 +468,7 @@ export default function LandingPage({ defaultTab = 'overview' }) {
                   <span className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold shrink-0">3</span>
                   <div className="space-y-1">
                     <strong className="text-white">Scroll down and tap "Add to Home Screen"</strong>
-                    <p className="text-white/60">Look for the plus square icon (⊞) in the share actions list.</p>
+                    <p className="text-white/60">Look for "Add to Home Screen" in the share actions list.</p>
                   </div>
                 </div>
 
@@ -482,7 +488,7 @@ export default function LandingPage({ defaultTab = 'overview' }) {
             <div className="space-y-6 animate-fade-in">
               <div className="flex items-center gap-3 border-b border-white/10 pb-4">
                 <div className="w-10 h-10 rounded-full bg-violet-500/20 text-violet-400 flex items-center justify-center font-bold text-xl shrink-0">
-                  💻
+                  <Monitor className="w-5 h-5 text-violet-400" />
                 </div>
                 <div>
                   <h3 className="text-lg font-medium text-white font-sans">Desktop Installation (Chrome / Edge)</h3>

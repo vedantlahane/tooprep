@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Icon, { TrendingUp, ArrowRight, Activity, Timer, Play, CheckCircle2, AlertTriangle } from '@/shared/components/Icon';
+import Icon, { TrendingUp, TrendingDown, ArrowRight, Activity, Timer, Play, CheckCircle2, AlertTriangle } from '@/shared/components/Icon';
 import { dashboardService } from '../services/dashboardService';
 import { evaluationsService } from '@/features/evaluations/services/evaluationsService';
 import { topicsService } from '@/features/topics/services/topicsService';
@@ -188,7 +188,12 @@ export default function PerformanceTrendPage() {
                   <div className={`text-xs font-bold mt-2 flex items-center gap-1.5 ${
                     topic.improvement ? 'text-status-aligned' : 'text-white/50'
                   }`}>
-                    {topic.improvement ? '▲ +' + topic.trend + '%' : '→ ' + topic.trend + '%'}
+                    {topic.improvement ? (
+                      <TrendingUp className="w-3.5 h-3.5 text-status-aligned shrink-0" />
+                    ) : (
+                      <ArrowRight className="w-3.5 h-3.5 text-white/40 shrink-0" />
+                    )}
+                    <span>{topic.improvement ? `+${topic.trend}%` : `${topic.trend}%`}</span>
                     <span className="text-white/40 font-normal">latest: {topic.lastAccuracy}%</span>
                   </div>
                 </button>

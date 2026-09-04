@@ -23,7 +23,13 @@ import Icon, {
   Check,
   X,
   RefreshCw,
-  Hash
+  Hash,
+  Grid,
+  LayoutGrid,
+  Zap,
+  RotateCcw,
+  Calculator,
+  ChevronUp
 } from '@/shared/components/Icon';
 
 export default function DashboardPage() {
@@ -328,12 +334,12 @@ export default function DashboardPage() {
 
   const renderSortIndicator = (col) => {
     if (sortCol !== col) {
-      return <span className="opacity-0 group-hover:opacity-40 ml-1 text-[9px]">↕</span>;
+      return <ChevronDown className="w-3 h-3 opacity-0 group-hover:opacity-40 ml-1 shrink-0" />;
     }
-    return (
-      <span className="text-primary font-bold ml-1 text-[10px]">
-        {sortDir === 'asc' ? '▲' : '▼'}
-      </span>
+    return sortDir === 'asc' ? (
+      <ChevronUp className="w-3 h-3 text-primary ml-1 shrink-0" strokeWidth={2.5} />
+    ) : (
+      <ChevronDown className="w-3 h-3 text-primary ml-1 shrink-0" strokeWidth={2.5} />
     );
   };
 
@@ -387,7 +393,7 @@ export default function DashboardPage() {
                   : 'text-white/60 hover:text-white'
               }`}
             >
-              <span>⊞</span>
+              <Grid className="w-3.5 h-3.5" />
               <span>XLS Sheet</span>
             </button>
             <button
@@ -398,7 +404,7 @@ export default function DashboardPage() {
                   : 'text-white/60 hover:text-white'
               }`}
             >
-              <span>▦</span>
+              <LayoutGrid className="w-3.5 h-3.5" />
               <span>Live Tiles</span>
             </button>
           </div>
@@ -519,7 +525,8 @@ export default function DashboardPage() {
                     : 'bg-black/40 border-transparent text-white/50 hover:text-white/80 hover:bg-surface-container/40'
                 }`}
               >
-                <span>📊 All Topics</span>
+                <Layers className="w-3.5 h-3.5" />
+                <span>All Topics</span>
                 <span className="px-1.5 py-0.2 bg-white/10 rounded-full text-[10px] font-normal">
                   {subjectCounts.ALL}
                 </span>
@@ -534,7 +541,8 @@ export default function DashboardPage() {
                     : 'bg-black/40 border-transparent text-white/50 hover:text-white/80 hover:bg-surface-container/40'
                 }`}
               >
-                <span>⚡ Physics</span>
+                <Zap className="w-3.5 h-3.5" />
+                <span>Physics</span>
                 <span className="px-1.5 py-0.2 bg-primary/20 text-primary rounded-full text-[10px] font-normal">
                   {subjectCounts.Physics}
                 </span>
@@ -549,7 +557,8 @@ export default function DashboardPage() {
                     : 'bg-black/40 border-transparent text-white/50 hover:text-white/80 hover:bg-surface-container/40'
                 }`}
               >
-                <span>🧪 Chemistry</span>
+                <Flame className="w-3.5 h-3.5" />
+                <span>Chemistry</span>
                 <span className="px-1.5 py-0.2 bg-amber-400/20 text-amber-400 rounded-full text-[10px] font-normal">
                   {subjectCounts.Chemistry}
                 </span>
@@ -564,7 +573,8 @@ export default function DashboardPage() {
                     : 'bg-black/40 border-transparent text-white/50 hover:text-white/80 hover:bg-surface-container/40'
                 }`}
               >
-                <span>📐 Mathematics</span>
+                <Calculator className="w-3.5 h-3.5" />
+                <span>Mathematics</span>
                 <span className="px-1.5 py-0.2 bg-emerald-400/20 text-emerald-400 rounded-full text-[10px] font-normal">
                   {subjectCounts.Mathematics}
                 </span>
@@ -582,9 +592,10 @@ export default function DashboardPage() {
                     setSearchQuery('');
                     setStatusFilter('ALL');
                   }}
-                  className="text-primary hover:underline"
+                  className="text-primary hover:underline flex items-center gap-1"
                 >
-                  ↺ Reset Sheet
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Reset Sheet</span>
                 </button>
               )}
             </div>
@@ -599,7 +610,7 @@ export default function DashboardPage() {
                   <tr>
                     {/* Corner Box / Row Index */}
                     <th className="py-2 px-2.5 w-12 text-center text-white/40 border-r border-neutral-800 bg-neutral-950 font-mono text-[10px] select-none">
-                      #
+                      <Hash className="w-3 h-3 mx-auto text-white/40" />
                     </th>
 
                     {/* Column A: Subject */}
@@ -720,7 +731,7 @@ export default function DashboardPage() {
                     <tr>
                       <td colSpan={10} className="py-20 text-center text-white/40 font-mono">
                         <div className="flex flex-col items-center gap-2">
-                          <span className="text-lg">∅</span>
+                          <Search className="w-8 h-8 text-white/20 mb-1" />
                           <span>No topics found matching formula filter: "{searchQuery || subjectFilter}"</span>
                           <button
                             onClick={() => { setSearchQuery(''); setSubjectFilter('ALL'); setStatusFilter('ALL'); }}
@@ -826,7 +837,7 @@ export default function DashboardPage() {
                               <span className={topic.confidence !== null ? 'text-primary' : 'text-white/30'}>
                                 {topic.confidence !== null ? `${topic.confidence}/10` : '--'}
                               </span>
-                              <span className="text-[9px] text-white/30">✎</span>
+                              <Sliders className="w-2.5 h-2.5 text-white/40" />
                             </div>
                           </td>
 
@@ -964,9 +975,9 @@ export default function DashboardPage() {
                   ))}
                   <button
                     onClick={() => setInCellCalibrate(null)}
-                    className="ml-2 text-white/50 hover:text-white px-2 py-1"
+                    className="ml-2 text-white/50 hover:text-white p-1"
                   >
-                    ✕
+                    <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
@@ -1077,9 +1088,9 @@ export default function DashboardPage() {
               </div>
               <button
                 onClick={() => setCalibrateModal(null)}
-                className="text-white/40 hover:text-white font-mono text-sm"
+                className="text-white/40 hover:text-white p-1"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 

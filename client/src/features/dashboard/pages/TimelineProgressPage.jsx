@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Icon, { AlertTriangle, Clock, ArrowRight, PartyPopper } from '@/shared/components/Icon';
+import Icon, { AlertTriangle, Clock, ArrowRight, PartyPopper, Zap } from '@/shared/components/Icon';
 import { dashboardService } from '../services/dashboardService';
 import { profileService } from '@/features/profile/services/profileService';
 
@@ -177,7 +177,10 @@ export default function TimelineProgressPage() {
 
             {urgency === 'critical' && (
               <div className="p-4 bg-white/20 backdrop-blur-sm rounded-lg border border-white/30">
-                <div className="text-headline-md font-bold">⚡ CRITICAL TIMELINE</div>
+                <div className="text-headline-md font-bold flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-amber-300 fill-current" />
+                  <span>CRITICAL TIMELINE</span>
+                </div>
                 <div className="text-body-md mt-2">You need to reset your study plan immediately. Focus on the highest-priority gaps first.</div>
               </div>
             )}

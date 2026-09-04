@@ -18,19 +18,22 @@ import Icon, {
   Palette,
   Sparkles,
   History,
-  Zap
+  Zap,
+  Grid,
+  ChevronDown,
+  X
 } from './Icon';
 import PWAInstallBanner from './PWAInstallBanner';
 
 const PIVOT_ITEMS = [
-  { path: '/', label: 'map', icon: 'map' },
-  { path: '/practice', label: 'practice', icon: 'practice' },
-  { path: '/evaluate', label: 'evaluate', icon: 'evaluate' },
-  { path: '/questions', label: 'questions', icon: 'questions' },
-  { path: '/insights', label: 'insights', icon: 'insights' },
-  { path: '/trends', label: 'trends', icon: 'trends' },
-  { path: '/plan', label: 'study plan', icon: 'checklist' },
-  { path: '/profile', label: 'profile', icon: 'profile' },
+  { path: '/', label: 'map', icon: LayoutGrid },
+  { path: '/practice', label: 'practice', icon: Play },
+  { path: '/evaluate', label: 'evaluate', icon: Timer },
+  { path: '/questions', label: 'questions', icon: BookOpen },
+  { path: '/insights', label: 'insights', icon: Activity },
+  { path: '/trends', label: 'trends', icon: TrendingUp },
+  { path: '/plan', label: 'study plan', icon: ListTodo },
+  { path: '/profile', label: 'profile', icon: User },
 ];
 
 const ACCENT_COLORS = [
@@ -45,11 +48,11 @@ export default function Layout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
-  const [appBarOpen, setAppBarOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [accentColor, setAccentColor] = useState('cyan');
   const [timeStr, setTimeStr] = useState('');
 
-  // Live system clock for Windows Phone status rail
+  // Live system clock for status rail
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
@@ -89,7 +92,7 @@ export default function Layout({ children }) {
       <PWAInstallBanner />
 
       {/* ─── Top Ambient OS Telemetry Rail (Windows Phone Status Bar) ─── */}
-      <header className="w-full bg-black/90 backdrop-blur-md border-b border-white/10 px-4 md:px-8 py-2.5 flex items-center justify-between text-label-sm-mono text-xs tracking-wider z-40">
+      <header className="sticky top-0 w-full bg-black/95 backdrop-blur-md border-b border-white/10 px-4 md:px-8 py-2.5 flex items-center justify-between text-label-sm-mono text-xs tracking-wider z-50">
         <div className="flex items-center gap-3">
           <Link to="/" className="flex items-center gap-2 group">
             <span className="text-primary font-bold tracking-widest text-[11px] uppercase">TOOPREP</span>
@@ -104,7 +107,7 @@ export default function Layout({ children }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-4 text-white/60">
+        <div className="flex items-center gap-3 text-white/60">
           <span className="font-mono text-[11px] hidden sm:inline">{timeStr}</span>
 
           {/* Accent Color Palette Quick Switcher */}
@@ -123,38 +126,190 @@ export default function Layout({ children }) {
           {/* User Profile Pill */}
           <Link
             to="/profile"
-            className="flex items-center gap-2 pl-2 text-white/80 hover:text-primary transition-colors"
+            className="flex items-center gap-2 pl-1 text-white/80 hover:text-primary transition-colors"
           >
             <div className="w-5 h-5 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center text-primary text-[10px] font-bold">
               {profile?.display_name ? profile.display_name.charAt(0).toUpperCase() : (user?.email?.charAt(0).toUpperCase() || 'U')}
             </div>
-            <span className="text-[11px] font-sans lowercase hidden md:inline">
+            <span className="text-[11px] font-sans lowercase hidden md:inline truncate max-w-[90px]">
               {profile?.display_name || user?.email?.split('@')[0] || 'student'}
             </span>
           </Link>
+
+          {/* System Options Menu Toggle (•••) */}
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className={`p-1.5 rounded border transition-colors ${
+              menuOpen
+                ? 'bg-primary/20 border-primary text-primary'
+                : 'border-white/15 hover:border-primary text-white/70 hover:text-white bg-surface-container/60'
+            }`}
+            title="System Navigation & Tools"
+          >
+            <MoreHorizontal className="w-4 h-4" />
+          </button>
         </div>
       </header>
 
+      {/* ─── Expandable Header Slide-Down Menu ─── */}
+      {menuOpen && (
+        <div className="sticky top-[45px] z-40 bg-neutral-950/95 backdrop-blur-xl border-b border-white/15 px-4 md:px-8 py-4 animate-fade-in shadow-2xl">
+          <div className="max-w-7xl mx-auto space-y-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-2">
+              <span className="text-[10px] font-mono text-white/50 uppercase tracking-widest">
+                {profile?.is_admin ? 'Administrative & Student Systems' : 'Student Navigation & System Tools'}
+              </span>
+              <button
+                onClick={() => setMenuOpen(false)}
+                className="text-white/40 hover:text-white p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* If Admin: Staff Operations */}
+            {profile?.is_admin && (
+              <div className="space-y-2">
+                <div className="text-[10px] font-mono text-primary uppercase tracking-widest">
+                  Administrative Access // Staff Only
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs font-mono">
+                  <button
+                    onClick={() => { navigate('/admin/content'); setMenuOpen(false); }}
+                    className="p-3 bg-surface-container hover:bg-surface-bright rounded-xs border border-white/10 hover:border-primary transition-colors text-left flex items-center gap-2.5"
+                  >
+                    <UploadCloud className="w-4 h-4 text-primary shrink-0" />
+                    <div>
+                      <div className="font-semibold text-white">Content Ops</div>
+                      <div className="text-[10px] text-white/40">PDF Question Review</div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => { navigate('/admin/questions'); setMenuOpen(false); }}
+                    className="p-3 bg-surface-container hover:bg-surface-bright rounded-xs border border-white/10 hover:border-primary transition-colors text-left flex items-center gap-2.5"
+                  >
+                    <BookOpen className="w-4 h-4 text-primary shrink-0" />
+                    <div>
+                      <div className="font-semibold text-white">Admin Bank</div>
+                      <div className="text-[10px] text-white/40">Full Database Browser</div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => { navigate('/admin/syncs'); setMenuOpen(false); }}
+                    className="p-3 bg-surface-container hover:bg-surface-bright rounded-xs border border-white/10 hover:border-primary transition-colors text-left flex items-center gap-2.5"
+                  >
+                    <RefreshCw className="w-4 h-4 text-primary shrink-0" />
+                    <div>
+                      <div className="font-semibold text-white">Sync Monitor</div>
+                      <div className="text-[10px] text-white/40">Storage Telemetry</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Student Navigation Tools */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5 text-xs font-mono">
+              <button
+                onClick={() => { navigate('/plan'); setMenuOpen(false); }}
+                className="p-3 bg-surface-container/60 hover:bg-surface-bright rounded-xs border border-white/10 hover:border-primary transition-colors text-left flex items-center gap-2.5"
+              >
+                <ListTodo className="w-4 h-4 text-primary shrink-0" />
+                <div>
+                  <div className="font-semibold text-white">Study Plan</div>
+                  <div className="text-[10px] text-white/40">Topic Checklist</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => { navigate('/trends'); setMenuOpen(false); }}
+                className="p-3 bg-surface-container/60 hover:bg-surface-bright rounded-xs border border-white/10 hover:border-primary transition-colors text-left flex items-center gap-2.5"
+              >
+                <TrendingUp className="w-4 h-4 text-primary shrink-0" />
+                <div>
+                  <div className="font-semibold text-white">Trends</div>
+                  <div className="text-[10px] text-white/40">Calibration Curve</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => { navigate('/history'); setMenuOpen(false); }}
+                className="p-3 bg-surface-container/60 hover:bg-surface-bright rounded-xs border border-white/10 hover:border-primary transition-colors text-left flex items-center gap-2.5"
+              >
+                <History className="w-4 h-4 text-primary shrink-0" />
+                <div>
+                  <div className="font-semibold text-white">History</div>
+                  <div className="text-[10px] text-white/40">Past Evaluations</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => { navigate('/install'); setMenuOpen(false); }}
+                className="p-3 bg-primary/10 hover:bg-primary/20 rounded-xs border border-primary/30 transition-colors text-left flex items-center gap-2.5 text-primary"
+              >
+                <Zap className="w-4 h-4 text-primary shrink-0" />
+                <div>
+                  <div className="font-semibold text-white">Install App</div>
+                  <div className="text-[10px] text-primary/70">Phone & PWA Guide</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => { navigate('/profile'); setMenuOpen(false); }}
+                className="p-3 bg-surface-container/60 hover:bg-surface-bright rounded-xs border border-white/10 hover:border-primary transition-colors text-left flex items-center gap-2.5"
+              >
+                <User className="w-4 h-4 text-primary shrink-0" />
+                <div>
+                  <div className="font-semibold text-white">Profile</div>
+                  <div className="text-[10px] text-white/40">Exam Year & Stats</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => { handleSignOut(); setMenuOpen(false); }}
+                className="p-3 bg-error/10 hover:bg-error/20 rounded-xs border border-error/20 transition-colors text-left flex items-center gap-2.5 text-error"
+              >
+                <LogOut className="w-4 h-4 text-error shrink-0" />
+                <div>
+                  <div className="font-semibold">Sign Out</div>
+                  <div className="text-[10px] opacity-70">End Session</div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ─── Iconic Panoramic Pivot Header (Windows Phone Panorama Horizon) ─── */}
       <nav className="w-full bg-black/60 backdrop-blur-sm border-b border-white/5 px-4 md:px-8 pt-4 pb-1 overflow-x-auto no-scrollbar z-30">
-        <div className="flex items-baseline gap-6 md:gap-10 min-w-max">
+        <div className="flex items-center gap-6 md:gap-9 min-w-max">
           {PIVOT_ITEMS.map((item) => {
             const isActive = location.pathname === item.path ||
               (item.path !== '/' && location.pathname.startsWith(item.path));
+            const ItemIcon = item.icon;
 
             return (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`group relative pb-2 transition-all duration-200 flex items-baseline gap-2 ${
+                className={`group relative pb-2.5 transition-all duration-200 flex items-center gap-2 ${
                   isActive
                     ? 'text-white'
-                    : 'text-white/35 hover:text-white/70'
+                    : 'text-white/40 hover:text-white/80'
                 }`}
               >
+                <ItemIcon
+                  className={`w-3.5 h-3.5 md:w-4 md:h-4 transition-all ${
+                    isActive ? 'text-primary scale-110' : 'opacity-40 group-hover:opacity-100'
+                  }`}
+                  strokeWidth={isActive ? 2.2 : 1.75}
+                />
+
                 <span
-                  className={`text-2xl md:text-3xl lowercase font-extralight tracking-tight transition-all ${
-                    isActive ? 'font-light scale-100 text-white' : 'opacity-60 group-hover:opacity-100'
+                  className={`text-xl md:text-2xl lowercase font-extralight tracking-tight transition-all ${
+                    isActive ? 'font-light scale-100 text-white' : 'opacity-70 group-hover:opacity-100'
                   }`}
                 >
                   {item.label}
@@ -174,215 +329,11 @@ export default function Layout({ children }) {
       </nav>
 
       {/* ─── Main Panoramic Content Canvas ─── */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-8 pt-6 pb-36 md:pb-28">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-8 pt-6 pb-12">
         <div className="animate-fade-in">
           {children}
         </div>
       </main>
-
-      {/* ─── Signature Windows Phone Metro Bottom Application Bar (App Bar) ─── */}
-      <footer className="fixed bottom-0 left-0 w-full z-50 acrylic-glass-strong border-t border-white/10 px-4 py-2 transition-all">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          {/* Quick Action Circle Buttons */}
-          <div className="flex items-center gap-5 sm:gap-8">
-            <button
-              onClick={() => navigate('/practice')}
-              className="flex flex-col items-center group"
-              title="Rapid Practice Drill"
-            >
-              <div className={`metro-circle-btn ${location.pathname === '/practice' ? 'border-primary text-primary bg-primary/10' : ''}`}>
-                <Play className="w-5 h-5 fill-current opacity-80 group-hover:opacity-100 transition-opacity" />
-              </div>
-              <span className="text-[10px] font-mono tracking-widest uppercase mt-1 text-white/60 group-hover:text-white">
-                drill
-              </span>
-            </button>
-
-            <button
-              onClick={() => navigate('/evaluate')}
-              className="flex flex-col items-center group"
-              title="Timed Mock Evaluation"
-            >
-              <div className={`metro-circle-btn ${location.pathname === '/evaluate' ? 'border-primary text-primary bg-primary/10' : ''}`}>
-                <Timer className="w-5 h-5 stroke-[1.8] group-hover:scale-110 transition-transform" />
-              </div>
-              <span className="text-[10px] font-mono tracking-widest uppercase mt-1 text-white/60 group-hover:text-white">
-                mock
-              </span>
-            </button>
-
-            <button
-              onClick={() => navigate('/questions')}
-              className="flex flex-col items-center group"
-              title="Browse 110 Verified Questions"
-            >
-              <div className={`metro-circle-btn ${location.pathname === '/questions' ? 'border-primary text-primary bg-primary/10' : ''}`}>
-                <BookOpen className="w-5 h-5 stroke-[1.8] group-hover:scale-110 transition-transform" />
-              </div>
-              <span className="text-[10px] font-mono tracking-widest uppercase mt-1 text-white/60 group-hover:text-white">
-                bank
-              </span>
-            </button>
-
-            <button
-              onClick={() => navigate('/insights')}
-              className="flex flex-col items-center group"
-              title="Confidence Gap Insights"
-            >
-              <div className={`metro-circle-btn ${location.pathname === '/insights' ? 'border-primary text-primary bg-primary/10' : ''}`}>
-                <Activity className="w-5 h-5 stroke-[1.8] group-hover:scale-110 transition-transform" />
-              </div>
-              <span className="text-[10px] font-mono tracking-widest uppercase mt-1 text-white/60 group-hover:text-white">
-                insights
-              </span>
-            </button>
-          </div>
-
-          {/* The Iconic Metro ••• Expander Button */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setAppBarOpen(!appBarOpen)}
-              className="metro-circle-btn hover:border-primary text-white"
-              title="More Options"
-            >
-              <MoreHorizontal className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-
-        {/* ─── Expandable Windows Phone Flyout Drawer ─── */}
-        {appBarOpen && (
-          <div className="mt-3 pt-3 border-t border-white/10 max-w-7xl mx-auto animate-fade-in">
-            {profile?.is_admin ? (
-              /* Admin Operations Drawer */
-              <div>
-                <div className="text-[10px] font-mono text-primary uppercase tracking-widest mb-2 px-1">
-                  Administrative Tools // Staff Only
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-                  <button
-                    onClick={() => { navigate('/admin/content'); setAppBarOpen(false); }}
-                    className="flex items-center gap-3 p-3 bg-surface-container hover:bg-surface-bright rounded-sm border border-white/5 transition-colors text-left"
-                  >
-                    <UploadCloud className="w-5 h-5 text-primary shrink-0" />
-                    <div>
-                      <div className="font-semibold text-xs uppercase tracking-wider text-white">Content Ops</div>
-                      <div className="text-[11px] text-white/50">PDF Ingestion & Review</div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => { navigate('/admin/questions'); setAppBarOpen(false); }}
-                    className="flex items-center gap-3 p-3 bg-surface-container hover:bg-surface-bright rounded-sm border border-white/5 transition-colors text-left"
-                  >
-                    <BookOpen className="w-5 h-5 text-primary shrink-0" />
-                    <div>
-                      <div className="font-semibold text-xs uppercase tracking-wider text-white">Admin Bank</div>
-                      <div className="text-[11px] text-white/50">Full Database Browser</div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => { navigate('/admin/syncs'); setAppBarOpen(false); }}
-                    className="flex items-center gap-3 p-3 bg-surface-container hover:bg-surface-bright rounded-sm border border-white/5 transition-colors text-left"
-                  >
-                    <RefreshCw className="w-5 h-5 text-primary shrink-0" />
-                    <div>
-                      <div className="font-semibold text-xs uppercase tracking-wider text-white">Sync Monitor</div>
-                      <div className="text-[11px] text-white/50">Storage Telemetry</div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => { handleSignOut(); setAppBarOpen(false); }}
-                    className="flex items-center gap-3 p-3 bg-error/10 hover:bg-error/20 rounded-sm border border-error/20 transition-colors text-left text-error"
-                  >
-                    <LogOut className="w-5 h-5 text-error shrink-0" />
-                    <div>
-                      <div className="font-semibold text-xs uppercase tracking-wider">Sign Out</div>
-                      <div className="text-[11px] opacity-70">End current session</div>
-                    </div>
-                  </button>
-                </div>
-              </div>
-            ) : (
-              /* Student Tools Drawer */
-              <div>
-                <div className="text-[10px] font-mono text-white/50 uppercase tracking-widest mb-2 px-1">
-                  Student Navigation & Tools
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-sm">
-                  <button
-                    onClick={() => { navigate('/plan'); setAppBarOpen(false); }}
-                    className="flex items-center gap-3 p-3 bg-surface-container hover:bg-surface-bright rounded-sm border border-white/5 transition-colors text-left"
-                  >
-                    <ListTodo className="w-5 h-5 text-primary shrink-0" />
-                    <div>
-                      <div className="font-semibold text-xs uppercase tracking-wider text-white">Study Plan</div>
-                      <div className="text-[11px] text-white/50">Topics & Checklist</div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => { navigate('/trends'); setAppBarOpen(false); }}
-                    className="flex items-center gap-3 p-3 bg-surface-container hover:bg-surface-bright rounded-sm border border-white/5 transition-colors text-left"
-                  >
-                    <TrendingUp className="w-5 h-5 text-primary shrink-0" />
-                    <div>
-                      <div className="font-semibold text-xs uppercase tracking-wider text-white">Trends</div>
-                      <div className="text-[11px] text-white/50">Accuracy Trajectory</div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => { navigate('/history'); setAppBarOpen(false); }}
-                    className="flex items-center gap-3 p-3 bg-surface-container hover:bg-surface-bright rounded-sm border border-white/5 transition-colors text-left"
-                  >
-                    <History className="w-5 h-5 text-primary shrink-0" />
-                    <div>
-                      <div className="font-semibold text-xs uppercase tracking-wider text-white">History</div>
-                      <div className="text-[11px] text-white/50">Past Sessions & Evals</div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => { navigate('/profile'); setAppBarOpen(false); }}
-                    className="flex items-center gap-3 p-3 bg-surface-container hover:bg-surface-bright rounded-sm border border-white/5 transition-colors text-left"
-                  >
-                    <User className="w-5 h-5 text-primary shrink-0" />
-                    <div>
-                      <div className="font-semibold text-xs uppercase tracking-wider text-white">Profile</div>
-                      <div className="text-[11px] text-white/50">Exam Year & Stats</div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => { navigate('/install'); setAppBarOpen(false); }}
-                    className="flex items-center gap-3 p-3 bg-primary/10 hover:bg-primary/20 rounded-sm border border-primary/30 transition-colors text-left text-primary"
-                  >
-                    <Zap className="w-5 h-5 text-primary shrink-0" />
-                    <div>
-                      <div className="font-semibold text-xs uppercase tracking-wider text-white">Install App</div>
-                      <div className="text-[11px] text-primary/70">Phone & PWA Guide</div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => { handleSignOut(); setAppBarOpen(false); }}
-                    className="flex items-center gap-3 p-3 bg-error/10 hover:bg-error/20 rounded-sm border border-error/20 transition-colors text-left text-error col-span-2 sm:col-span-1"
-                  >
-                    <LogOut className="w-5 h-5 text-error shrink-0" />
-                    <div>
-                      <div className="font-semibold text-xs uppercase tracking-wider">Sign Out</div>
-                      <div className="text-[11px] opacity-70">End session</div>
-                    </div>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </footer>
     </div>
   );
 }
