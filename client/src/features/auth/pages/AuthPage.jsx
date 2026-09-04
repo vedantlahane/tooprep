@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -90,7 +90,16 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col pt-12 md:pt-24 px-6 md:px-12 animate-fade-in max-w-md mx-auto">
-      <h1 className="text-display text-on-surface mb-8 font-light">tooprep</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-display text-on-surface font-light">tooprep</h1>
+        <Link
+          to="/about"
+          className="text-xs font-mono text-primary/80 hover:text-primary transition-colors flex items-center gap-1"
+        >
+          <span>App Info & Install</span>
+          <span>→</span>
+        </Link>
+      </div>
 
       <div className="w-full">
         <h2 className="text-headline-lg mb-8 font-light lowercase">

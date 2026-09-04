@@ -17,7 +17,8 @@ import Icon, {
   LogOut,
   Palette,
   Sparkles,
-  History
+  History,
+  Zap
 } from './Icon';
 import PWAInstallBanner from './PWAInstallBanner';
 
@@ -352,6 +353,17 @@ export default function Layout({ children }) {
                     <div>
                       <div className="font-semibold text-xs uppercase tracking-wider text-white">Profile</div>
                       <div className="text-[11px] text-white/50">Exam Year & Stats</div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => { navigate('/install'); setAppBarOpen(false); }}
+                    className="flex items-center gap-3 p-3 bg-primary/10 hover:bg-primary/20 rounded-sm border border-primary/30 transition-colors text-left text-primary"
+                  >
+                    <Zap className="w-5 h-5 text-primary shrink-0" />
+                    <div>
+                      <div className="font-semibold text-xs uppercase tracking-wider text-white">Install App</div>
+                      <div className="text-[11px] text-primary/70">Phone & PWA Guide</div>
                     </div>
                   </button>
 

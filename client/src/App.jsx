@@ -1,9 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from '@/features/auth/context/AuthContext';
+import { AuthProvider, useAuth } from '@/features/auth/context/AuthContext';
 import ProtectedRoute from '@/features/auth/components/ProtectedRoute';
 import AdminRoute from '@/features/auth/components/AdminRoute';
 import Layout from '@/shared/components/Layout';
 import AuthPage from '@/features/auth/pages/AuthPage';
+import LandingPage from '@/features/landing/pages/LandingPage';
 import OnboardingPage from '@/features/auth/pages/OnboardingPage';
 import DashboardPage from '@/features/dashboard/pages/DashboardPage';
 import StudyPlanPage from '@/features/dashboard/pages/StudyPlanPage';
@@ -24,30 +25,41 @@ import AdminQuestionsPage from '@/features/questions/pages/AdminQuestionsPage';
 import ContentSyncPage from '@/features/content/pages/ContentSyncPage';
 
 
+function RootRoute() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <div className="text-xs font-mono text-primary uppercase tracking-widest">
+            Loading TooPrep...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return user ? (
+    <Layout>
+      <DashboardPage />
+    </Layout>
+  ) : (
+    <LandingPage />
+  );
+}
+
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          <Route path="/" element={<RootRoute />} />
+          <Route path="/about" element={<LandingPage defaultTab="overview" />} />
+          <Route path="/install" element={<LandingPage defaultTab="install" />} />
+          <Route path="/landing" element={<LandingPage />} />
           <Route path="/auth" element={<AuthPage />} />
-          <Route
-            path="/onboarding"
-            element={
-              <ProtectedRoute>
-                <OnboardingPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <DashboardPage />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
           <Route            path="/trends"
             element={
               <ProtectedRoute>
