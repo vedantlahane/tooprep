@@ -19,4 +19,7 @@ export const questionsService = {
     if (difficulty) params.append('difficulty', difficulty);
     return request('GET', `/questions/admin?${params.toString()}`);
   },
+  updateQuestion: (id, data) => request('PUT', `/questions/${id}`, data),
+  deleteQuestion: (id) => request('DELETE', `/questions/${id}`),
+  toggleVerify: (id, verified) => request('PATCH', `/questions/${id}/verify`, { verified }),
 };

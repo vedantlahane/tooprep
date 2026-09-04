@@ -66,7 +66,14 @@ import {
   Smartphone,
   Monitor,
   Camera,
-  Apple
+  Apple,
+  Plus,
+  Edit3,
+  Trash2,
+  Users,
+  Server,
+  Image,
+  Save
 } from 'lucide-react';
 
 const ICON_MAP = {
@@ -238,5 +245,12 @@ export {
   Smartphone,
   Apple,
   Monitor,
-  Camera
+  Camera,
+  Plus,
+  Edit3,
+  Trash2,
+  Users,
+  Server,
+  Image,
+  Save
 };

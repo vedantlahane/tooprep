@@ -22,6 +22,7 @@ import Icon, {
   Zap,
   Grid,
   ChevronDown,
+  Shield,
   X
 } from './Icon';
 import PWAInstallBanner from './PWAInstallBanner';
@@ -102,6 +103,18 @@ export default function Layout({ children }) {
               JEE 2026
             </span>
           </Link>
+
+          {profile?.is_admin && (
+            <Link
+              to="/admin"
+              className="flex items-center gap-1.5 px-2.5 py-0.5 bg-status-weak/20 border border-status-weak/50 text-status-weak hover:bg-status-weak hover:text-black transition-colors text-[10px] font-mono uppercase tracking-widest font-bold"
+              title="Open Admin Command Center"
+            >
+              <Shield className="w-3 h-3" />
+              <span>ADMIN CONSOLE</span>
+            </Link>
+          )}
+
           <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-white/15">
             <span className="w-1.5 h-1.5 rounded-full bg-status-aligned animate-pulse"></span>
             <span className="text-white/50 text-[10px]">110 VERIFIED PYQS</span>
@@ -178,18 +191,19 @@ export default function Layout({ children }) {
               {/* If Admin: Staff Operations */}
               {profile?.is_admin && (
                 <div className="space-y-2">
-                  <div className="text-[10px] font-mono text-primary uppercase tracking-widest">
-                    Administrative Access // Staff Only
+                  <div className="text-[10px] font-mono text-status-weak uppercase tracking-widest flex items-center gap-1.5">
+                    <Shield className="w-3.5 h-3.5" />
+                    <span>Administrative Access // Staff Command Center</span>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs font-mono">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 text-xs font-mono">
                     <button
-                      onClick={() => { navigate('/admin/content'); setMenuOpen(false); }}
-                      className="p-3 bg-surface-container hover:bg-surface-bright rounded-xs border border-white/10 hover:border-primary transition-colors text-left flex items-center gap-2.5 cursor-pointer"
+                      onClick={() => { navigate('/admin'); setMenuOpen(false); }}
+                      className="p-3 bg-surface-container hover:bg-surface-bright rounded-xs border border-status-weak/40 hover:border-status-weak transition-colors text-left flex items-center gap-2.5 cursor-pointer"
                     >
-                      <UploadCloud className="w-4 h-4 text-primary shrink-0" />
+                      <Activity className="w-4 h-4 text-status-weak shrink-0" />
                       <div>
-                        <div className="font-semibold text-white">Content Ops</div>
-                        <div className="text-[10px] text-white/40">PDF Question Review</div>
+                        <div className="font-semibold text-white">Observability</div>
+                        <div className="text-[10px] text-white/40">Mission Control</div>
                       </div>
                     </button>
 
@@ -199,8 +213,30 @@ export default function Layout({ children }) {
                     >
                       <BookOpen className="w-4 h-4 text-primary shrink-0" />
                       <div>
-                        <div className="font-semibold text-white">Admin Bank</div>
-                        <div className="text-[10px] text-white/40">Full Database Browser</div>
+                        <div className="font-semibold text-white">Question Bank</div>
+                        <div className="text-[10px] text-white/40">Edit & Manage</div>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => { navigate('/admin/curriculum'); setMenuOpen(false); }}
+                      className="p-3 bg-surface-container hover:bg-surface-bright rounded-xs border border-white/10 hover:border-primary transition-colors text-left flex items-center gap-2.5 cursor-pointer"
+                    >
+                      <LayoutGrid className="w-4 h-4 text-primary shrink-0" />
+                      <div>
+                        <div className="font-semibold text-white">Curriculum</div>
+                        <div className="text-[10px] text-white/40">Coverage Gaps</div>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => { navigate('/admin/content'); setMenuOpen(false); }}
+                      className="p-3 bg-surface-container hover:bg-surface-bright rounded-xs border border-white/10 hover:border-primary transition-colors text-left flex items-center gap-2.5 cursor-pointer"
+                    >
+                      <UploadCloud className="w-4 h-4 text-primary shrink-0" />
+                      <div>
+                        <div className="font-semibold text-white">Content Ops</div>
+                        <div className="text-[10px] text-white/40">PDF Ingestion</div>
                       </div>
                     </button>
 
@@ -211,7 +247,7 @@ export default function Layout({ children }) {
                       <RefreshCw className="w-4 h-4 text-primary shrink-0" />
                       <div>
                         <div className="font-semibold text-white">Sync Monitor</div>
-                        <div className="text-[10px] text-white/40">Storage Telemetry</div>
+                        <div className="text-[10px] text-white/40">Storage Health</div>
                       </div>
                     </button>
                   </div>

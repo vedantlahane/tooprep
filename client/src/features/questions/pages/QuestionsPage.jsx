@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { topicsService } from '@/features/topics/services/topicsService';
 import { questionsService } from '../services/questionsService';
 import MathText from '@/features/questions/components/MathText';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import QuestionEditModal from '@/features/questions/components/QuestionEditModal';
 import Icon, {
   CheckCircle2,
   BookOpen,
@@ -13,7 +15,10 @@ import Icon, {
   ChevronDown,
   ChevronUp,
   Layers,
-  Sparkles
+  Sparkles,
+  Edit3,
+  Plus,
+  Shield
 } from '@/shared/components/Icon';
 
 const DIFFICULTIES = ['All', 'Easy', 'Medium', 'Hard'];
@@ -29,7 +34,7 @@ const SOURCE_STYLES = {
   default: 'bg-surface-container text-white/60 border-outline-variant',
 };
 
-function QuestionBrowserCard({ q, onPracticeTopic }) {
+function QuestionBrowserCard({ q, onPracticeTopic, isAdmin, onEditQuestion }) {
   const [showAnswer, setShowAnswer] = useState(false);
 
   const options = ['A', 'B', 'C', 'D'];
@@ -61,6 +66,17 @@ function QuestionBrowserCard({ q, onPracticeTopic }) {
           <span className="px-2 py-0.5 rounded-sm bg-primary/10 border border-primary/30 text-primary uppercase text-[10px]">
             Diagram
           </span>
+        )}
+
+        {isAdmin && (
+          <button
+            onClick={() => onEditQuestion(q)}
+            className="ml-auto flex items-center gap-1 px-2.5 py-0.5 bg-primary/10 border border-primary/40 text-primary hover:bg-primary hover:text-white transition-colors text-[10px] uppercase tracking-wider font-bold rounded-none"
+            title="Edit this question in Admin Editor"
+          >
+            <Edit3 className="w-3 h-3" />
+            <span>Admin Edit</span>
+          </button>
         )}
       </div>
 
@@ -168,6 +184,9 @@ function QuestionBrowserCard({ q, onPracticeTopic }) {
 
 export default function QuestionsPage() {
   const navigate = useNavigate();
+  const { profile } = useAuth();
+  const isAdmin = Boolean(profile?.is_admin);
+
   const [hierarchy, setHierarchy] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState('');
   const [selectedChapter, setSelectedChapter] = useState('');
@@ -179,6 +198,10 @@ export default function QuestionsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
+
+  // Admin Question Editor Modal
+  const [modalOpen, setModalOpen] = useState(false);
+  const [activeQuestion, setActiveQuestion] = useState(null);
 
   useEffect(() => {
     topicsService.getTopics().then(setHierarchy).catch(() => {});
@@ -221,6 +244,22 @@ export default function QuestionsPage() {
     }
   }, [selectedTopic, selectedDifficulty]);
 
+  const handleEditQuestion = (q) => {
+    setActiveQuestion(q);
+    setModalOpen(true);
+  };
+
+  const handleCreateNewQuestion = () => {
+    setActiveQuestion(null);
+    setModalOpen(true);
+  };
+
+  const handleSavedQuestion = () => {
+    if (selectedTopic) {
+      handleFetchQuestions();
+    }
+  };
+
   useEffect(() => {
     if (selectedTopic) {
       handleFetchQuestions();
@@ -253,24 +292,44 @@ export default function QuestionsPage() {
           </p>
         </div>
 
-        {selectedTopic && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => navigate(`/practice?topic=${selectedTopic}`)}
-              className="px-4 py-2 bg-surface-container border border-outline-variant hover:border-primary text-white rounded-sm text-xs font-mono uppercase tracking-wider flex items-center gap-1.5 transition-colors"
-            >
-              <Play className="w-3.5 h-3.5 fill-current text-primary" />
-              <span>Drill This Topic</span>
-            </button>
-            <button
-              onClick={() => navigate(`/evaluate?topic=${selectedTopic}`)}
-              className="px-4 py-2 bg-primary text-black rounded-sm text-xs font-mono uppercase tracking-wider font-bold hover:brightness-110 flex items-center gap-1.5 transition-colors"
-            >
-              <Timer className="w-3.5 h-3.5 stroke-[2]" />
-              <span>Mock Test</span>
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          {isAdmin && (
+            <>
+              <button
+                onClick={handleCreateNewQuestion}
+                className="px-4 py-2 bg-primary text-white text-xs font-mono uppercase tracking-wider font-bold flex items-center gap-1.5 hover:brightness-110 shadow"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ New Question</span>
+              </button>
+              <button
+                onClick={() => navigate('/admin/questions')}
+                className="px-4 py-2 border border-status-weak/50 text-status-weak hover:bg-status-weak hover:text-black text-xs font-mono uppercase tracking-wider font-bold transition-colors"
+              >
+                Admin Manager
+              </button>
+            </>
+          )}
+
+          {selectedTopic && (
+            <>
+              <button
+                onClick={() => navigate(`/practice?topic=${selectedTopic}`)}
+                className="px-4 py-2 bg-surface-container border border-outline-variant hover:border-primary text-white rounded-sm text-xs font-mono uppercase tracking-wider flex items-center gap-1.5 transition-colors"
+              >
+                <Play className="w-3.5 h-3.5 fill-current text-primary" />
+                <span>Drill</span>
+              </button>
+              <button
+                onClick={() => navigate(`/evaluate?topic=${selectedTopic}`)}
+                className="px-4 py-2 bg-primary text-black rounded-sm text-xs font-mono uppercase tracking-wider font-bold hover:brightness-110 flex items-center gap-1.5 transition-colors"
+              >
+                <Timer className="w-3.5 h-3.5 stroke-[2]" />
+                <span>Mock</span>
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Filter Matrix Card */}
@@ -409,11 +468,25 @@ export default function QuestionsPage() {
               <QuestionBrowserCard
                 key={q.id}
                 q={q}
+                isAdmin={isAdmin}
+                onEditQuestion={handleEditQuestion}
                 onPracticeTopic={(topicId) => navigate(`/practice?topic=${topicId}`)}
               />
             ))}
           </div>
         </div>
+      )}
+
+      {/* Admin Question Editor Modal */}
+      {isAdmin && (
+        <QuestionEditModal
+          isOpen={modalOpen}
+          question={activeQuestion}
+          initialTopicId={selectedTopic}
+          onClose={() => setModalOpen(false)}
+          onSaved={handleSavedQuestion}
+          onDeleted={handleSavedQuestion}
+        />
       )}
     </div>
   );

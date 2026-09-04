@@ -52,4 +52,11 @@ router.get('/', questionsController.getQuestions);
  * ────────────────────────────────────────────────────────────────────────── */
 router.post('/', requireAdmin, questionsController.createQuestion);
 
+/* ──────────────────────────────────────────────────────────────────────────
+ * Question Management & Modification (admin-only)
+ * ────────────────────────────────────────────────────────────────────────── */
+router.put('/:id', requireAdmin, questionsController.updateQuestion);
+router.delete('/:id', requireAdmin, questionsController.deleteQuestion);
+router.patch('/:id/verify', requireAdmin, questionsController.toggleVerify);
+
 export default router;

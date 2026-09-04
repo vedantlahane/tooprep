@@ -55,6 +55,7 @@ import practiceRoutes from './features/practice/practice.routes.js';
 import evaluationsRoutes from './features/evaluations/evaluations.routes.js';
 import dashboardRoutes from './features/dashboard/dashboard.routes.js';
 import contentRoutes from './features/content/content.routes.js';
+import adminRoutes from './features/admin/admin.routes.js';
 
 /*
  * Load environment variables early so every subsequent import/module
@@ -189,6 +190,7 @@ app.use('/api/practice-sessions', requireAuth, practiceRoutes);
 app.use('/api/evaluations', requireAuth, evaluationsRoutes);
 app.use('/api/dashboard', requireAuth, dashboardRoutes);
 app.use('/api/admin/content', requireAuth, contentRoutes);
+app.use('/api/admin', requireAuth, adminRoutes);
 
 /*
  * -------------------------------------------------------------------------

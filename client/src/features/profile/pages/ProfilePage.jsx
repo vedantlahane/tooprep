@@ -15,7 +15,9 @@ import Icon, {
   LogOut,
   BookOpen,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  Activity,
+  LayoutGrid
 } from '@/shared/components/Icon';
 
 export default function ProfilePage() {
@@ -209,42 +211,63 @@ export default function ProfilePage() {
 
       {/* Admin Section */}
       {profile?.is_admin && (
-        <div className="acrylic-glass border border-primary/30 p-6 md:p-8 rounded-md">
-          <h3 className="text-xs font-mono text-primary uppercase tracking-widest mb-4 flex items-center gap-2">
-            <Shield className="w-4 h-4" />
-            ADMINISTRATIVE OPERATIONS // STAFF ACCESS
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="acrylic-glass border border-primary/30 p-6 md:p-8 rounded-md space-y-4">
+          <div className="flex justify-between items-center flex-wrap gap-2">
+            <h3 className="text-xs font-mono text-primary uppercase tracking-widest flex items-center gap-2 font-bold">
+              <Shield className="w-4 h-4" />
+              ADMINISTRATIVE OPERATIONS // STAFF ACCESS
+            </h3>
             <button
-              onClick={() => navigate('/admin/content')}
-              className="p-5 border border-white/10 bg-surface-container/60 hover:border-primary transition-colors text-left rounded-sm group flex items-start gap-4"
+              onClick={() => navigate('/admin')}
+              className="px-4 py-1.5 bg-primary text-white text-xs font-mono uppercase tracking-widest font-bold hover:brightness-110 flex items-center gap-1.5 transition-all"
             >
-              <UploadCloud className="w-6 h-6 text-primary mt-0.5 group-hover:scale-110 transition-transform flex-shrink-0" />
+              <span>Open Mission Control</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <button
+              onClick={() => navigate('/admin')}
+              className="p-4 border border-white/10 bg-surface-container/60 hover:border-primary transition-colors text-left rounded-sm group flex items-start gap-3"
+            >
+              <Activity className="w-5 h-5 text-status-weak mt-0.5 group-hover:scale-110 transition-transform flex-shrink-0" />
               <div>
-                <div className="text-sm font-semibold text-white">Content Ops</div>
-                <div className="text-xs text-white/50 font-mono mt-0.5">Upload exam PDFs and verify extracted question candidates</div>
+                <div className="text-sm font-semibold text-white">Observability</div>
+                <div className="text-xs text-white/50 font-mono mt-0.5">Real-time telemetry and cohort metrics</div>
               </div>
             </button>
 
             <button
               onClick={() => navigate('/admin/questions')}
-              className="p-5 border border-white/10 bg-surface-container/60 hover:border-primary transition-colors text-left rounded-sm group flex items-start gap-4"
+              className="p-4 border border-white/10 bg-surface-container/60 hover:border-primary transition-colors text-left rounded-sm group flex items-start gap-3"
             >
-              <BookOpen className="w-6 h-6 text-primary mt-0.5 group-hover:scale-110 transition-transform flex-shrink-0" />
+              <BookOpen className="w-5 h-5 text-primary mt-0.5 group-hover:scale-110 transition-transform flex-shrink-0" />
               <div>
                 <div className="text-sm font-semibold text-white">Question Bank</div>
-                <div className="text-xs text-white/50 font-mono mt-0.5">Browse all 110 published questions with answers and source keys</div>
+                <div className="text-xs text-white/50 font-mono mt-0.5">Full CRUD editor, LaTeX previews, deletion</div>
               </div>
             </button>
 
             <button
-              onClick={() => navigate('/admin/syncs')}
-              className="p-5 border border-white/10 bg-surface-container/60 hover:border-primary transition-colors text-left rounded-sm group flex items-start gap-4"
+              onClick={() => navigate('/admin/curriculum')}
+              className="p-4 border border-white/10 bg-surface-container/60 hover:border-primary transition-colors text-left rounded-sm group flex items-start gap-3"
             >
-              <RefreshCw className="w-6 h-6 text-primary mt-0.5 group-hover:scale-110 transition-transform flex-shrink-0" />
+              <LayoutGrid className="w-5 h-5 text-primary mt-0.5 group-hover:scale-110 transition-transform flex-shrink-0" />
               <div>
-                <div className="text-sm font-semibold text-white">Sync Status</div>
-                <div className="text-xs text-white/50 font-mono mt-0.5">Monitor vector search and publication sync health</div>
+                <div className="text-sm font-semibold text-white">Curriculum Matrix</div>
+                <div className="text-xs text-white/50 font-mono mt-0.5">Syllabus coverage gap auditor</div>
+              </div>
+            </button>
+
+            <button
+              onClick={() => navigate('/admin/content')}
+              className="p-4 border border-white/10 bg-surface-container/60 hover:border-primary transition-colors text-left rounded-sm group flex items-start gap-3"
+            >
+              <UploadCloud className="w-5 h-5 text-primary mt-0.5 group-hover:scale-110 transition-transform flex-shrink-0" />
+              <div>
+                <div className="text-sm font-semibold text-white">Content Ops</div>
+                <div className="text-xs text-white/50 font-mono mt-0.5">Upload exam PDFs and verify extracted candidates</div>
               </div>
             </button>
           </div>

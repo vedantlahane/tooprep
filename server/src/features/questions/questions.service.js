@@ -161,5 +161,107 @@ export const questionsService = {
 
     if (error) throw new Error(error.message);
     return data;
+  },
+
+  /**
+   * Update an existing question (admin-only).
+   *
+   * @param {string} id - Question UUID.
+   * @param {Object} updateData - Partial or full question update payload.
+   * @returns {Promise<Object>} Updated question row.
+   */
+  async updateQuestion(id, updateData) {
+    if (!id) {
+      const err = new Error('Question ID is required');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const allowed = [
+      'topic_id', 'source_type', 'provider', 'exam_year', 'exam_session', 'exam_shift',
+      'question_type', 'question_text', 'options', 'correct_answer', 'solution_text',
+      'difficulty', 'verified', 'publication_status'
+    ];
+    const updatePayload = {};
+    for (const key of allowed) {
+      if (updateData[key] !== undefined) {
+        updatePayload[key] = updateData[key];
+      }
+    }
+
+    if (updatePayload.difficulty) {
+      updatePayload.difficulty = String(updatePayload.difficulty).toLowerCase();
+    }
+
+    if (updatePayload.verified !== undefined && updatePayload.publication_status === undefined) {
+      updatePayload.publication_status = updatePayload.verified ? 'PUBLISHED' : 'DRAFT';
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('questions')
+      .update(updatePayload)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    if (!data) {
+      const notFound = new Error('Question not found');
+      notFound.statusCode = 404;
+      throw notFound;
+    }
+    return data;
+  },
+
+  /**
+   * Delete a question from the question bank (admin-only).
+   * Cascades through attempts via DB foreign keys.
+   *
+   * @param {string} id - Question UUID.
+   * @returns {Promise<{ deleted: boolean, id: string }>}
+   */
+  async deleteQuestion(id) {
+    if (!id) {
+      const err = new Error('Question ID is required');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const { error } = await supabaseAdmin
+      .from('questions')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw new Error(error.message);
+    return { deleted: true, id };
+  },
+
+  /**
+   * Quick toggle or set verification status for a question (admin-only).
+   *
+   * @param {string} id - Question UUID.
+   * @param {boolean} verified - Verification status.
+   * @returns {Promise<Object>} Updated question.
+   */
+  async toggleVerifyQuestion(id, verified) {
+    if (!id) {
+      const err = new Error('Question ID is required');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const isVerified = Boolean(verified);
+    const { data, error } = await supabaseAdmin
+      .from('questions')
+      .update({
+        verified: isVerified,
+        publication_status: isVerified ? 'PUBLISHED' : 'DRAFT'
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data;
   }
 };

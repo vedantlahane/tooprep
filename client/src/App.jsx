@@ -21,8 +21,10 @@ import SessionHistoryPage from '@/features/profile/pages/SessionHistoryPage';
 import ContentAdminPage from '@/features/content/pages/ContentAdminPage';
 import QuestionsPage from '@/features/questions/pages/QuestionsPage';
 import AdminQuestionsPage from '@/features/questions/pages/AdminQuestionsPage';
-
+import AdminOverviewPage from '@/features/admin/pages/AdminOverviewPage';
+import AdminCurriculumPage from '@/features/admin/pages/AdminCurriculumPage';
 import ContentSyncPage from '@/features/content/pages/ContentSyncPage';
+import AdminLayout from '@/shared/components/AdminLayout';
 
 
 function RootRoute() {
@@ -177,22 +179,42 @@ function App() {
             }
           />
           <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminOverviewPage />
+                </AdminLayout>
+              </AdminRoute>
+            }
+          />
+          <Route
             path="/admin/questions"
             element={
               <AdminRoute>
-                <Layout>
+                <AdminLayout>
                   <AdminQuestionsPage />
-                </Layout>
+                </AdminLayout>
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/curriculum"
+            element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminCurriculumPage />
+                </AdminLayout>
               </AdminRoute>
             }
           />
           <Route
             path="/admin/content"
-            element={<AdminRoute><Layout><ContentAdminPage /></Layout></AdminRoute>}
+            element={<AdminRoute><AdminLayout><ContentAdminPage /></AdminLayout></AdminRoute>}
           />
           <Route
             path="/admin/syncs"
-            element={<AdminRoute><Layout><ContentSyncPage /></Layout></AdminRoute>}
+            element={<AdminRoute><AdminLayout><ContentSyncPage /></AdminLayout></AdminRoute>}
           />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

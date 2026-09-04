@@ -4,11 +4,14 @@ import { topicsService } from '../services/topicsService';
 import { confidenceService } from '@/features/confidence/services/confidenceService';
 import ConfidenceSlider from '@/features/confidence/components/ConfidenceSlider';
 import QuickDrillModal from '@/features/practice/components/QuickDrillModal';
-import Icon, { ArrowLeft, BookOpen, Zap, Play, Timer, ArrowRight } from '@/shared/components/Icon';
+import QuestionEditModal from '@/features/questions/components/QuestionEditModal';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import Icon, { ArrowLeft, BookOpen, Zap, Play, Timer, ArrowRight, Shield, Plus } from '@/shared/components/Icon';
 
 export default function TopicDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { profile } = useAuth();
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -19,6 +22,7 @@ export default function TopicDetailPage() {
   const [confidenceLoading, setConfidenceLoading] = useState(false);
   
   const [showDrill, setShowDrill] = useState(false);
+  const [adminModalOpen, setAdminModalOpen] = useState(false);
 
   useEffect(() => {
     loadTopic();
@@ -115,6 +119,31 @@ export default function TopicDetailPage() {
           Browse Topic Questions
         </button>
       </div>
+
+      {profile?.is_admin && (
+        <div className="border border-status-weak/40 bg-status-weak/10 p-4 rounded-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
+          <div className="flex items-center gap-2">
+            <Shield className="w-4 h-4 text-status-weak shrink-0" />
+            <span className="text-white font-bold uppercase tracking-wider">Staff Controls:</span>
+            <span className="text-white/60">Topic ID: {id}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate(`/admin/questions?topic_id=${id}`)}
+              className="px-3 py-1.5 bg-status-weak text-black font-bold uppercase tracking-wider hover:brightness-110 transition-all text-[11px]"
+            >
+              Manage Questions &rarr;
+            </button>
+            <button
+              onClick={() => setAdminModalOpen(true)}
+              className="px-3 py-1.5 bg-primary text-white font-bold uppercase tracking-wider hover:brightness-110 transition-all flex items-center gap-1 text-[11px]"
+            >
+              <Plus className="w-3 h-3" />
+              <span>+ Add Question</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       <div>
         <p className="text-body-md text-on-surface-variant uppercase tracking-widest mb-1">
@@ -348,6 +377,17 @@ export default function TopicDetailPage() {
           <p className="text-body-md text-on-surface-variant">No evaluations recorded yet. Complete a timed evaluation to track results here.</p>
         )}
       </div>
+
+      {/* Admin Question Composer Modal */}
+      {profile?.is_admin && (
+        <QuestionEditModal
+          isOpen={adminModalOpen}
+          question={null}
+          initialTopicId={id}
+          onClose={() => setAdminModalOpen(false)}
+          onSaved={() => loadTopic()}
+        />
+      )}
     </div>
   );
 }

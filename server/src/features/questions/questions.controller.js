@@ -93,5 +93,47 @@ export const questionsController = {
       }
       return res.status(500).json({ error: err.message || 'Server error' });
     }
+  },
+
+  /**
+   * PUT /api/questions/:id — Update an existing question (admin-only).
+   */
+  async updateQuestion(req, res) {
+    try {
+      const data = await questionsService.updateQuestion(req.params.id, req.body);
+      return res.json(data);
+    } catch (err) {
+      console.error('PUT /questions/:id error:', err);
+      const statusCode = err.statusCode || 500;
+      return res.status(statusCode).json({ error: err.message || 'Server error' });
+    }
+  },
+
+  /**
+   * DELETE /api/questions/:id — Delete a question (admin-only).
+   */
+  async deleteQuestion(req, res) {
+    try {
+      const result = await questionsService.deleteQuestion(req.params.id);
+      return res.json(result);
+    } catch (err) {
+      console.error('DELETE /questions/:id error:', err);
+      const statusCode = err.statusCode || 500;
+      return res.status(statusCode).json({ error: err.message || 'Server error' });
+    }
+  },
+
+  /**
+   * PATCH /api/questions/:id/verify — Toggle verification status (admin-only).
+   */
+  async toggleVerify(req, res) {
+    try {
+      const data = await questionsService.toggleVerifyQuestion(req.params.id, req.body.verified);
+      return res.json(data);
+    } catch (err) {
+      console.error('PATCH /questions/:id/verify error:', err);
+      const statusCode = err.statusCode || 500;
+      return res.status(statusCode).json({ error: err.message || 'Server error' });
+    }
   }
 };
