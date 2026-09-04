@@ -1,3 +1,9 @@
+import { promisify } from 'node:util';
+import { execFile } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { randomBytes } from 'node:crypto';
 import {
   createIngestionJobId,
   createQuestionId
@@ -5,14 +11,47 @@ import {
 import { assertIngestionTransition } from './ingestion-state.js';
 import { contentRepository } from './content.repository.js';
 import { validateContentDraft, validateIngestionSource } from './content.validation.js';
-import { storeSourcePdf } from './content.storage.js';
+import { storeSourcePdf, downloadSourcePdf, storeQuestionImage } from './content.storage.js';
 import { assertContentTransition } from './content-lifecycle.js';
 import { markSupabaseSync, upsertPublishedQuestion } from './publication.repository.js';
+
+const execFileAsync = promisify(execFile);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 function applicationError(message, statusCode) {
   const error = new Error(message);
   error.statusCode = statusCode;
   return error;
+}
+
+async function ensureLocalSourcePdf(job) {
+  const cacheDir = path.resolve(__dirname, '../../../public/uploads/sources');
+  if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
+  const localPdfPath = path.join(cacheDir, `${job.job_id}.pdf`);
+  if (fs.existsSync(localPdfPath)) return localPdfPath;
+
+  if (job.source?.storage_path) {
+    try {
+      const buffer = await downloadSourcePdf(job.source.storage_path);
+      fs.writeFileSync(localPdfPath, buffer);
+      return localPdfPath;
+    } catch (e) {
+      console.warn('[ensureLocalSourcePdf] Download failed:', e.message);
+    }
+  }
+
+  const possiblePaths = [
+    job.source?.filename,
+    job.source?.metadata?.local_path,
+    `C:\\Users\\Admin\\Desktop\\JEE _Mains\\2018\\${job.source?.filename}`,
+    `C:\\Users\\Admin\\Desktop\\JEE _Mains\\${job.source?.year}\\${job.source?.filename}`
+  ];
+  for (const p of possiblePaths) {
+    if (p && fs.existsSync(p)) return p;
+  }
+
+  throw applicationError('Source PDF could not be found or downloaded for job ' + job.job_id, 404);
 }
 
 export function buildContentDraft(input, actorId, now = new Date()) {
@@ -284,5 +323,76 @@ export const contentService = {
     } else {
       throw applicationError('Invalid sync type', 400);
     }
+  },
+
+  async uploadQuestionImage({ file, dataUrl, filename }) {
+    let buffer;
+    let mimetype = 'image/png';
+    let originalname = filename || 'diagram.png';
+
+    if (file?.buffer) {
+      buffer = file.buffer;
+      mimetype = file.mimetype || mimetype;
+      originalname = file.originalname || originalname;
+    } else if (dataUrl && typeof dataUrl === 'string') {
+      const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+      if (!match) throw applicationError('Invalid data URL format', 400);
+      mimetype = match[1];
+      buffer = Buffer.from(match[2], 'base64');
+    } else {
+      throw applicationError('Image file or dataUrl is required', 400);
+    }
+
+    return storeQuestionImage({ buffer, mimetype, originalname });
+  },
+
+  async renderPdfPage(jobId, pageNumber, dpi = 150) {
+    const job = await this.getIngestionJob(jobId);
+    const localPdfPath = await ensureLocalSourcePdf(job);
+    const pythonScript = path.resolve(__dirname, './pdf-renderer.py');
+
+    const { stdout, stderr } = await execFileAsync('python', [
+      pythonScript, 'render_page', localPdfPath, String(pageNumber), '-', String(dpi)
+    ], { maxBuffer: 50 * 1024 * 1024 });
+
+    if (stderr && !stdout) {
+      throw applicationError(`PDF render error: ${stderr}`, 500);
+    }
+
+    const result = JSON.parse(stdout);
+    if (!result.success) throw applicationError(result.error || 'Failed to render PDF page', 500);
+    return result;
+  },
+
+  async cropPdfDiagram(jobId, pageNumber, rect, dpi = 300) {
+    if (!rect || rect.x0 == null || rect.y0 == null || rect.x1 == null || rect.y1 == null) {
+      throw applicationError('Crop rectangle coordinates {x0, y0, x1, y1} are required', 400);
+    }
+    const job = await this.getIngestionJob(jobId);
+    const localPdfPath = await ensureLocalSourcePdf(job);
+    const pythonScript = path.resolve(__dirname, './pdf-renderer.py');
+    const tempCropPath = path.resolve(__dirname, `../../../public/uploads/questions/crop_${Date.now()}_${randomBytes(4).toString('hex')}.png`);
+
+    const { stdout, stderr } = await execFileAsync('python', [
+      pythonScript, 'crop_rect', localPdfPath, String(pageNumber), tempCropPath,
+      String(rect.x0), String(rect.y0), String(rect.x1), String(rect.y1), String(dpi)
+    ], { maxBuffer: 20 * 1024 * 1024 });
+
+    if (stderr && !stdout) {
+      throw applicationError(`PDF crop error: ${stderr}`, 500);
+    }
+
+    const result = JSON.parse(stdout);
+    if (!result.success) throw applicationError(result.error || 'Failed to crop diagram', 500);
+
+    const buffer = fs.readFileSync(tempCropPath);
+    const stored = await storeQuestionImage({
+      buffer,
+      mimetype: 'image/png',
+      originalname: `diagram_${job.source?.filename || 'crop'}_p${pageNumber}.png`
+    });
+
+    try { fs.unlinkSync(tempCropPath); } catch {}
+    return stored;
   }
 };

@@ -98,5 +98,31 @@ export const contentController = {
     try {
       return res.json(await contentService.retrySync(req.body.type, req.body.id, req.user.id));
     } catch (error) { return sendError(res, req, error); }
+  },
+  async uploadImage(req, res) {
+    try {
+      const result = await contentService.uploadQuestionImage({
+        file: req.file,
+        dataUrl: req.body?.dataUrl,
+        filename: req.body?.filename
+      });
+      return res.status(201).json(result);
+    } catch (error) { return sendError(res, req, error); }
+  },
+  async renderPdfPage(req, res) {
+    try {
+      const pageNum = parseInt(req.params.pageNum, 10) || 1;
+      const dpi = parseInt(req.query.dpi, 10) || 150;
+      const result = await contentService.renderPdfPage(req.params.jobId, pageNum, dpi);
+      return res.json(result);
+    } catch (error) { return sendError(res, req, error); }
+  },
+  async cropPdfDiagram(req, res) {
+    try {
+      const pageNum = parseInt(req.params.pageNum, 10) || 1;
+      const dpi = parseInt(req.body.dpi, 10) || 300;
+      const result = await contentService.cropPdfDiagram(req.params.jobId, pageNum, req.body.rect, dpi);
+      return res.status(201).json(result);
+    } catch (error) { return sendError(res, req, error); }
   }
 };

@@ -39,3 +39,11 @@ Thumbs.db
 *.bak
 *.cache
 *result.json
+
+# Local Uploads & Media Cache
+uploads/
+**/uploads/
+server/public/uploads/
+*.png
+*.jpg
+*.jpeg

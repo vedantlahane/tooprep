@@ -37,9 +37,14 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { requireAuth } from './middleware/auth.js';
 import { requestContext } from './platform/request-context.js';
 import { logger } from './platform/logger.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /* Feature route modules — each encapsulates its own router with controller bindings */
 import profileRoutes from './features/profile/profile.routes.js';
@@ -147,7 +152,8 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
-app.use(express.json({ limit: '1mb' })); // Parse JSON request bodies (application/json)
+app.use(express.json({ limit: '15mb' })); // Parse JSON request bodies (allows image base64 payloads)
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
 /*
  * -------------------------------------------------------------------------

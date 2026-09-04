@@ -5,7 +5,13 @@ import { contentController } from './content.controller.js';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024, files: 1 } });
+const imageUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024, files: 1 } });
+
 router.use(requireAdmin);
+router.post('/images/upload', imageUpload.single('file'), contentController.uploadImage);
+router.get('/ingestion-jobs/:jobId/pages/:pageNum/render', contentController.renderPdfPage);
+router.post('/ingestion-jobs/:jobId/pages/:pageNum/crop', contentController.cropPdfDiagram);
+
 router.post('/questions', contentController.createDraft);
 router.get('/questions/search', contentController.searchQuestions);
 router.get('/questions/:questionId', contentController.getDraft);

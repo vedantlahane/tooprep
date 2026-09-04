@@ -31,6 +31,32 @@ function cleanRunningHeaders(text) {
     .replace(/(?:^|\n)\s*## \*\*Instructions\*\*[\s\S]*?(?=(?:## \*\*PHYSICS\*\*|## PHYSICS|\*\*Q\.1\*\*))/i, '');
 }
 
+/**
+ * Sanitizes question text and options by stripping fake imgur links and pseudo-paths.
+ */
+export function sanitizeQuestionText(text) {
+  if (!text) return '';
+  let cleaned = String(text);
+
+  // Strip fake imgur links: <img src="https://i.imgur.com/..." ...> or ![...](https://i.imgur.com/...)
+  cleaned = cleaned.replace(/<img\s+[^>]*src=["']https?:\/\/(?:i\.)?imgur\.com\/[^"']*["'][^>]*>/gi, '');
+  cleaned = cleaned.replace(/!\[(.*?)\]\(https?:\/\/(?:i\.)?imgur\.com\/[^\)]*\)/gi, '');
+
+  // Strip pseudo img tags without valid URL: e.g. <img src="benzene ring..."> or <img src="reaction_structure"...>
+  cleaned = cleaned.replace(/<img\s+[^>]*src=["'](?!(?:https?:\/\/|\/|data:image\/))([^"']+)["'][^>]*>/gi, (match, pseudoSrc) => {
+    const altMatch = match.match(/alt=["']([^"']+)["']/i);
+    const desc = altMatch ? altMatch[1] : pseudoSrc;
+    return `*[Diagram: ${desc.trim()}]*`;
+  });
+
+  // Strip section headers at the end of option or question text
+  cleaned = cleaned.replace(/\n\s*\*\*CHEMISTRY\*\*\s*$/i, '');
+  cleaned = cleaned.replace(/\n\s*\*\*PHYSICS\*\*\s*$/i, '');
+  cleaned = cleaned.replace(/\n\s*\*\*MATHEMATICS\*\*\s*$/i, '');
+
+  return cleaned.trim();
+}
+
 export function parseTableOptions(text) {
   const tableRegex = /<table>[\s\S]*?<\/table>/i;
   const match = (text || '').match(tableRegex);
@@ -79,7 +105,18 @@ export function extractOptions(raw) {
 
   // Try HTML table options first
   const tableOpts = parseTableOptions(text);
-  if (tableOpts) return tableOpts;
+  if (tableOpts) {
+    return {
+      questionText: sanitizeQuestionText(tableOpts.questionText),
+      options: {
+        A: sanitizeQuestionText(tableOpts.options.A),
+        B: sanitizeQuestionText(tableOpts.options.B),
+        C: sanitizeQuestionText(tableOpts.options.C),
+        D: sanitizeQuestionText(tableOpts.options.D)
+      },
+      hasOptions: true
+    };
+  }
 
   // Bracketed options: (A) ... (B) ... (C) ... (D) or (1) ... (2) ... (3) ... (4)
   const bracketRegex = /(?:^|\s|\n)(?:\(|\[)([A-Da-d1-4])(?:\)|\])\s+/g;
@@ -97,11 +134,21 @@ export function extractOptions(raw) {
         const optA = text.slice(window[0].index + window[0][0].length, window[1].index).trim();
         const optB = text.slice(window[1].index + window[1][0].length, window[2].index).trim();
         const optC = text.slice(window[2].index + window[2][0].length, window[3].index).trim();
-        const optD = text.slice(window[3].index + window[3][0].length).trim();
+        let optD = text.slice(window[3].index + window[3][0].length).trim();
+
+        const cutoff = optD.search(/\n\s*(?:(?:\(|\[)[A-Da-d1-4](?:\)|\])|##\s*\*\*[A-Z\s]+\*\*|\*\*[A-Z\s]{4,}\*\*)\s+/);
+        if (cutoff !== -1) {
+          optD = optD.slice(0, cutoff).trim();
+        }
 
         return {
-          questionText: qText,
-          options: { A: optA, B: optB, C: optC, D: optD },
+          questionText: sanitizeQuestionText(qText),
+          options: {
+            A: sanitizeQuestionText(optA),
+            B: sanitizeQuestionText(optB),
+            C: sanitizeQuestionText(optC),
+            D: sanitizeQuestionText(optD)
+          },
           hasOptions: true
         };
       }
@@ -120,17 +167,32 @@ export function extractOptions(raw) {
         const optA = text.slice(window[0].index + window[0][0].length, window[1].index).trim();
         const optB = text.slice(window[1].index + window[1][0].length, window[2].index).trim();
         const optC = text.slice(window[2].index + window[2][0].length, window[3].index).trim();
-        const optD = text.slice(window[3].index + window[3][0].length).trim();
+        let optD = text.slice(window[3].index + window[3][0].length).trim();
+
+        const cutoff = optD.search(/\n\s*(?:(?:\(|\[)[A-Da-d1-4](?:\)|\])|##\s*\*\*[A-Z\s]+\*\*|\*\*[A-Z\s]{4,}\*\*)\s+/);
+        if (cutoff !== -1) {
+          optD = optD.slice(0, cutoff).trim();
+        }
+
         return {
-          questionText: qText,
-          options: { A: optA, B: optB, C: optC, D: optD },
+          questionText: sanitizeQuestionText(qText),
+          options: {
+            A: sanitizeQuestionText(optA),
+            B: sanitizeQuestionText(optB),
+            C: sanitizeQuestionText(optC),
+            D: sanitizeQuestionText(optD)
+          },
           hasOptions: true
         };
       }
     }
   }
 
-  return { questionText: text, options: { A: '', B: '', C: '', D: '' }, hasOptions: false };
+  return {
+    questionText: sanitizeQuestionText(text),
+    options: { A: '', B: '', C: '', D: '' },
+    hasOptions: false
+  };
 }
 
 export function parseAnswerKeyMap(pages) {
@@ -256,6 +318,13 @@ export function extractQuestionCandidates(jobId, pages, allTopics = []) {
     const solutionText = solutionsMap[qNum]?.text || null;
     const classification = classifyQuestion(qNum, parsed.questionText || rawText, allTopics);
     const sourcePage = getPageNum(qMatches[i].index);
+    const hasDiagram = Boolean(
+      rawText.includes('imgur') ||
+      rawText.includes('<img') ||
+      rawText.includes('![') ||
+      rawText.includes('*[Diagram:') ||
+      /\b(?:figure|circuit|diagram|titration plot|reactions are respectively)\b/i.test(rawText)
+    );
 
     const fingerprint = createHash('sha256')
       .update(`${jobId}:${sourcePage}:${qNum}:${rawText.slice(0, 100)}`)
@@ -271,12 +340,13 @@ export function extractQuestionCandidates(jobId, pages, allTopics = []) {
       suggested_topic: classification.topicName,
       suggested_topic_id: classification.topicId,
       raw_text: rawText,
-      question_text: parsed.questionText || rawText,
+      question_text: parsed.questionText || sanitizeQuestionText(rawText),
       options: parsed.options,
       correct_answer: answerKey,
-      solution_text: solutionText,
+      solution_text: solutionText ? sanitizeQuestionText(solutionText) : null,
       has_options: parsed.hasOptions,
       has_solution: Boolean(solutionText),
+      has_diagram: hasDiagram,
       classification_confidence: classification.confidence,
       extraction_method: 'STREAM_MATCH_WITH_SOLUTIONS_V3',
       status: 'REVIEW_REQUIRED'
@@ -309,6 +379,13 @@ export function extractQuestionCandidates(jobId, pages, allTopics = []) {
 
         const solutionText = solutionsMap[qNum]?.text || null;
         const classification = classifyQuestion(qNum, parsed.questionText || rawText, allTopics);
+        const hasDiagram = Boolean(
+          rawText.includes('imgur') ||
+          rawText.includes('<img') ||
+          rawText.includes('![') ||
+          rawText.includes('*[Diagram:') ||
+          /\b(?:figure|circuit|diagram|titration plot|reactions are respectively)\b/i.test(rawText)
+        );
         const fingerprint = createHash('sha256').update(`${jobId}:${page.page_number}:${qNum}:${rawText.slice(0, 100)}`).digest('hex');
 
         candidates.push({
@@ -321,12 +398,13 @@ export function extractQuestionCandidates(jobId, pages, allTopics = []) {
           suggested_topic: classification.topicName,
           suggested_topic_id: classification.topicId,
           raw_text: rawText,
-          question_text: parsed.questionText || rawText,
+          question_text: parsed.questionText || sanitizeQuestionText(rawText),
           options: parsed.options,
           correct_answer: correctAnswer,
-          solution_text: solutionText,
+          solution_text: solutionText ? sanitizeQuestionText(solutionText) : null,
           has_options: parsed.hasOptions,
           has_solution: Boolean(solutionText),
+          has_diagram: hasDiagram,
           classification_confidence: classification.confidence,
           extraction_method: 'STRUCTURED_PAGE_FALLBACK_V3',
           status: 'REVIEW_REQUIRED'

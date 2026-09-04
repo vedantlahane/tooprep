@@ -20,5 +20,18 @@ export const contentService = {
   searchQuestions: (query, limit = 5) =>
     request('GET', `${base}/questions/search?q=${encodeURIComponent(query)}&limit=${limit}`),
   getFailedSyncs: () => request('GET', `${base}/syncs/failed`),
-  retrySync: (type, id) => request('POST', `${base}/syncs/retry`, { type, id })
+  retrySync: (type, id) => request('POST', `${base}/syncs/retry`, { type, id }),
+  uploadImage: (fileOrDataUrl, filename) => {
+    if (typeof fileOrDataUrl === 'string') {
+      return request('POST', `${base}/images/upload`, { dataUrl: fileOrDataUrl, filename });
+    }
+    const form = new FormData();
+    form.append('file', fileOrDataUrl);
+    if (filename) form.append('filename', filename);
+    return request('POST', `${base}/images/upload`, form);
+  },
+  renderPdfPage: (jobId, pageNum, dpi = 150) =>
+    request('GET', `${base}/ingestion-jobs/${jobId}/pages/${pageNum}/render?dpi=${dpi}`),
+  cropPdfDiagram: (jobId, pageNum, rect, dpi = 300) =>
+    request('POST', `${base}/ingestion-jobs/${jobId}/pages/${pageNum}/crop`, { rect, dpi })
 };

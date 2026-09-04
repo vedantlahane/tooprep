@@ -31,7 +31,11 @@ export function extractOptionsFromText(rawText) {
         const optA = text.slice(window[0].index + window[0][0].length, window[1].index).trim();
         const optB = text.slice(window[1].index + window[1][0].length, window[2].index).trim();
         const optC = text.slice(window[2].index + window[2][0].length, window[3].index).trim();
-        const optD = text.slice(window[3].index + window[3][0].length).trim();
+        let optD = text.slice(window[3].index + window[3][0].length).trim();
+        const cutoffMatch = optD.match(/\n\s*(?:(?:\(|\[)[A-Da-d1-4](?:\)|\])|##\s*\*\*[A-Z\s]+\*\*|\*\*[A-Z\s]{4,}\*\*)\s+/);
+        if (cutoffMatch) {
+          optD = optD.slice(0, cutoffMatch.index).trim();
+        }
 
         return {
           questionText: qText,
