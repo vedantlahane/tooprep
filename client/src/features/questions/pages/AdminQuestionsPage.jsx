@@ -77,7 +77,9 @@ function AdminQuestionCard({ q }) {
       {q.options && (
         <div className="px-5 pb-4 grid grid-cols-1 gap-2">
           {options.map((letter) => {
-            const optionText = q.options[letter] ?? q.options[letter.toLowerCase()];
+            const optionText = Array.isArray(q.options)
+              ? q.options.find(o => o.id === letter)?.text
+              : (q.options?.[letter] ?? q.options?.[letter.toLowerCase()]);
             if (!optionText) return null;
             const isCorrect = q.correct_answer === letter;
             return (

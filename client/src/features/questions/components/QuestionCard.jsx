@@ -16,9 +16,15 @@ export default function QuestionCard({
 }) {
   if (!question) return null;
 
-  const options = typeof question.options === 'string'
-    ? JSON.parse(question.options)
+  const rawOptions = typeof question.options === 'string'
+    ? (() => { try { return JSON.parse(question.options); } catch { return []; } })()
     : question.options;
+
+  const options = Array.isArray(rawOptions)
+    ? rawOptions
+    : rawOptions && typeof rawOptions === 'object'
+      ? ['A', 'B', 'C', 'D'].map(id => ({ id, text: rawOptions[id] ?? rawOptions[id.toLowerCase()] ?? '' }))
+      : [];
 
   const getOptionStyle = (optionId) => {
     const isSelected = selectedAnswer === optionId;

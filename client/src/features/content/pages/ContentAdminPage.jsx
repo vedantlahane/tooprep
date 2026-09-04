@@ -11,7 +11,11 @@ import {
   Zap,
   Check,
   ListFilter,
-  Send
+  Send,
+  Sparkles,
+  Eye,
+  Code,
+  Split
 } from 'lucide-react';
 
 const REJECTION_PRESETS = [
@@ -66,7 +70,7 @@ function Candidate({ candidate, jobId, topics, onReviewed }) {
 
   const [similarQuestions, setSimilarQuestions] = useState([]);
   const [searchingSimilar, setSearchingSimilar] = useState(false);
-  const [viewMode, setViewMode] = useState('editor'); // 'editor' | 'preview'
+  const [viewMode, setViewMode] = useState('split'); // 'split' | 'preview' | 'editor'
 
   const isInstruction = useMemo(() => isInstructionSnippet(candidate.raw_text), [candidate.raw_text]);
 
@@ -198,16 +202,28 @@ function Candidate({ candidate, jobId, topics, onReviewed }) {
             Extract Options
           </button>
           <button
-            onClick={() => setViewMode('editor')}
-            className={`px-3 py-1 text-label-sm-mono uppercase tracking-widest transition-colors rounded-sm text-xs ${viewMode === 'editor' ? 'bg-primary text-white' : 'text-on-surface-variant hover:text-on-surface'}`}
+            onClick={() => setViewMode('split')}
+            className={`px-3 py-1 text-label-sm-mono uppercase tracking-widest transition-colors rounded-sm text-xs flex items-center gap-1.5 ${viewMode === 'split' ? 'bg-primary text-white' : 'text-on-surface-variant hover:text-on-surface'}`}
+            title="Edit with real-time rendered math"
           >
-            Editor
+            <Sparkles className="w-3 h-3" />
+            Live Preview
           </button>
           <button
             onClick={() => setViewMode('preview')}
-            className={`px-3 py-1 text-label-sm-mono uppercase tracking-widest transition-colors rounded-sm text-xs ${viewMode === 'preview' ? 'bg-primary text-white' : 'text-on-surface-variant hover:text-on-surface'}`}
+            className={`px-3 py-1 text-label-sm-mono uppercase tracking-widest transition-colors rounded-sm text-xs flex items-center gap-1.5 ${viewMode === 'preview' ? 'bg-primary text-white' : 'text-on-surface-variant hover:text-on-surface'}`}
+            title="Clean student rendered view"
           >
+            <Eye className="w-3 h-3" />
             Preview
+          </button>
+          <button
+            onClick={() => setViewMode('editor')}
+            className={`px-3 py-1 text-label-sm-mono uppercase tracking-widest transition-colors rounded-sm text-xs flex items-center gap-1.5 ${viewMode === 'editor' ? 'bg-primary text-white' : 'text-on-surface-variant hover:text-on-surface'}`}
+            title="Raw code only"
+          >
+            <Code className="w-3 h-3" />
+            Raw Code
           </button>
         </div>
       </div>
@@ -229,7 +245,7 @@ function Candidate({ candidate, jobId, topics, onReviewed }) {
           </div>
         )}
 
-        {viewMode === 'editor' ? (
+        {viewMode !== 'preview' ? (
           <>
             <div className="space-y-2">
               <div className="flex justify-between items-end">
@@ -244,6 +260,17 @@ function Candidate({ candidate, jobId, topics, onReviewed }) {
                 rows="4"
                 className="w-full bg-surface-container border border-outline-variant p-3 text-on-surface outline-none focus:border-primary font-mono text-sm rounded-sm"
               />
+              {viewMode === 'split' && (
+                <div className="p-3.5 bg-surface-container/60 border border-outline-variant/60 rounded-sm">
+                  <div className="text-xs text-primary font-mono uppercase tracking-widest mb-1.5 flex items-center gap-1.5 font-bold">
+                    <Sparkles className="w-3.5 h-3.5 text-primary" />
+                    <span>Rendered Question Preview</span>
+                  </div>
+                  <div className="text-body-md text-on-surface leading-relaxed">
+                    <MathText text={questionText || '—'} />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-3">
@@ -253,7 +280,7 @@ function Candidate({ candidate, jobId, topics, onReviewed }) {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {options.map((opt, i) => (
-                  <div key={opt.id} className={`flex items-start gap-3 p-3 border rounded-sm transition-colors ${correctAnswer === opt.id ? 'border-status-aligned bg-status-aligned/5' : 'border-outline-variant bg-surface-container'}`}>
+                  <div key={opt.id} className={`flex items-start gap-3 p-3.5 border rounded-sm transition-colors ${correctAnswer === opt.id ? 'border-status-aligned bg-status-aligned/5' : 'border-outline-variant bg-surface-container'}`}>
                     <input
                       type="radio"
                       name={`correct-${candidate.candidate_key}`}
@@ -261,15 +288,28 @@ function Candidate({ candidate, jobId, topics, onReviewed }) {
                       onChange={() => setCorrectAnswer(opt.id)}
                       className="mt-1 accent-status-aligned"
                     />
-                    <div className="flex-1 space-y-1">
-                      <div className="text-label-sm-mono text-on-surface-variant font-bold">Option {opt.id}</div>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-label-sm-mono text-on-surface font-bold">Option {opt.id}</span>
+                        {correctAnswer === opt.id && (
+                          <span className="text-xs text-status-aligned font-mono font-bold uppercase tracking-wider">Correct Answer</span>
+                        )}
+                      </div>
                       <textarea
                         value={opt.text}
                         onChange={e => updateOption(i, e.target.value)}
                         rows="2"
-                        className="w-full bg-transparent text-on-surface outline-none font-mono text-sm"
-                        placeholder={`Option ${opt.id} text (LaTeX)`}
+                        className="w-full bg-surface-dim border border-outline-variant/50 p-2 text-on-surface outline-none font-mono text-xs rounded-sm focus:border-primary"
+                        placeholder={`Option ${opt.id} LaTeX (e.g. $\\frac{1}{2} q\\omega r^2$)`}
                       />
+                      {viewMode === 'split' && (
+                        <div className="p-2 bg-surface-dim/80 border border-outline-variant/30 rounded-sm text-sm text-on-surface flex items-center gap-2">
+                          <span className="text-xs font-mono text-primary uppercase tracking-wider shrink-0 font-bold">Rendered:</span>
+                          <div className="flex-1 font-medium overflow-x-auto">
+                            <MathText text={opt.text || '—'} />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -285,26 +325,40 @@ function Candidate({ candidate, jobId, topics, onReviewed }) {
                 className="w-full bg-surface-container border border-outline-variant p-3 text-on-surface outline-none focus:border-primary font-mono text-sm rounded-sm"
                 placeholder="Step-by-step solution..."
               />
+              {viewMode === 'split' && solutionText && (
+                <div className="p-3.5 bg-primary/5 border-l-2 border-primary rounded-r space-y-1.5">
+                  <div className="text-xs text-primary font-mono uppercase tracking-widest flex items-center gap-1.5 font-bold">
+                    <Sparkles className="w-3.5 h-3.5 text-primary" />
+                    <span>Rendered Solution Derivation</span>
+                  </div>
+                  <div className="text-body-md text-on-surface leading-relaxed overflow-x-auto">
+                    <MathText text={solutionText} />
+                  </div>
+                </div>
+              )}
             </div>
           </>
         ) : (
           /* Preview Mode */
           <div className="bg-surface-container p-6 border border-outline-variant rounded-sm space-y-6">
-            <div className="text-body-lg text-on-surface leading-relaxed">
+            <div className="text-body-lg text-on-surface leading-relaxed font-light">
               <MathText text={questionText} />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {options.map((opt) => (
                 <div key={opt.id} className={`p-4 border rounded-sm flex gap-3 ${correctAnswer === opt.id ? 'border-status-aligned bg-status-aligned/10 text-status-aligned font-semibold' : 'border-outline-variant text-on-surface-variant'}`}>
                   <div className="font-bold">{opt.id}.</div>
-                  <div><MathText text={opt.text || '—'} /></div>
+                  <div className="overflow-x-auto"><MathText text={opt.text || '—'} /></div>
                 </div>
               ))}
             </div>
             {solutionText && (
               <div className="mt-6 p-4 border-l-2 border-primary bg-primary/5">
-                <div className="text-label-sm-mono text-primary uppercase tracking-widest mb-2">Solution</div>
-                <div className="text-body-md text-on-surface"><MathText text={solutionText} /></div>
+                <div className="text-label-sm-mono text-primary uppercase tracking-widest mb-2 font-bold flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Step-by-Step Solution</span>
+                </div>
+                <div className="text-body-md text-on-surface overflow-x-auto"><MathText text={solutionText} /></div>
               </div>
             )}
           </div>
