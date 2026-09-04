@@ -18,8 +18,11 @@ import {
   RotateCcw,
   Play,
   ArrowRight,
+  ArrowLeft,
   ChevronRight,
   ChevronDown,
+  ChevronLeft,
+  ChevronUp,
   Sliders,
   ShieldAlert,
   Layers,
@@ -57,7 +60,9 @@ import {
   PartyPopper,
   Shield,
   LogOut,
-  Palette
+  Palette,
+  ListCheck,
+  Calendar
 } from 'lucide-react';
 
 const ICON_MAP = {
@@ -105,8 +110,12 @@ const ICON_MAP = {
   'refresh': RefreshCw,
   'arrow_forward': ArrowRight,
   'arrow_right': ArrowRight,
+  'arrow_back': ArrowLeft,
+  'arrow_left': ArrowLeft,
   'chevron_right': ChevronRight,
   'chevron_down': ChevronDown,
+  'chevron_left': ChevronLeft,
+  'chevron_up': ChevronUp,
   'expand_more': ChevronDown,
   'settings': Settings,
   'sliders': Sliders,
@@ -140,7 +149,9 @@ const ICON_MAP = {
   'shield': Shield,
   'admin_panel_settings': Shield,
   'logout': LogOut,
-  'palette': Palette
+  'palette': Palette,
+  'list_check': ListCheck,
+  'calendar': Calendar
 };
 
 export default function Icon({ name, size = 20, className = '', strokeWidth = 1.75, ...props }) {
@@ -174,8 +185,11 @@ export {
   RotateCcw,
   Play,
   ArrowRight,
+  ArrowLeft,
   ChevronRight,
   ChevronDown,
+  ChevronLeft,
+  ChevronUp,
   Sliders,
   ShieldAlert,
   Layers,
@@ -213,5 +227,7 @@ export {
   PartyPopper,
   Shield,
   LogOut,
-  Palette
+  Palette,
+  ListCheck,
+  Calendar
 };

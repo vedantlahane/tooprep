@@ -3,7 +3,19 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { evaluationsService } from '../services/evaluationsService';
 import { topicsService } from '@/features/topics/services/topicsService';
 import QuestionCard from '@/features/questions/components/QuestionCard';
+import TopicPicker from '@/shared/components/TopicPicker';
 import Timer from '@/shared/components/Timer';
+import Icon, {
+  Timer as TimerIcon,
+  AlertTriangle,
+  CheckCircle2,
+  Bookmark,
+  ChevronLeft,
+  ChevronRight,
+  Sparkles,
+  ArrowRight,
+  Layers
+} from '@/shared/components/Icon';
 
 export default function EvaluationPage() {
   const [searchParams] = useSearchParams();
@@ -43,6 +55,7 @@ export default function EvaluationPage() {
               name: topic.name,
               chapter: chapter.name,
               subject: subject.name,
+              confidence: topic.confidence
             });
           }
         }
@@ -137,47 +150,56 @@ export default function EvaluationPage() {
     handleSubmitEvaluation();
   }, [handleSubmitEvaluation]);
 
-  // Setup screen
+  // ─── Screen 1: Evaluation Setup Screen ───
   if (!evaluation) {
     return (
-      <div className="max-w-2xl mx-auto animate-fade-in">
-        <h2 className="text-display text-on-surface mb-2 font-light">timed evaluation</h2>
-        <p className="text-body-lg text-on-surface-variant mb-10 font-light">
-          test under exam conditions â€” no hints, no solutions until the end.
-        </p>
+      <div className="max-w-2xl mx-auto animate-fade-in space-y-8">
+        <div>
+          <div className="text-label-sm-mono uppercase tracking-[0.25em] text-error text-xs">
+            Exam Simulation &middot; Timed Calibration
+          </div>
+          <h1 className="text-4xl md:text-5xl font-extralight text-white tracking-tight lowercase mt-1">
+            mock evaluation
+          </h1>
+          <p className="text-body-md text-white/60 font-light mt-2">
+            Simulate real exam conditions. Solutions and correct answers are withheld until submission to accurately benchmark your calibration gap.
+          </p>
+        </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-error text-white text-body-md">{error}</div>
+          <div className="p-4 bg-error/10 border-l-4 border-error text-error text-xs font-mono rounded-r-sm">
+            {error}
+          </div>
         )}
 
-        <div className="space-y-8">
-          <div>
-            <label className="block text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-3">select topic</label>
-            <select
-              value={selectedTopic}
-              onChange={e => setSelectedTopic(e.target.value)}
-              className="w-full px-4 py-4 border-2 border-outline-variant text-body-lg bg-surface-dim outline-none focus:ring-0 focus:border-primary uppercase"
-            >
-              <option value="">choose a topic...</option>
-              {topics.map(t => (
-                <option key={t.id} value={t.id}>
-                  {t.subject} / {t.chapter} / {t.name}
-                </option>
-              ))}
-            </select>
+        <div className="acrylic-glass p-6 md:p-8 rounded-sm border border-outline-variant space-y-6">
+          {/* Topic Selector with Hierarchical TopicPicker */}
+          <div className="space-y-2">
+            <label className="block text-label-sm-mono text-white/80 uppercase tracking-widest text-xs font-bold">
+              1. Select Curriculum Topic
+            </label>
+            <TopicPicker
+              topics={topics}
+              selectedTopicId={selectedTopic}
+              onSelect={setSelectedTopic}
+              placeholder="Search or pick a topic for mock evaluation..."
+            />
           </div>
 
-          <div>
-            <label className="block text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-3">questions</label>
-            <div className="flex flex-wrap gap-3">
+          {/* Question count selector */}
+          <div className="space-y-2">
+            <label className="block text-label-sm-mono text-white/80 uppercase tracking-widest text-xs font-bold">
+              2. Number of Questions
+            </label>
+            <div className="grid grid-cols-6 gap-2">
               {[5, 10, 15, 20, 25, 30].map(n => (
                 <button
                   key={n}
                   onClick={() => setQuestionCount(n)}
-                  className={`flex-1 min-w-[3.5rem] py-4 border-2 text-body-lg font-light transition-all ${
+                  className={`py-2.5 rounded-sm border text-xs font-mono font-bold uppercase tracking-wider transition-all ${
                     questionCount === n
-                      ? 'bg-primary text-white border-primary'
-                      : 'bg-surface-dim border-outline-variant text-on-surface hover:border-on-surface'
+                      ? 'bg-error text-white border-error shadow-lg shadow-error/20'
+                      : 'bg-surface-dim border-outline-variant text-white/60 hover:border-white/30 hover:text-white'
                   }`}
                 >
                   {n}
@@ -186,9 +208,12 @@ export default function EvaluationPage() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-3">duration</label>
-            <div className="flex gap-3">
+          {/* Duration Selector */}
+          <div className="space-y-2">
+            <label className="block text-label-sm-mono text-white/80 uppercase tracking-widest text-xs font-bold">
+              3. Time Limit
+            </label>
+            <div className="grid grid-cols-4 gap-2.5">
               {[
                 { label: '15 min', val: 900 },
                 { label: '30 min', val: 1800 },
@@ -198,10 +223,10 @@ export default function EvaluationPage() {
                 <button
                   key={val}
                   onClick={() => setDurationSeconds(val)}
-                  className={`flex-1 py-4 border-2 text-body-lg font-light transition-all ${
+                  className={`py-3 rounded-sm border text-xs font-mono font-bold uppercase tracking-wider transition-all ${
                     durationSeconds === val
-                      ? 'bg-primary text-white border-primary'
-                      : 'bg-surface-dim border-outline-variant text-on-surface hover:border-on-surface'
+                      ? 'bg-error text-white border-error shadow-lg shadow-error/20'
+                      : 'bg-surface-dim border-outline-variant text-white/60 hover:border-white/30 hover:text-white'
                   }`}
                 >
                   {label}
@@ -210,21 +235,26 @@ export default function EvaluationPage() {
             </div>
           </div>
 
-          <div className="p-6 bg-error/20 border-l-4 border-error">
-            <div className="text-body-md text-white font-light">
-              <strong className="font-bold">Evaluation mode:</strong> No hints or solutions until you finish.
-              Your answers will be used to calculate your confidence gap.
-              The timer auto-submits when it expires.
+          {/* Examination Protocol Notice */}
+          <div className="p-4 bg-error/10 border-l-4 border-error rounded-r-sm space-y-1.5">
+            <div className="text-xs font-mono uppercase tracking-wider text-error font-bold flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              <span>Examination Protocol</span>
             </div>
+            <p className="text-xs text-white/70 font-light leading-relaxed">
+              No solutions or hints will be displayed during the test. Your final score will benchmark your confidence-performance gap on the Knowledge Map. When time expires, your test auto-submits.
+            </p>
           </div>
 
-          <div className="pt-6">
+          {/* Start Test Button */}
+          <div className="pt-2">
             <button
               onClick={startEvaluation}
               disabled={!selectedTopic || loading}
-              className="w-full py-4 bg-error text-white text-headline-md font-semibold uppercase tracking-widest hover:bg-error/80 transition-colors disabled:opacity-50"
+              className="w-full py-3.5 bg-error text-white text-xs font-mono font-bold uppercase tracking-widest rounded-sm hover:brightness-110 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-error/20"
             >
-              {loading ? 'assembling...' : 'start timed evaluation'}
+              <TimerIcon className="w-4 h-4 stroke-[2]" />
+              <span>{loading ? 'Assembling Question Set...' : 'Begin Timed Evaluation'}</span>
             </button>
           </div>
         </div>
@@ -232,155 +262,186 @@ export default function EvaluationPage() {
     );
   }
 
-  // Active evaluation
+  // ─── Screen 2: Active Timed Examination ───
   const currentQuestion = questions[currentIndex];
   const answeredCount = Object.keys(answers).length;
   const unansweredCount = questions.length - answeredCount;
 
   return (
-    <div className="max-w-5xl mx-auto animate-fade-in pb-20">
-      {/* Top bar with timer */}
-      <div className="sticky top-0 z-30 bg-background/90 backdrop-blur-md py-4 mb-8">
-        <div className="flex items-center justify-between">
-          <span className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest">
-            evaluation / q{currentIndex + 1} of {questions.length}
+    <div className="max-w-5xl mx-auto animate-fade-in pb-20 space-y-6">
+      {/* Sticky Exam Telemetry Bar */}
+      <div className="sticky top-0 z-30 bg-black/90 backdrop-blur-md py-3 border-b border-white/10 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-mono uppercase tracking-widest text-primary font-bold">
+            Question {currentIndex + 1} of {questions.length}
           </span>
+          <span className="text-white/30 hidden sm:inline">&middot;</span>
+          <span className="text-xs font-mono text-white/50 hidden sm:inline">
+            {answeredCount} Answered, {unansweredCount} Left
+          </span>
+        </div>
+
+        <div className="flex items-center gap-4">
           <Timer
             durationSeconds={durationSeconds}
             onExpire={handleTimerExpire}
-            running={true}
+            onWarning={() => {}}
           />
+
+          <button
+            onClick={() => setShowConfirmSubmit(true)}
+            className="px-4 py-1.5 bg-error text-white text-xs font-mono font-bold uppercase tracking-widest rounded-sm hover:brightness-110 transition-colors shadow"
+          >
+            Submit Test
+          </button>
         </div>
       </div>
 
-      {error && (
-        <div className="mb-6 p-4 bg-error text-white text-body-md">{error}</div>
-      )}
-
-      <div className="flex gap-8 flex-col lg:flex-row">
-        {/* Question area */}
-        <div className="flex-1 min-w-0">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-6 items-start">
+        {/* Main Question Display */}
+        <div className="space-y-6 min-w-0">
           <QuestionCard
             question={currentQuestion}
-            selectedAnswer={answers[currentQuestion?.id]}
+            selectedAnswer={answers[currentQuestion?.id] || null}
             onSelectAnswer={handleSelectAnswer}
-            showResult={false}
-            showSolution={false}
-            disabled={false}
             questionNumber={currentIndex + 1}
-            markedForReview={markedForReview.has(currentQuestion?.id)}
-            onMarkForReview={toggleMarkForReview}
+            isMarked={markedForReview.has(currentQuestion?.id)}
           />
 
-          {/* Navigation buttons */}
-          <div className="mt-6 flex gap-4">
+          {/* Navigation Controls */}
+          <div className="flex items-center justify-between gap-3 pt-2">
             <button
               onClick={() => handleNavigateQuestion(Math.max(0, currentIndex - 1))}
               disabled={currentIndex === 0}
-              className="flex-1 py-4 border-2 border-outline-variant text-body-md font-semibold text-on-surface uppercase tracking-widest hover:border-on-surface transition-colors disabled:opacity-30"
+              className="px-4 py-2.5 bg-surface-container border border-outline-variant text-white/80 hover:text-white rounded-sm text-xs font-mono uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors"
             >
-              previous
+              <ChevronLeft className="w-4 h-4" />
+              <span>Previous</span>
             </button>
-            {currentIndex < questions.length - 1 ? (
-              <button
-                onClick={() => handleNavigateQuestion(currentIndex + 1)}
-                className="flex-1 py-4 bg-primary text-white text-body-md font-semibold uppercase tracking-widest hover:bg-primary-fixed-dim transition-colors"
-              >
-                next
-              </button>
-            ) : (
-              <button
-                onClick={() => setShowConfirmSubmit(true)}
-                className="flex-1 py-4 bg-error text-white text-body-md font-semibold uppercase tracking-widest hover:bg-error/80 transition-colors"
-              >
-                submit
-              </button>
-            )}
+
+            <button
+              onClick={toggleMarkForReview}
+              className={`px-4 py-2.5 border rounded-sm text-xs font-mono uppercase tracking-wider flex items-center gap-1.5 transition-colors ${
+                markedForReview.has(currentQuestion?.id)
+                  ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                  : 'bg-surface-dim border-outline-variant text-white/60 hover:text-white'
+              }`}
+            >
+              <Bookmark className="w-3.5 h-3.5" />
+              <span>{markedForReview.has(currentQuestion?.id) ? 'Marked for Review' : 'Mark for Review'}</span>
+            </button>
+
+            <button
+              onClick={() => handleNavigateQuestion(Math.min(questions.length - 1, currentIndex + 1))}
+              disabled={currentIndex === questions.length - 1}
+              className="px-4 py-2.5 bg-primary text-black font-bold rounded-sm text-xs font-mono uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors"
+            >
+              <span>Next</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
 
-        {/* Question navigator */}
-        <div className="lg:w-64 flex-shrink-0">
-          <div className="bg-surface-dim border-2 border-outline-variant p-6 lg:sticky lg:top-24">
-            <h3 className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-4">navigator</h3>
-            <div className="grid grid-cols-5 lg:grid-cols-4 gap-2">
-              {questions.map((q, i) => {
-                const isAnswered = !!answers[q.id];
-                const isReview = markedForReview.has(q.id);
-                const isCurrent = i === currentIndex;
+        {/* Question Palette Drawer (Desktop) */}
+        <div className="acrylic-glass p-5 rounded-sm border border-outline-variant space-y-4">
+          <div className="text-xs font-mono uppercase tracking-widest text-white/80 font-bold border-b border-white/10 pb-2">
+            Question Palette
+          </div>
 
-                return (
-                  <button
-                    key={q.id}
-                    onClick={() => handleNavigateQuestion(i)}
-                    className={`w-full aspect-square text-label-mono font-bold transition-all duration-150 border-2 ${
-                      isCurrent
-                        ? 'border-primary bg-primary text-white scale-110'
-                        : isReview
-                        ? 'border-status-weak bg-status-weak/20 text-status-weak'
-                        : isAnswered
-                        ? 'border-primary/50 bg-primary/20 text-white'
-                        : 'border-outline-variant bg-transparent text-on-surface-variant hover:border-on-surface'
-                    }`}
-                  >
-                    {i + 1}
-                  </button>
-                );
-              })}
+          <div className="grid grid-cols-5 gap-2">
+            {questions.map((q, idx) => {
+              const isAnswered = Boolean(answers[q.id]);
+              const isMarked = markedForReview.has(q.id);
+              const isCurrent = idx === currentIndex;
+
+              let btnStyle = 'bg-surface-dim border-outline-variant text-white/50 hover:text-white';
+              if (isCurrent) {
+                btnStyle = 'ring-2 ring-primary text-white font-bold bg-primary/20 border-primary';
+              } else if (isMarked) {
+                btnStyle = 'bg-amber-500/20 border-amber-500/50 text-amber-300 font-bold';
+              } else if (isAnswered) {
+                btnStyle = 'bg-status-aligned/20 border-status-aligned/50 text-status-aligned font-bold';
+              }
+
+              return (
+                <button
+                  key={q.id}
+                  onClick={() => handleNavigateQuestion(idx)}
+                  className={`aspect-square rounded-sm border text-xs font-mono transition-all flex items-center justify-center ${btnStyle}`}
+                >
+                  {idx + 1}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Palette Legend */}
+          <div className="pt-2 border-t border-white/10 space-y-1.5 text-[10px] font-mono text-white/50">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-sm bg-status-aligned/40 border border-status-aligned"></span>
+              <span>Attempted ({answeredCount})</span>
             </div>
-
-            <div className="mt-8 space-y-3 text-label-sm-mono uppercase tracking-widest">
-              <div className="flex items-center gap-3">
-                <div className="w-4 h-4 bg-primary/20 border-2 border-primary/50" />
-                <span className="text-on-surface-variant">answered ({answeredCount})</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-4 h-4 bg-status-weak/20 border-2 border-status-weak" />
-                <span className="text-on-surface-variant">review ({markedForReview.size})</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-4 h-4 bg-transparent border-2 border-outline-variant" />
-                <span className="text-on-surface-variant">unanswered ({unansweredCount})</span>
-              </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-sm bg-amber-500/40 border border-amber-500"></span>
+              <span>Marked for Review ({markedForReview.size})</span>
             </div>
-
-            <button
-              onClick={() => setShowConfirmSubmit(true)}
-              className="w-full mt-8 py-4 bg-error text-white text-body-md font-semibold uppercase tracking-widest hover:bg-error/80 transition-colors"
-            >
-              finish test
-            </button>
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-sm bg-surface-dim border border-outline-variant"></span>
+              <span>Unattempted ({unansweredCount})</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Confirm submit modal */}
+      {/* Confirmation Submit Dialog */}
       {showConfirmSubmit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-6">
-          <div className="bg-surface-dim border-2 border-outline-variant p-8 max-w-sm w-full animate-fade-in">
-            <h3 className="text-headline-md text-on-surface font-light mb-6">submit evaluation?</h3>
-            <div className="space-y-3 mb-8 text-body-lg text-on-surface-variant font-light">
-              <p>answered: <span className="font-bold text-white">{answeredCount}/{questions.length}</span></p>
-              {unansweredCount > 0 && (
-                <p className="text-error uppercase tracking-widest text-sm font-bold">âš  {unansweredCount} unanswered</p>
-              )}
-              {markedForReview.size > 0 && (
-                <p className="text-status-weak uppercase tracking-widest text-sm font-bold">ðŸ“Œ {markedForReview.size} marked for review</p>
-              )}
+        <div
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setShowConfirmSubmit(false)}
+        >
+          <div
+            className="bg-surface-dim border border-outline-variant p-6 rounded-md max-w-md w-full shadow-2xl space-y-4"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="text-label-sm-mono text-error uppercase tracking-widest text-xs font-bold flex items-center gap-1.5">
+              <AlertTriangle className="w-4 h-4" />
+              <span>Submit Examination?</span>
             </div>
-            <div className="flex flex-col gap-4">
+
+            <p className="text-sm text-white/80 font-light">
+              Are you sure you want to finish the test? Once submitted, your score will be computed and solutions will be revealed.
+            </p>
+
+            <div className="grid grid-cols-2 gap-2 text-xs font-mono p-3 bg-surface-container rounded">
+              <div>
+                <span className="text-white/40">ATTEMPTED:</span>{' '}
+                <strong className="text-status-aligned">{answeredCount}</strong>
+              </div>
+              <div>
+                <span className="text-white/40">UNATTEMPTED:</span>{' '}
+                <strong className={unansweredCount > 0 ? 'text-error' : 'text-white'}>{unansweredCount}</strong>
+              </div>
+            </div>
+
+            {unansweredCount > 0 && (
+              <p className="text-[11px] text-amber-400 font-mono">
+                ⚠️ In JEE, unanswered questions award zero marks.
+              </p>
+            )}
+
+            <div className="flex items-center gap-3 pt-2">
               <button
-                onClick={() => { setShowConfirmSubmit(false); handleSubmitEvaluation(); }}
+                onClick={handleSubmitEvaluation}
                 disabled={submitting}
-                className="w-full py-4 bg-error text-white text-body-md font-semibold uppercase tracking-widest hover:bg-error/80 transition-colors disabled:opacity-50"
+                className="flex-1 py-2.5 bg-error text-white text-xs font-mono font-bold uppercase tracking-wider rounded-sm hover:brightness-110 disabled:opacity-50"
               >
-                {submitting ? 'submitting...' : 'submit now'}
+                {submitting ? 'Submitting...' : 'Yes, Submit Test'}
               </button>
               <button
                 onClick={() => setShowConfirmSubmit(false)}
-                className="w-full py-4 border-2 border-outline-variant text-body-md font-semibold text-on-surface uppercase tracking-widest hover:border-on-surface transition-colors"
+                className="px-5 py-2.5 border border-outline-variant text-white/70 text-xs font-mono uppercase tracking-wider rounded-sm hover:text-white"
               >
-                resume test
+                Continue Test
               </button>
             </div>
           </div>
@@ -389,4 +450,3 @@ export default function EvaluationPage() {
     </div>
   );
 }
-

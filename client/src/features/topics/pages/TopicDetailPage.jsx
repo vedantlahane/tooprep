@@ -4,7 +4,7 @@ import { topicsService } from '../services/topicsService';
 import { confidenceService } from '@/features/confidence/services/confidenceService';
 import ConfidenceSlider from '@/features/confidence/components/ConfidenceSlider';
 import QuickDrillModal from '@/features/practice/components/QuickDrillModal';
-import { ArrowLeft, BookOpen, Zap, Play, Timer, ArrowRight } from 'lucide-react';
+import Icon, { ArrowLeft, BookOpen, Zap, Play, Timer, ArrowRight } from '@/shared/components/Icon';
 
 export default function TopicDetailPage() {
   const { id } = useParams();

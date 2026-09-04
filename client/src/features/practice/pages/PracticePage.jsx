@@ -6,7 +6,17 @@ import { confidenceService } from '@/features/confidence/services/confidenceServ
 import QuestionCard from '@/features/questions/components/QuestionCard';
 import MistakeTypeSelector from '@/features/questions/components/MistakeTypeSelector';
 import ConfidenceSlider from '@/features/confidence/components/ConfidenceSlider';
-import { Sparkles, CheckCircle2 } from 'lucide-react';
+import TopicPicker from '@/shared/components/TopicPicker';
+import Icon, {
+  Play,
+  CheckCircle2,
+  AlertTriangle,
+  Sparkles,
+  BookOpen,
+  ArrowRight,
+  RotateCcw,
+  Timer
+} from '@/shared/components/Icon';
 
 export default function PracticePage() {
   const [searchParams] = useSearchParams();
@@ -16,7 +26,7 @@ export default function PracticePage() {
   // Setup state
   const [topics, setTopics] = useState([]);
   const [selectedTopic, setSelectedTopic] = useState(searchParams.get('topic') || '');
-  const [questionCount, setQuestionCount] = useState(15);
+  const [questionCount, setQuestionCount] = useState(10);
 
   // Session state (supports direct pre-loading from re-drill)
   const [session, setSession] = useState(location.state?.session || null);
@@ -177,80 +187,92 @@ export default function PracticePage() {
     }
   };
 
-  // Setup screen
+  // ─── Screen 1: Setup & Configuration Screen ───
   if (!session) {
     return (
-      <div className="max-w-2xl mx-auto animate-fade-in">
-        <h2 className="text-display text-on-surface mb-2 font-light">practice mode</h2>
-        <p className="text-body-lg text-on-surface-variant mb-10 font-light">
-          untimed practice with solutions revealed after each question.
-        </p>
+      <div className="max-w-2xl mx-auto animate-fade-in space-y-8">
+        <div>
+          <div className="text-label-sm-mono uppercase tracking-[0.25em] text-primary text-xs">
+            Training Facility &middot; Problem Drill
+          </div>
+          <h1 className="text-4xl md:text-5xl font-extralight text-white tracking-tight lowercase mt-1">
+            practice mode
+          </h1>
+          <p className="text-body-md text-white/60 font-light mt-2">
+            Untimed drill mode. Answers and step-by-step LaTeX solutions are revealed immediately after every submission.
+          </p>
+        </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-error text-white text-body-md">{error}</div>
+          <div className="p-4 bg-error/10 border-l-4 border-error text-error text-xs font-mono rounded-r-sm">
+            {error}
+          </div>
         )}
 
-        <div className="space-y-8">
-          {/* Topic selector */}
-          <div>
-            <label className="block text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-3">select topic</label>
-            <select
-              value={selectedTopic}
-              onChange={e => handleTopicSelect(e.target.value)}
-              className="w-full px-4 py-4 border-2 border-outline-variant text-body-lg bg-surface-dim outline-none focus:ring-0 focus:border-primary uppercase"
-            >
-              <option value="">choose a topic...</option>
-              {topics.map(t => (
-                <option key={t.id} value={t.id}>
-                  {t.subject} / {t.chapter} / {t.name}
-                </option>
-              ))}
-            </select>
+        <div className="acrylic-glass p-6 md:p-8 rounded-sm border border-outline-variant space-y-6">
+          {/* Topic Selector */}
+          <div className="space-y-2">
+            <label className="block text-label-sm-mono text-white/80 uppercase tracking-widest text-xs font-bold">
+              1. Select Curriculum Topic
+            </label>
+            <TopicPicker
+              topics={topics}
+              selectedTopicId={selectedTopic}
+              onSelect={handleTopicSelect}
+              placeholder="Search or pick a topic to practice..."
+            />
           </div>
 
           {/* Initial confidence prompt */}
           {needsConfidence && selectedTopic && (
-            <div className="p-6 bg-primary/20 border-l-4 border-primary">
-              <p className="text-body-lg text-on-surface mb-4 font-light">
-                how confident do you feel about this topic?
+            <div className="p-5 bg-primary/10 border-l-4 border-primary rounded-r-sm space-y-3 animate-fade-in">
+              <div className="text-xs font-mono uppercase tracking-wider text-primary font-bold">
+                Rate Initial Confidence (1–10)
+              </div>
+              <p className="text-xs text-white/70 font-light">
+                You haven't calibrated this topic yet. How confident do you feel before practicing?
               </p>
               <ConfidenceSlider value={confidence} onChange={setConfidence} />
               <button
                 onClick={handleSetConfidence}
-                className="mt-6 w-full py-4 bg-primary text-white text-body-md font-semibold uppercase tracking-widest hover:bg-primary-fixed-dim transition-colors"
+                className="w-full py-2.5 bg-primary text-black text-xs font-mono font-bold uppercase tracking-wider rounded-sm hover:brightness-110"
               >
-                set confidence & continue
+                Set Confidence &amp; Continue
               </button>
             </div>
           )}
 
-          {/* Question count */}
-          <div>
-            <label className="block text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-3">questions</label>
-            <div className="flex gap-4">
-              {[10, 15, 20].map(n => (
+          {/* Question count selector */}
+          <div className="space-y-2">
+            <label className="block text-label-sm-mono text-white/80 uppercase tracking-widest text-xs font-bold">
+              2. Number of Questions
+            </label>
+            <div className="grid grid-cols-4 gap-2.5">
+              {[5, 10, 15, 20].map(n => (
                 <button
                   key={n}
                   onClick={() => setQuestionCount(n)}
-                  className={`flex-1 py-4 border-2 text-body-lg font-light transition-all ${
+                  className={`py-3 rounded-sm border text-xs font-mono font-bold uppercase tracking-wider transition-all ${
                     questionCount === n
-                      ? 'bg-primary text-white border-primary'
-                      : 'bg-surface-dim border-outline-variant text-on-surface hover:border-on-surface'
+                      ? 'bg-primary text-black border-primary shadow'
+                      : 'bg-surface-dim border-outline-variant text-white/60 hover:border-white/30 hover:text-white'
                   }`}
                 >
-                  {n}
+                  {n} Qs
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="pt-6">
+          {/* Start Drill Button */}
+          <div className="pt-2">
             <button
               onClick={startPractice}
               disabled={!selectedTopic || loading || needsConfidence}
-              className="w-full py-4 bg-primary text-white text-headline-md font-semibold uppercase tracking-widest hover:bg-primary-fixed-dim transition-colors disabled:opacity-50"
+              className="w-full py-3.5 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest rounded-sm hover:brightness-110 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-primary/20"
             >
-              {loading ? 'loading...' : 'start practice'}
+              <Play className="w-4 h-4 fill-current" />
+              <span>{loading ? 'Preparing Questions...' : 'Start Practice Drill'}</span>
             </button>
           </div>
         </div>
@@ -258,105 +280,115 @@ export default function PracticePage() {
     );
   }
 
-  // Completed screen
+  // ─── Screen 2: Session Completed Summary ───
   if (completed && summary) {
     return (
-      <div className="max-w-2xl mx-auto animate-fade-in">
-        <h2 className="text-display text-on-surface mb-8 font-light">practice complete</h2>
-        
-        <div className="grid grid-cols-2 gap-2 mb-8">
-          <div className="p-6 bg-primary text-white">
-            <div className="text-display font-light mb-1">{summary.correct}/{summary.total_questions}</div>
-            <div className="text-label-sm-mono uppercase tracking-widest opacity-80">correct</div>
+      <div className="max-w-2xl mx-auto animate-fade-in space-y-6">
+        <div>
+          <div className="text-label-sm-mono uppercase tracking-[0.25em] text-primary text-xs">
+            Drill Complete &middot; Performance Debrief
           </div>
-          <div className="p-6 bg-surface-container-high">
-            <div className="text-display font-light mb-1">{summary.accuracy}%</div>
-            <div className="text-label-sm-mono uppercase tracking-widest text-on-surface-variant">accuracy</div>
+          <h1 className="text-4xl font-extralight text-white tracking-tight lowercase mt-1">
+            practice results
+          </h1>
+        </div>
+
+        {/* Scorecard Tiles */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="acrylic-glass p-5 rounded-sm border border-primary/40 bg-primary/10">
+            <div className="text-3xl font-mono font-light text-primary">{summary.correct}/{summary.total_questions}</div>
+            <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-1">Score</div>
           </div>
-          <div className="p-6 bg-surface-container-high">
-            <div className="text-display font-light mb-1">
+          <div className="acrylic-glass p-5 rounded-sm border border-outline-variant">
+            <div className="text-3xl font-mono font-light text-white">{summary.accuracy}%</div>
+            <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-1">Accuracy</div>
+          </div>
+          <div className="acrylic-glass p-5 rounded-sm border border-outline-variant">
+            <div className="text-3xl font-mono font-light text-white">
               {Math.floor(summary.avg_time_seconds / 60)}:{String(summary.avg_time_seconds % 60).padStart(2, '0')}
             </div>
-            <div className="text-label-sm-mono uppercase tracking-widest text-on-surface-variant">avg time / q</div>
+            <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-1">Avg Time / Q</div>
           </div>
-          <div className="p-6 bg-surface-container-high">
-            <div className="text-display font-light mb-1">{summary.total_questions}</div>
-            <div className="text-label-sm-mono uppercase tracking-widest text-on-surface-variant">total qs</div>
+          <div className="acrylic-glass p-5 rounded-sm border border-outline-variant">
+            <div className="text-3xl font-mono font-light text-white">{summary.total_questions}</div>
+            <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-1">Total Solved</div>
           </div>
         </div>
 
         {/* Post-Session Confidence Rating Prompt */}
         {!confidenceUpdated ? (
-          <div className="mb-8 p-6 bg-primary/10 border border-primary/30 rounded-md space-y-4 animate-fade-in">
-            <div className="flex items-center gap-2 text-label-sm-mono text-primary uppercase tracking-widest font-semibold">
-              <Sparkles className="w-5 h-5 text-primary" />
-              Update Confidence?
+          <div className="acrylic-glass p-6 border border-primary/40 bg-primary/5 rounded-sm space-y-4 animate-fade-in">
+            <div className="flex items-center gap-2 text-xs font-mono text-primary uppercase tracking-widest font-bold">
+              <Sparkles className="w-4 h-4 text-primary" />
+              <span>Update Confidence Rating?</span>
             </div>
-            <p className="text-body-md text-on-surface-variant">
-              You scored <strong>{summary.accuracy}%</strong>. Based on this session, how confident do you feel about this topic now?
+            <p className="text-xs text-white/70 font-light">
+              You achieved <strong>{summary.accuracy}% accuracy</strong> on this set. Based on this session, how confident do you feel about this topic now?
             </p>
             <ConfidenceSlider value={postSessionConfidence} onChange={setPostSessionConfidence} />
             <div className="flex gap-3 pt-2">
               <button
                 onClick={handlePostSessionConfidenceUpdate}
                 disabled={confidenceUpdating}
-                className="flex-1 py-3 bg-primary text-white text-label-sm-mono uppercase tracking-widest font-semibold hover:bg-primary-fixed-dim transition-colors rounded-sm"
+                className="flex-1 py-2.5 bg-primary text-black text-xs font-mono uppercase tracking-widest font-bold hover:brightness-110 transition-colors rounded-sm"
               >
-                {confidenceUpdating ? 'Updating...' : 'Update Confidence'}
+                {confidenceUpdating ? 'Updating...' : 'Update Topic Confidence'}
               </button>
               <button
                 onClick={() => setConfidenceUpdated(true)}
-                className="px-6 py-3 border border-outline-variant text-on-surface-variant text-label-sm-mono uppercase tracking-widest hover:border-on-surface transition-colors rounded-sm"
+                className="px-5 py-2.5 border border-outline-variant text-white/60 text-xs font-mono uppercase tracking-widest hover:text-white rounded-sm"
               >
                 Skip
               </button>
             </div>
           </div>
         ) : (
-          <div className="mb-8 p-4 bg-status-aligned/10 border border-status-aligned text-status-aligned text-body-md rounded-md flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5 text-status-aligned" />
-            Confidence rating updated successfully!
+          <div className="p-4 bg-status-aligned/10 border border-status-aligned/40 text-status-aligned text-xs font-mono rounded-sm flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-status-aligned" />
+            <span>Confidence rating calibrated successfully!</span>
           </div>
         )}
 
-        <p className="text-body-lg text-on-surface-variant font-light mb-8">
-          Practice accuracy is separate from your evaluation performance. Take a timed evaluation to officially update your confidence gap.
-        </p>
+        <div className="p-4 acrylic-glass border border-white/10 rounded-sm text-xs text-white/60 font-light leading-relaxed">
+          <strong>Next step:</strong> Practice accuracy trains your instincts. To officially benchmark and update your Knowledge Map confidence gap, take a timed evaluation.
+        </div>
 
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <button
             onClick={() => navigate('/')}
-            className="flex-1 py-4 border-2 border-outline-variant text-body-md font-semibold text-on-surface uppercase tracking-widest hover:border-on-surface transition-colors"
+            className="flex-1 py-3 border border-outline-variant text-xs font-mono uppercase tracking-widest text-white/80 hover:text-white hover:border-primary transition-colors rounded-sm"
           >
-            dashboard
+            Knowledge Map
           </button>
           <button
             onClick={() => navigate(`/evaluate?topic=${session.topic_id}`)}
-            className="flex-1 py-4 bg-primary text-white text-body-md font-semibold uppercase tracking-widest hover:bg-primary-fixed-dim transition-colors"
+            className="flex-1 py-3 bg-primary text-black text-xs font-mono uppercase tracking-widest font-bold hover:brightness-110 transition-colors rounded-sm flex items-center justify-center gap-1.5"
           >
-            start evaluation
+            <Timer className="w-4 h-4 stroke-[2]" />
+            <span>Take Timed Mock Test</span>
           </button>
         </div>
       </div>
     );
   }
 
-  // Active practice
+  // ─── Screen 3: Active Practice Drill ───
   const currentQuestion = questions[currentIndex];
 
   return (
-    <div className="max-w-3xl mx-auto animate-fade-in">
-      {/* Progress bar (Metro flat style) */}
-      <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-2">
-        <span className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest">
-          practice / question {currentIndex + 1} of {questions.length}
-        </span>
-        <span className="text-label-sm-mono text-primary font-bold tracking-widest uppercase">
-          {attempts.filter(a => a.correct).length}/{attempts.length} correct
-        </span>
+    <div className="max-w-3xl mx-auto animate-fade-in space-y-6">
+      {/* Telemetry status bar */}
+      <div className="flex items-center justify-between border-b border-white/10 pb-3">
+        <div className="text-xs font-mono uppercase tracking-widest text-white/60">
+          Question <span className="text-primary font-bold">{currentIndex + 1}</span> of {questions.length}
+        </div>
+        <div className="text-xs font-mono uppercase tracking-widest text-white/60">
+          Score: <span className="text-primary font-bold">{attempts.filter(a => a.correct).length}</span>/{attempts.length}
+        </div>
       </div>
-      
-      <div className="w-full h-1 bg-surface-container-high mb-8 overflow-hidden">
+
+      {/* Progress Bar */}
+      <div className="w-full h-1 bg-surface-container rounded-full overflow-hidden">
         <div
           className="h-full bg-primary transition-all duration-300"
           style={{ width: `${((currentIndex + (submitted ? 1 : 0)) / questions.length) * 100}%` }}
@@ -364,9 +396,12 @@ export default function PracticePage() {
       </div>
 
       {error && (
-        <div className="mb-6 p-4 bg-error text-white text-body-md">{error}</div>
+        <div className="p-4 bg-error/10 border-l-4 border-error text-error text-xs font-mono rounded-r-sm">
+          {error}
+        </div>
       )}
 
+      {/* Question Card */}
       <QuestionCard
         question={currentQuestion}
         selectedAnswer={selectedAnswer}
@@ -377,27 +412,34 @@ export default function PracticePage() {
         questionNumber={currentIndex + 1}
       />
 
-      <div className="mt-6 space-y-6">
-        {/* Mistake type for wrong answers */}
-        {submitted && !attempts[attempts.length - 1]?.correct && (
+      {/* Post-submission Mistake Selector */}
+      {submitted && !attempts[attempts.length - 1]?.correct && (
+        <div className="space-y-2">
+          <div className="text-xs font-mono uppercase tracking-wider text-error font-bold flex items-center gap-1.5">
+            <AlertTriangle className="w-3.5 h-3.5" />
+            <span>Categorize This Mistake (Metacognitive Reflection)</span>
+          </div>
           <MistakeTypeSelector value={mistakeType} onChange={setMistakeType} />
-        )}
+        </div>
+      )}
 
-        {/* Action buttons */}
+      {/* Action Controls */}
+      <div className="pt-2">
         {!submitted ? (
           <button
             onClick={handleSubmitAnswer}
             disabled={!selectedAnswer || loading}
-            className="w-full py-4 bg-primary text-white text-body-md font-semibold uppercase tracking-widest hover:bg-primary-fixed-dim transition-colors disabled:opacity-50"
+            className="w-full py-3.5 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest rounded-sm hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-primary/20"
           >
-            submit answer
+            {loading ? 'Submitting...' : 'Submit & Reveal Solution'}
           </button>
         ) : (
           <button
             onClick={handleNext}
-            className="w-full py-4 bg-primary text-white text-body-md font-semibold uppercase tracking-widest hover:bg-primary-fixed-dim transition-colors"
+            className="w-full py-3.5 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest rounded-sm hover:brightness-110 transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-primary/20"
           >
-            {currentIndex < questions.length - 1 ? 'next question' : 'complete practice'}
+            <span>{currentIndex < questions.length - 1 ? 'Next Question' : 'Complete Practice Session'}</span>
+            <ArrowRight className="w-4 h-4" />
           </button>
         )}
       </div>

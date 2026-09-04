@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { topicsService } from '@/features/topics/services/topicsService';
 import { questionsService } from '../services/questionsService';
 import MathText from '@/features/questions/components/MathText';
-import { Check, Copy, CheckCircle2, SearchX } from 'lucide-react';
+import Icon, { Check, Copy, CheckCircle2, Search, BookOpen } from '@/shared/components/Icon';
 
 const DIFFICULTIES = ['Easy', 'Medium', 'Hard'];
 
@@ -293,7 +293,7 @@ export default function AdminQuestionsPage() {
 
       {!loading && hasSearched && questions.length === 0 && (
         <div className="text-center py-20 border border-outline-variant bg-surface-container">
-          <SearchX className="w-14 h-14 text-primary mx-auto mb-4 opacity-40" />
+          <Search className="w-14 h-14 text-primary mx-auto mb-4 opacity-40" />
           <h3 className="text-headline-lg text-on-surface font-light mb-2">No Questions Found</h3>
           <p className="text-body-lg text-on-surface-variant font-light">Adjust filters to find questions.</p>
         </div>

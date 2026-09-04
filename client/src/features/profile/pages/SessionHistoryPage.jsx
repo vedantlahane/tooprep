@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { History, TrendingUp, ArrowRight } from 'lucide-react';
+import Icon, { History, TrendingUp, ArrowRight, Timer, Play, Calendar } from '@/shared/components/Icon';
 import { practiceService } from '@/features/practice/services/practiceService';
 import { evaluationsService } from '@/features/evaluations/services/evaluationsService';
 
@@ -118,128 +118,139 @@ export default function SessionHistoryPage() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-32 space-y-4">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-        <div className="text-label-sm-mono text-primary uppercase tracking-widest">Loading history...</div>
+        <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+        <div className="text-label-sm-mono text-primary uppercase tracking-widest text-xs font-mono">Loading Session History...</div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto animate-fade-in space-y-8 pb-12">
-      <div>
-        <p className="text-label-sm-mono uppercase tracking-[0.2em] text-primary">study history</p>
-        <h2 className="text-display text-on-surface mt-2 font-light">your study activity log</h2>
+    <div className="max-w-6xl mx-auto animate-fade-in space-y-8 pb-16">
+      {/* Telemetry Header */}
+      <div className="border-b border-white/10 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <div className="text-label-sm-mono text-primary uppercase tracking-[0.25em] mb-1.5 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+            HISTORY // EVALUATION & PRACTICE AUDIT LOG
+          </div>
+          <h1 className="text-3xl md:text-4xl font-extralight text-white tracking-tight lowercase">
+            session history
+          </h1>
+          <p className="text-sm text-white/50 font-mono mt-1">
+            Chronological telemetry record of all timed evaluations and untimed drill sessions.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate('/practice')}
+            className="px-4 py-2 bg-primary/10 border border-primary/30 text-primary hover:bg-primary hover:text-white text-xs font-mono uppercase tracking-wider rounded-sm transition-colors"
+          >
+            drill practice
+          </button>
+          <button
+            onClick={() => navigate('/evaluate')}
+            className="px-4 py-2 bg-primary text-white hover:brightness-110 text-xs font-mono uppercase tracking-wider font-semibold rounded-sm transition-all"
+          >
+            take mock
+          </button>
+        </div>
       </div>
 
       {error && (
-        <div className="p-4 bg-error/10 border-l-4 border-error text-error rounded-r-md">
+        <div className="p-4 bg-error/10 border-l-4 border-error text-error text-xs font-mono rounded-r-md">
           {error}
         </div>
       )}
 
       {allSessions.length === 0 ? (
-        <div className="text-center py-20 border border-outline-variant rounded-lg bg-surface-container">
-          <History className="w-16 h-16 text-primary block opacity-50 mb-4 mx-auto" />
-          <h3 className="text-headline-lg text-on-surface font-light mb-2">No sessions yet</h3>
-          <p className="text-body-lg text-on-surface-variant mb-6">Start practicing to build your study history.</p>
+        <div className="text-center py-16 acrylic-glass border border-white/10 rounded-md">
+          <History className="w-14 h-14 text-primary block opacity-60 mb-4 mx-auto" />
+          <h3 className="text-xl font-light text-white mb-2 lowercase">no sessions recorded yet</h3>
+          <p className="text-sm text-white/50 max-w-md mx-auto mb-6 font-mono">
+            Start a practice drill or take a timed evaluation to track your historical attempts here.
+          </p>
           <button
             onClick={() => navigate('/practice')}
-            className="px-6 py-3 bg-primary text-on-primary text-label-sm-mono uppercase tracking-widest rounded-lg hover:brightness-110"
+            className="px-6 py-3 bg-primary text-white text-xs font-mono uppercase tracking-widest font-bold rounded-sm hover:brightness-110 transition-all"
           >
             Start Practice
           </button>
         </div>
       ) : (
         <>
-          {/* Analytics Cards */}
+          {/* Analytics KPI Cards */}
           {analytics && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="border border-outline-variant bg-surface-container rounded-lg p-5">
-                <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-2">Sessions</div>
-                <div className="text-display font-light text-primary mb-1">{analytics.totalSessions}</div>
-                <div className="text-body-sm text-on-surface-variant">total practice & eval</div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="acrylic-glass border border-white/10 rounded-sm p-4 text-center">
+                <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest mb-1">Total Sessions</div>
+                <div className="text-2xl md:text-3xl font-light font-mono text-primary">{analytics.totalSessions}</div>
+                <div className="text-[10px] font-mono text-white/40 mt-1">evals & drills</div>
               </div>
 
-              <div className="border border-outline-variant bg-surface-container rounded-lg p-5">
-                <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-2">Time Invested</div>
-                <div className="text-display font-light text-primary mb-1">{analytics.totalHours}</div>
-                <div className="text-body-sm text-on-surface-variant">hours</div>
+              <div className="acrylic-glass border border-white/10 rounded-sm p-4 text-center">
+                <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest mb-1">Time Invested</div>
+                <div className="text-2xl md:text-3xl font-light font-mono text-white">{analytics.totalHours}h</div>
+                <div className="text-[10px] font-mono text-white/40 mt-1">active testing</div>
               </div>
 
-              <div className="border border-outline-variant bg-surface-container rounded-lg p-5">
-                <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-2">Avg Accuracy</div>
-                <div className={`text-display font-light mb-1 ${
+              <div className="acrylic-glass border border-white/10 rounded-sm p-4 text-center">
+                <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest mb-1">Avg Accuracy</div>
+                <div className={`text-2xl md:text-3xl font-light font-mono ${
                   analytics.avgAccuracy >= 70 ? 'text-status-aligned' :
                   analytics.avgAccuracy >= 40 ? 'text-status-weak' : 'text-error'
                 }`}>
                   {analytics.avgAccuracy}%
                 </div>
-                <div className="text-body-sm text-on-surface-variant">all sessions</div>
+                <div className="text-[10px] font-mono text-white/40 mt-1">overall average</div>
               </div>
 
-              <div className={`border rounded-lg p-5 ${
+              <div className={`rounded-sm p-4 text-center border ${
                 analytics.trend === 'improving'
-                  ? 'border-status-aligned bg-status-aligned/10'
-                  : 'border-outline-variant bg-surface-container'
+                  ? 'bg-status-aligned/10 border-status-aligned/30'
+                  : 'acrylic-glass border-white/10'
               }`}>
-                <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-2">Recent Trend</div>
-                <div className={`text-display font-light mb-1 flex items-center gap-2 ${
-                  analytics.trend === 'improving' ? 'text-status-aligned' : 'text-on-surface-variant'
+                <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest mb-1">Recent Trend</div>
+                <div className={`text-2xl md:text-3xl font-light font-mono flex items-center justify-center gap-1.5 ${
+                  analytics.trend === 'improving' ? 'text-status-aligned' : 'text-white'
                 }`}>
                   {analytics.recentAvg !== null ? `${analytics.recentAvg}%` : '—'}
-                  {analytics.trend === 'improving' && <TrendingUp className="w-5 h-5 text-status-aligned flex-shrink-0" />}
+                  {analytics.trend === 'improving' && <TrendingUp className="w-4 h-4 text-status-aligned flex-shrink-0" />}
                 </div>
-                <div className="text-body-sm text-on-surface-variant">last 7 sessions</div>
+                <div className="text-[10px] font-mono text-white/40 mt-1">last 7 sessions</div>
               </div>
             </div>
           )}
 
-          {/* Top Topics */}
-          {analytics?.topTopics.length > 0 && (
-            <div className="border border-outline-variant bg-surface-container rounded-lg p-6">
-              <h3 className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-4">Most Practiced</h3>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                {analytics.topTopics.map((topic) => (
-                  <div key={topic.name} className="p-3 bg-surface-dim rounded-lg text-center border border-outline-variant">
-                    <div className="text-headline-md font-light text-primary">{topic.count}</div>
-                    <div className="text-body-sm text-on-surface-variant mt-1 line-clamp-2">{topic.name}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Filters & Sort */}
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 space-y-2">
-              <label className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest">Type</label>
-              <div className="flex gap-2">
-                {['ALL', 'PRACTICE', 'EVALUATION'].map(type => (
-                  <button
-                    key={type}
-                    onClick={() => setTypeFilter(type)}
-                    className={`px-4 py-2 rounded-lg text-label-sm-mono uppercase tracking-widest transition-colors ${
-                      typeFilter === type
-                        ? 'bg-primary text-on-primary'
-                        : 'bg-surface-container border border-outline-variant text-on-surface hover:border-primary'
-                    }`}
-                  >
-                    {type === 'ALL' ? 'All Sessions' : type === 'PRACTICE' ? 'Practice Only' : 'Evaluations Only'}
-                  </button>
-                ))}
-              </div>
+          {/* Filters & Sort Controls */}
+          <div className="acrylic-glass border border-white/10 p-4 rounded-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest mr-1">Filter:</span>
+              {['ALL', 'PRACTICE', 'EVALUATION'].map(type => (
+                <button
+                  key={type}
+                  onClick={() => setTypeFilter(type)}
+                  className={`px-3 py-1.5 rounded-xs text-xs font-mono uppercase tracking-wider transition-colors ${
+                    typeFilter === type
+                      ? 'bg-primary text-white font-bold'
+                      : 'bg-surface-container border border-white/10 text-white/60 hover:text-white hover:border-white/20'
+                  }`}
+                >
+                  {type === 'ALL' ? 'All' : type === 'PRACTICE' ? 'Practice' : 'Mocks'}
+                </button>
+              ))}
             </div>
 
-            <div className="flex-1 space-y-2">
-              <label className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest">Sort by</label>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest whitespace-nowrap">Sort:</span>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="w-full px-4 py-2 bg-surface-container border border-outline-variant rounded-lg text-on-surface focus:border-primary outline-none"
+                className="w-full sm:w-auto px-3 py-1.5 bg-black border border-white/15 rounded-xs text-xs font-mono text-white outline-none focus:border-primary"
               >
                 <option value="DATE_DESC">Newest First</option>
                 <option value="ACCURACY_DESC">Highest Accuracy</option>
-                <option value="DURATION_DESC">Longest Sessions</option>
+                <option value="DURATION_DESC">Longest Duration</option>
               </select>
             </div>
           </div>
@@ -253,7 +264,7 @@ export default function SessionHistoryPage() {
               return (
                 <div
                   key={`${session.type}-${session.sessionId}`}
-                  className="border border-outline-variant bg-surface-container rounded-lg p-5 hover:border-primary transition-colors cursor-pointer group"
+                  className="p-4 bg-surface-container/40 border border-white/10 hover:border-white/25 rounded-sm transition-all cursor-pointer group flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                   onClick={() => {
                     if (isEval) {
                       navigate(`/results/${session.sessionId}`);
@@ -262,69 +273,64 @@ export default function SessionHistoryPage() {
                     }
                   }}
                 >
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    {/* Left: Type + Topic + Time */}
-                    <div className="flex items-start gap-4 flex-1">
-                      <div className={`px-3 py-2 rounded-lg text-label-sm-mono uppercase tracking-widest font-semibold ${
-                        session.type === 'PRACTICE'
-                          ? 'bg-primary/10 text-primary'
-                          : 'bg-status-overconfident/10 text-status-overconfident'
-                      }`}>
-                        {session.type === 'PRACTICE' ? '⚡ Practice' : '📝 Eval'}
+                  <div className="flex items-center gap-4 flex-1">
+                    <span className={`px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider rounded-xs font-semibold ${
+                      isEval ? 'bg-primary/20 text-primary border border-primary/40' : 'bg-white/10 text-white/80 border border-white/15'
+                    }`}>
+                      {isEval ? 'Mock' : 'Drill'}
+                    </span>
+
+                    <div>
+                      <div className="text-sm font-medium text-white group-hover:text-primary transition-colors">
+                        {session.topicName}
                       </div>
-                      <div className="flex-1">
-                        <div className="text-body-lg font-semibold text-on-surface group-hover:text-primary transition-colors">
-                          {session.topicName}
+                      <div className="text-[11px] font-mono text-white/40 mt-0.5">
+                        {new Date(session.started_at || session.created_at).toLocaleString('en-IN', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between sm:justify-end gap-6 pt-2 sm:pt-0 border-t border-white/5 sm:border-0">
+                    {accuracy !== null && accuracy !== undefined && (
+                      <div className="text-center sm:text-right">
+                        <div className={`text-lg font-light font-mono ${
+                          accuracy >= 70 ? 'text-status-aligned' :
+                          accuracy >= 40 ? 'text-status-weak' : 'text-error'
+                        }`}>
+                          {accuracy}%
                         </div>
-                        <div className="text-body-sm text-on-surface-variant mt-1">
-                          {new Date(session.started_at || session.created_at).toLocaleString('en-IN', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </div>
+                        <div className="text-[9px] font-mono text-white/40 uppercase">Accuracy</div>
+                      </div>
+                    )}
+
+                    <div className="text-center sm:text-right">
+                      <div className="text-lg font-light font-mono text-white">
+                        {session.correct_count !== undefined && session.total_questions !== undefined
+                          ? `${session.correct_count}/${session.total_questions}`
+                          : session.summary?.total_questions || session.question_count || '—'}
+                      </div>
+                      <div className="text-[9px] font-mono text-white/40 uppercase">
+                        {session.correct_count !== undefined ? 'Score' : 'Questions'}
                       </div>
                     </div>
 
-                    {/* Right: Stats */}
-                    <div className="flex items-center gap-6">
-                      {accuracy !== null && accuracy !== undefined && (
-                        <div className="text-center">
-                          <div className={`text-headline-md font-bold ${
-                            accuracy >= 70 ? 'text-status-aligned' :
-                            accuracy >= 40 ? 'text-status-weak' : 'text-error'
-                          }`}>
-                            {accuracy}%
-                          </div>
-                          <div className="text-label-sm-mono text-on-surface-variant uppercase">Accuracy</div>
-                        </div>
-                      )}
-
-                      <div className="text-center">
-                        <div className="text-headline-md font-light text-on-surface">
-                          {session.correct_count !== undefined && session.total_questions !== undefined
-                            ? `${session.correct_count}/${session.total_questions}`
-                            : session.summary?.total_questions || session.question_count || '—'}
-                        </div>
-                        <div className="text-label-sm-mono text-on-surface-variant uppercase">
-                          {session.correct_count !== undefined ? 'Score' : 'Questions'}
-                        </div>
+                    <div className="text-center sm:text-right">
+                      <div className="text-lg font-light font-mono text-white/70">
+                        {isEval
+                          ? `${Math.floor((session.duration_seconds || session.summary?.duration_seconds || 0) / 60)}m`
+                          : `${Math.round((session.summary?.total_time_seconds || 0) / 60)}m`
+                        }
                       </div>
-
-                      <div className="text-center">
-                        <div className="text-headline-md font-light text-on-surface">
-                          {isEval
-                            ? `${Math.floor((session.duration_seconds || session.summary?.duration_seconds || 0) / 60)}m`
-                            : `${Math.round((session.summary?.total_time_seconds || 0) / 60)}m`
-                          }
-                        </div>
-                        <div className="text-label-sm-mono text-on-surface-variant uppercase">Time</div>
-                      </div>
-
-                      <ArrowRight className="w-5 h-5 text-on-surface-variant group-hover:text-primary transition-colors flex-shrink-0" />
+                      <div className="text-[9px] font-mono text-white/40 uppercase">Time</div>
                     </div>
+
+                    <ArrowRight className="w-4 h-4 text-white/30 group-hover:text-primary transition-colors flex-shrink-0" />
                   </div>
                 </div>
               );

@@ -5,7 +5,7 @@ import { confidenceService } from '@/features/confidence/services/confidenceServ
 import { practiceService } from '@/features/practice/services/practiceService';
 import ConfidenceSlider from '@/features/confidence/components/ConfidenceSlider';
 import { MathText } from '@/features/questions/components/QuestionCard';
-import { Sparkles, CheckCircle2, AlertTriangle, RotateCcw } from 'lucide-react';
+import Icon, { Sparkles, CheckCircle2, AlertTriangle, RotateCcw, ArrowLeft, BookOpen } from '@/shared/components/Icon';
 
 export default function ResultsPage() {
   const { id } = useParams();
@@ -130,31 +130,66 @@ export default function ResultsPage() {
   })();
 
   return (
-    <div className="max-w-3xl mx-auto animate-fade-in">
+    <div className="max-w-4xl mx-auto animate-fade-in pb-16 space-y-8">
+      {/* Telemetry Header */}
+      <div className="border-b border-white/10 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <div className="text-label-sm-mono text-primary uppercase tracking-[0.25em] mb-1.5 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+            EVALUATION // PERFORMANCE DEBRIEF & METRIC CALIBRATION
+          </div>
+          <h1 className="text-3xl md:text-4xl font-extralight text-white tracking-tight lowercase">
+            evaluation results
+          </h1>
+          <p className="text-sm text-white/50 font-mono mt-1">
+            Empirical accuracy analysis vs. perceived self-confidence baseline.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2 px-4 py-2 bg-surface-container border border-white/10 hover:border-primary text-white/80 hover:text-white text-xs font-mono uppercase tracking-wider rounded-sm transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            knowledge map
+          </button>
+          {topicId && (
+            <button
+              onClick={() => navigate(`/practice?topic=${topicId}`)}
+              className="flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/30 text-primary hover:bg-primary hover:text-white text-xs font-mono uppercase tracking-wider rounded-sm transition-colors"
+            >
+              drill topic
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* POST_EVALUATION Confidence Re-Rating Prompt */}
       {showConfidencePrompt && !confidenceSubmitted && topicId && (
-        <div className="mb-6 bg-primary-fixed/20 border-2 border-primary-fixed rounded-xl p-6 animate-fade-in">
-          <div className="flex items-start gap-3 mb-4">
-            <Sparkles className="w-8 h-8 text-primary flex-shrink-0 mt-0.5" />
+        <div className="acrylic-glass border border-primary/40 rounded-md p-6 animate-fade-in relative overflow-hidden">
+          <div className="flex items-start gap-4 mb-4">
+            <Sparkles className="w-7 h-7 text-primary flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="text-headline-md text-on-surface">Re-rate Your Confidence</h3>
-              <p className="text-body-md text-on-surface-variant mt-1">
-                Now that you've completed this evaluation, how confident do you feel about this topic?
+              <div className="text-xs font-mono uppercase tracking-widest text-primary mb-1">Calibration Check</div>
+              <h3 className="text-xl font-light text-white">Re-rate Your Confidence</h3>
+              <p className="text-sm text-white/60 mt-1">
+                Now that you have completed this timed evaluation, how confident do you feel about this topic?
               </p>
             </div>
           </div>
           <ConfidenceSlider value={newConfidence} onChange={setNewConfidence} />
-          <div className="flex gap-3 mt-4">
+          <div className="flex gap-3 mt-6">
             <button
               onClick={handleConfidenceSubmit}
               disabled={confidenceLoading}
-              className="flex-1 py-2.5 rounded-lg bg-primary text-on-primary text-body-md font-semibold hover:bg-primary-container transition-colors disabled:opacity-50"
+              className="flex-1 py-3 bg-primary text-white text-xs font-mono font-bold uppercase tracking-widest hover:brightness-110 transition-all rounded-sm disabled:opacity-50"
             >
-              {confidenceLoading ? 'Saving...' : 'Save Confidence Rating'}
+              {confidenceLoading ? 'Saving...' : 'Save Updated Rating'}
             </button>
             <button
               onClick={() => setShowConfidencePrompt(false)}
-              className="px-4 py-2.5 rounded-lg border border-outline-variant text-body-md text-on-surface-variant hover:bg-surface-container-low transition-colors"
+              className="px-6 py-3 border border-white/10 text-white/60 hover:text-white hover:bg-white/5 text-xs font-mono uppercase tracking-widest rounded-sm transition-colors"
             >
               Skip
             </button>
@@ -163,14 +198,11 @@ export default function ResultsPage() {
       )}
 
       {confidenceSubmitted && (
-        <div className="mb-6 p-4 rounded-lg bg-tertiary-container/10 border border-tertiary-container text-body-md text-on-surface flex items-center gap-2">
+        <div className="p-4 bg-status-aligned/10 border border-status-aligned/30 text-sm text-white flex items-center gap-3 rounded-sm font-mono">
           <CheckCircle2 className="w-5 h-5 text-status-aligned flex-shrink-0" />
-          Confidence updated to <strong>{newConfidence}/10</strong>. Your gap will be recalculated.
+          <span>Confidence recalibrated to <strong>{newConfidence}/10</strong>. Knowledge map gap score will update immediately.</span>
         </div>
       )}
-
-      {/* Results Header */}
-      <h2 className="text-display text-on-surface mb-6">Evaluation Results</h2>
 
       {recommendation && (
         <div className={`mb-6 rounded-xl border p-6 ${
@@ -199,44 +231,45 @@ export default function ResultsPage() {
       {/* Score Cards */}
       {summary && (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3">
-            <div className="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant text-center">
-              <div className="text-headline-lg text-primary font-bold">{summary.correct}/{summary.total_questions}</div>
-              <div className="text-label-sm-mono text-on-surface-variant mt-1">Score</div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+            <div className="p-4 bg-surface-container border border-white/10 rounded-sm text-center">
+              <div className="text-2xl md:text-3xl font-light text-primary font-mono">{summary.correct}/{summary.total_questions}</div>
+              <div className="text-[11px] font-mono uppercase tracking-widest text-white/50 mt-1">Score</div>
             </div>
-            <div className="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant text-center">
-              <div className={`text-headline-lg font-bold ${
-                summary.accuracy >= 70 ? 'text-tertiary-container' :
+            <div className="p-4 bg-surface-container border border-white/10 rounded-sm text-center">
+              <div className={`text-2xl md:text-3xl font-light font-mono ${
+                summary.accuracy >= 70 ? 'text-status-aligned' :
                 summary.accuracy >= 40 ? 'text-status-weak' : 'text-error'
               }`}>
                 {summary.accuracy}%
               </div>
-              <div className="text-label-sm-mono text-on-surface-variant mt-1">Accuracy</div>
+              <div className="text-[11px] font-mono uppercase tracking-widest text-white/50 mt-1">Accuracy</div>
             </div>
-            <div className="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant text-center">
-              <div className="text-headline-lg text-on-surface font-bold">{summary.attempt_rate}%</div>
-              <div className="text-label-sm-mono text-on-surface-variant mt-1">Attempt Rate</div>
+            <div className="p-4 bg-surface-container border border-white/10 rounded-sm text-center">
+              <div className="text-2xl md:text-3xl font-light text-white font-mono">{summary.attempt_rate}%</div>
+              <div className="text-[11px] font-mono uppercase tracking-widest text-white/50 mt-1">Attempt Rate</div>
             </div>
-            <div className="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant text-center">
-              <div className="text-headline-lg text-on-surface font-bold font-mono">
+            <div className="p-4 bg-surface-container border border-white/10 rounded-sm text-center">
+              <div className="text-2xl md:text-3xl font-light text-white font-mono">
                 {Math.floor(summary.avg_time_seconds / 60)}:{String(summary.avg_time_seconds % 60).padStart(2, '0')}
               </div>
-              <div className="text-label-sm-mono text-on-surface-variant mt-1">Avg Time/Q</div>
+              <div className="text-[11px] font-mono uppercase tracking-widest text-white/50 mt-1">Avg Time/Q</div>
             </div>
-            <div className="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant text-center">
-              <div className={`text-headline-lg font-bold ${
-                summary.pyq_accuracy !== null && summary.pyq_accuracy >= 70 ? 'text-tertiary-container' :
-                summary.pyq_accuracy !== null && summary.pyq_accuracy >= 40 ? 'text-status-weak' : 'text-on-surface-variant'
+            <div className="p-4 bg-surface-container border border-white/10 rounded-sm text-center col-span-2 sm:col-span-1">
+              <div className={`text-2xl md:text-3xl font-light font-mono ${
+                summary.pyq_accuracy !== null && summary.pyq_accuracy >= 70 ? 'text-status-aligned' :
+                summary.pyq_accuracy !== null && summary.pyq_accuracy >= 40 ? 'text-status-weak' : 'text-white/50'
               }`}>
                 {summary.pyq_accuracy !== null ? `${summary.pyq_accuracy}%` : '—'}
               </div>
-              <div className="text-label-sm-mono text-on-surface-variant mt-1">PYQ Accuracy</div>
+              <div className="text-[11px] font-mono uppercase tracking-widest text-white/50 mt-1">PYQ Accuracy</div>
             </div>
           </div>
+
           {summary.attempt_rate < 100 && (
-            <div className="mb-6 px-4 py-2 bg-error/10 border-l-4 border-error text-error text-body-sm rounded-r-md flex items-center gap-2">
+            <div className="px-4 py-3 bg-error/10 border border-error/30 text-error text-xs font-mono rounded-sm flex items-center gap-3">
               <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-              <span>You left {summary.total_questions - summary.answered} questions unanswered. In real exams, unattempted questions yield 0 marks — practice pacing to attempt all questions.</span>
+              <span>You left {summary.total_questions - summary.answered} questions unattempted. In JEE Main, unattempted questions yield 0 marks — practice pacing to attempt every solvable question.</span>
             </div>
           )}
         </>
@@ -244,29 +277,29 @@ export default function ResultsPage() {
 
       {/* Difficulty Breakdown */}
       {diffBreakdown && (
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm p-5 mb-6">
-          <h3 className="text-label-sm-mono text-on-surface-variant mb-4">DIFFICULTY BREAKDOWN</h3>
-          <div className="grid grid-cols-3 gap-4">
+        <div className="acrylic-glass border border-white/10 rounded-md p-6">
+          <h3 className="text-xs font-mono uppercase tracking-widest text-white/60 mb-6 flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
+            DIFFICULTY ACCURACY BREAKDOWN
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {['easy', 'medium', 'hard'].map(diff => {
               const d = diffBreakdown[diff];
               if (!d || d.total === 0) return null;
+              const colorClass = diff === 'easy' ? 'text-status-aligned' : diff === 'medium' ? 'text-status-weak' : 'text-error';
+              const barClass = diff === 'easy' ? 'bg-status-aligned' : diff === 'medium' ? 'bg-status-weak' : 'bg-error';
+
               return (
-                <div key={diff} className="text-center">
-                  <div className={`text-headline-md font-bold ${
-                    diff === 'easy' ? 'text-tertiary-container' :
-                    diff === 'medium' ? 'text-status-weak' : 'text-error'
-                  }`}>
+                <div key={diff} className="bg-surface-container/60 border border-white/5 rounded-sm p-4 text-center">
+                  <div className={`text-2xl font-light font-mono ${colorClass}`}>
                     {d.accuracy !== null ? `${d.accuracy}%` : '—'}
                   </div>
-                  <div className="text-body-md text-on-surface mt-1 capitalize">{diff}</div>
-                  <div className="text-label-sm-mono text-on-surface-variant">{d.correct}/{d.total}</div>
+                  <div className="text-xs font-mono uppercase tracking-wider text-white mt-1 capitalize">{diff}</div>
+                  <div className="text-[11px] font-mono text-white/40 mt-0.5">{d.correct}/{d.total} correct</div>
                   {/* Mini progress bar */}
-                  <div className="w-full h-1.5 bg-surface-container rounded-full mt-2 overflow-hidden">
+                  <div className="w-full h-1 bg-white/10 rounded-full mt-3 overflow-hidden">
                     <div
-                      className={`h-full rounded-full transition-all ${
-                        diff === 'easy' ? 'bg-tertiary-container' :
-                        diff === 'medium' ? 'bg-status-weak' : 'bg-error'
-                      }`}
+                      className={`h-full ${barClass} transition-all duration-500`}
                       style={{ width: `${d.accuracy || 0}%` }}
                     />
                   </div>
@@ -279,43 +312,56 @@ export default function ResultsPage() {
 
       {/* Mistakes List */}
       {mistakes.length > 0 && (
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm p-5 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-label-sm-mono text-on-surface-variant">
-              MISTAKES ({mistakes.length})
-            </h3>
+        <div className="acrylic-glass border border-white/10 rounded-md p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+            <div>
+              <h3 className="text-xs font-mono uppercase tracking-widest text-error flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" />
+                ERROR ANALYSIS & MISSED QUESTIONS ({mistakes.length})
+              </h3>
+              <p className="text-xs text-white/50 font-mono mt-1">Review the step-by-step verified solutions or re-drill missed items.</p>
+            </div>
             <button
               onClick={handleReDrill}
               disabled={reDrillLoading}
-              className="px-4 py-2 bg-error text-white text-label-sm-mono uppercase tracking-widest font-semibold hover:bg-error/80 transition-colors rounded-sm flex items-center gap-2"
+              className="px-4 py-2 bg-error text-white text-xs font-mono uppercase tracking-widest font-semibold hover:bg-error/80 transition-colors rounded-sm flex items-center gap-2"
             >
-              <RotateCcw className="w-4 h-4" />
+              <RotateCcw className="w-3.5 h-3.5" />
               {reDrillLoading ? 'Starting Drill...' : 'Re-drill Mistakes'}
             </button>
           </div>
+
           <div className="space-y-4">
             {mistakes.map((m, i) => (
-              <div key={i} className="p-4 rounded-lg bg-error-container/5 border border-error/10">
-                <div className="flex items-start gap-3 mb-2">
-                  <span className={`text-label-sm-mono px-2 py-0.5 rounded border-l-2 ${
-                    m.difficulty === 'easy' ? 'bg-tertiary-container/10 text-tertiary-container border-tertiary-container' :
-                    m.difficulty === 'medium' ? 'bg-status-weak/10 text-status-weak border-status-weak' :
-                    'bg-error-container/20 text-error border-error'
+              <div key={i} className="p-5 rounded-sm bg-surface-container/40 border border-white/10 hover:border-white/20 transition-colors">
+                <div className="flex items-start gap-3 mb-3">
+                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded-xs uppercase tracking-wider ${
+                    m.difficulty === 'easy' ? 'bg-status-aligned/15 text-status-aligned border border-status-aligned/30' :
+                    m.difficulty === 'medium' ? 'bg-status-weak/15 text-status-weak border border-status-weak/30' :
+                    'bg-error/15 text-error border border-error/30'
                   }`}>
-                    {m.difficulty?.toUpperCase()}
+                    {m.difficulty || 'MEDIUM'}
                   </span>
+                  {m.source_type && (
+                    <span className="text-[10px] font-mono px-2 py-0.5 bg-primary/10 border border-primary/20 text-primary rounded-xs uppercase">
+                      {m.source_type}
+                    </span>
+                  )}
                 </div>
-                <div className="text-body-md text-on-surface mb-2">
+
+                <div className="text-sm md:text-base text-white/90 mb-4 leading-relaxed font-sans">
                   <MathText text={m.question_text} />
                 </div>
-                <div className="flex gap-4 text-body-md">
+
+                <div className="flex flex-wrap gap-4 text-xs font-mono p-3 bg-black/40 border border-white/5 rounded-sm">
                   <span className="text-error">Your answer: <strong>{m.selected_answer || 'Skipped'}</strong></span>
-                  <span className="text-tertiary-container">Correct: <strong>{m.correct_answer}</strong></span>
+                  <span className="text-status-aligned">Correct answer: <strong>{m.correct_answer}</strong></span>
                 </div>
+
                 {m.solution_text && (
-                  <div className="mt-3 p-3 rounded-lg bg-[#F0F7FF] border border-primary-fixed">
-                    <div className="text-label-sm-mono text-primary font-bold mb-1">SOLUTION</div>
-                    <div className="text-body-md text-on-surface">
+                  <div className="mt-4 p-4 rounded-sm bg-surface-elevated/50 border border-primary/30">
+                    <div className="text-xs font-mono text-primary font-bold tracking-widest uppercase mb-2">VERIFIED STEP-BY-STEP SOLUTION</div>
+                    <div className="text-sm text-white/90 leading-relaxed font-sans">
                       <MathText text={m.solution_text} />
                     </div>
                   </div>
@@ -323,31 +369,32 @@ export default function ResultsPage() {
               </div>
             ))}
           </div>
+
           <button
             onClick={handleReDrill}
             disabled={reDrillLoading}
-            className="w-full mt-6 py-3.5 bg-error text-white text-body-md font-semibold uppercase tracking-widest hover:bg-error/80 transition-colors rounded-sm flex items-center justify-center gap-2"
+            className="w-full mt-6 py-3.5 bg-error text-white text-xs font-mono font-bold uppercase tracking-widest hover:bg-error/80 transition-colors rounded-sm flex items-center justify-center gap-2"
           >
-            <RotateCcw className="w-5 h-5" />
+            <RotateCcw className="w-4 h-4" />
             {reDrillLoading ? 'Starting Targeted Session...' : `Practice All ${mistakes.length} Mistakes Now`}
           </button>
         </div>
       )}
 
-      {/* Actions */}
-      <div className="flex gap-3">
+      {/* Bottom Actions */}
+      <div className="flex flex-col sm:flex-row gap-3 pt-4">
         <button
           onClick={() => navigate('/')}
-          className="flex-1 py-3 rounded-lg border border-outline-variant text-body-md font-semibold text-on-surface-variant hover:bg-surface-container-low transition-colors"
+          className="flex-1 py-3.5 border border-white/15 text-white/80 hover:text-white hover:border-white/30 text-xs font-mono uppercase tracking-widest rounded-sm transition-colors text-center"
         >
-          Back to Dashboard
+          Return to Knowledge Map
         </button>
         {topicId && (
           <button
             onClick={() => navigate(`/topics/${topicId}`)}
-            className="flex-1 py-3 rounded-lg bg-primary-container text-on-primary text-body-md font-semibold hover:bg-primary transition-colors"
+            className="flex-1 py-3.5 bg-primary text-white text-xs font-mono uppercase tracking-widest font-semibold hover:brightness-110 transition-all rounded-sm text-center"
           >
-            View Topic Detail
+            View Full Topic Telemetry
           </button>
         )}
       </div>
