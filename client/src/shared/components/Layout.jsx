@@ -19,6 +19,7 @@ import Icon, {
   Sparkles,
   History
 } from './Icon';
+import PWAInstallBanner from './PWAInstallBanner';
 
 const PIVOT_ITEMS = [
   { path: '/', label: 'map', icon: 'map' },
@@ -83,6 +84,9 @@ export default function Layout({ children }) {
 
   return (
     <div className="min-h-screen bg-black text-on-surface flex flex-col selection:bg-primary selection:text-black">
+      {/* ─── PWA Offline Telemetry & Install Banner ─── */}
+      <PWAInstallBanner />
+
       {/* ─── Top Ambient OS Telemetry Rail (Windows Phone Status Bar) ─── */}
       <header className="w-full bg-black/90 backdrop-blur-md border-b border-white/10 px-4 md:px-8 py-2.5 flex items-center justify-between text-label-sm-mono text-xs tracking-wider z-40">
         <div className="flex items-center gap-3">

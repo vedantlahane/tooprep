@@ -47,3 +47,4 @@ server/public/uploads/
 *.png
 *.jpg
 *.jpeg
+!client/public/icons/*
