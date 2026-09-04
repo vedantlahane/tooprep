@@ -39,7 +39,7 @@ function QuestionBrowserCard({ q, onPracticeTopic }) {
   const srcStyle = q.source_type === 'PYQ' ? SOURCE_STYLES.PYQ : SOURCE_STYLES.default;
 
   return (
-    <div className="acrylic-glass border border-outline-variant rounded-sm overflow-hidden hover:border-primary/50 transition-colors space-y-0 shadow-lg">
+    <div className="acrylic-glass border border-outline-variant rounded-sm overflow-hidden hover:border-primary/50 transition-all duration-200 space-y-0 shadow-lg animate-slide-up hover-lift">
       {/* Header badges */}
       <div className="flex items-center gap-2 px-5 py-3 border-b border-white/5 flex-wrap bg-surface-container/60 text-xs font-mono">
         {q.difficulty && (
@@ -135,7 +135,7 @@ function QuestionBrowserCard({ q, onPracticeTopic }) {
       </div>
 
       {showAnswer && (
-        <div className="px-5 pb-5 pt-2 border-t border-outline-variant bg-surface-container/40 space-y-3 animate-fade-in">
+        <div className="px-5 pb-5 pt-2 border-t border-outline-variant bg-surface-container/40 space-y-3 animate-slide-down">
           {!hasAnswer ? (
             <p className="text-xs font-mono text-white/50 italic font-light">
               Answer is withheld for evaluation integrity. Complete a practice drill on this topic to view full solution steps.

@@ -130,7 +130,7 @@ export default function ResultsPage() {
   })();
 
   return (
-    <div className="max-w-4xl mx-auto animate-fade-in pb-16 space-y-8">
+    <div className="max-w-4xl mx-auto animate-slide-up pb-16 space-y-8">
       {/* Telemetry Header */}
       <div className="border-b border-white/10 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>

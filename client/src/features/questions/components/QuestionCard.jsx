@@ -41,7 +41,7 @@ export default function QuestionCard({
   };
 
   return (
-    <div className="bg-surface-dim border-2 border-outline-variant p-6 md:p-8 animate-fade-in">
+    <div className="bg-surface-dim border-2 border-outline-variant p-6 md:p-8 animate-slide-up rounded-sm shadow-xl">
       {/* Question header */}
       <div className="flex items-start justify-between mb-6">
         <div className="flex items-center gap-4">
@@ -91,21 +91,21 @@ export default function QuestionCard({
             key={opt.id}
             disabled={disabled || showResult}
             onClick={() => onSelectAnswer && onSelectAnswer(opt.id)}
-            className={`w-full text-left p-4 transition-all duration-150 flex items-start gap-4 ${getOptionStyle(opt.id)} ${
-              disabled || showResult ? '' : 'cursor-pointer active:scale-[0.98]'
+            className={`w-full text-left p-4 transition-all duration-150 flex items-start gap-4 rounded-sm ${getOptionStyle(opt.id)} ${
+              disabled || showResult ? '' : 'cursor-pointer press-feedback hover:-translate-y-0.5'
             }`}
           >
-            <span className="inline-flex items-center justify-center w-8 h-8 bg-black/20 text-body-lg font-bold flex-shrink-0 mt-0.5">
+            <span className="inline-flex items-center justify-center w-8 h-8 bg-black/20 text-body-lg font-bold flex-shrink-0 mt-0.5 rounded-xs">
               {opt.id}
             </span>
             <span className="text-body-lg flex-1">
               <MathText text={opt.text} />
             </span>
             {showResult && question.correct_answer === opt.id && (
-              <Check className="w-5 h-5 flex-shrink-0 text-white" />
+              <Check className="w-5 h-5 flex-shrink-0 text-white animate-fade-in" />
             )}
             {showResult && selectedAnswer === opt.id && selectedAnswer !== question.correct_answer && (
-              <X className="w-5 h-5 flex-shrink-0 text-white" />
+              <X className="w-5 h-5 flex-shrink-0 text-white animate-fade-in" />
             )}
           </button>
         ))}
@@ -113,7 +113,7 @@ export default function QuestionCard({
 
       {/* Solution */}
       {showSolution && question.solution_text && (
-        <div className="mt-8 p-6 bg-primary/10 border-l-4 border-primary">
+        <div className="mt-8 p-6 bg-primary/10 border-l-4 border-primary rounded-r-sm animate-slide-down">
           <div className="text-label-sm-mono text-primary font-bold mb-3 tracking-widest uppercase">solution</div>
           <div className="text-body-lg text-on-surface leading-relaxed font-light">
             <MathText text={question.solution_text} />

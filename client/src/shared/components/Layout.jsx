@@ -153,7 +153,7 @@ export default function Layout({ children }) {
 
       {/* ─── Expandable Header Slide-Down Menu ─── */}
       {menuOpen && (
-        <div className="sticky top-[45px] z-40 bg-neutral-950/95 backdrop-blur-xl border-b border-white/15 px-4 md:px-8 py-4 animate-fade-in shadow-2xl">
+        <div className="sticky top-[45px] z-40 bg-neutral-950/95 backdrop-blur-xl border-b border-white/15 px-4 md:px-8 py-4 animate-slide-down shadow-2xl">
           <div className="max-w-7xl mx-auto space-y-4">
             <div className="flex items-center justify-between border-b border-white/10 pb-2">
               <span className="text-[10px] font-mono text-white/50 uppercase tracking-widest">
@@ -330,7 +330,7 @@ export default function Layout({ children }) {
 
       {/* ─── Main Panoramic Content Canvas ─── */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-8 pt-6 pb-12">
-        <div className="animate-fade-in">
+        <div key={location.pathname} className="animate-slide-up">
           {children}
         </div>
       </main>

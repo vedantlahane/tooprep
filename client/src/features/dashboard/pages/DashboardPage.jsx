@@ -387,7 +387,7 @@ export default function DashboardPage() {
           <div className="bg-surface-container p-1 rounded-sm border border-outline-variant flex items-center gap-1 text-xs font-mono">
             <button
               onClick={() => handleSwitchView('sheet')}
-              className={`px-3 py-1 rounded-sm transition-colors flex items-center gap-1.5 ${
+              className={`px-3 py-1 rounded-sm transition-colors flex items-center gap-1.5 press-feedback ${
                 viewMode === 'sheet'
                   ? 'bg-primary text-black font-bold shadow'
                   : 'text-white/60 hover:text-white'
@@ -398,7 +398,7 @@ export default function DashboardPage() {
             </button>
             <button
               onClick={() => handleSwitchView('tiles')}
-              className={`px-3 py-1 rounded-sm transition-colors flex items-center gap-1.5 ${
+              className={`px-3 py-1 rounded-sm transition-colors flex items-center gap-1.5 press-feedback ${
                 viewMode === 'tiles'
                   ? 'bg-primary text-black font-bold shadow'
                   : 'text-white/60 hover:text-white'
@@ -415,10 +415,10 @@ export default function DashboardPage() {
       {biggestGapTopic && (
         <div
           onClick={() => navigate(`/topics/${biggestGapTopic.topic_id}`)}
-          className="relative cursor-pointer overflow-hidden px-4 py-3 rounded-sm bg-error/15 border border-error/50 hover:bg-error/25 transition-all text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
+          className="relative cursor-pointer overflow-hidden px-4 py-3 rounded-sm bg-error/15 border border-error/50 hover:bg-error/25 transition-all text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 group animate-pulse-urgent press-feedback"
         >
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-error/30 border border-error/60 flex items-center justify-center text-error shrink-0">
+            <div className="w-8 h-8 rounded-full bg-error/30 border border-error/60 flex items-center justify-center text-error shrink-0 animate-pulse">
               <AlertTriangle className="w-4 h-4" />
             </div>
             <div>
@@ -747,6 +747,7 @@ export default function DashboardPage() {
                       const rowNum = idx + 1;
                       const isSelectedRow = activeCell.row === rowNum;
                       const gap = topic.gap;
+                      const staggerClass = idx < 8 ? `animate-slide-up stagger-${idx + 1}` : '';
 
                       return (
                         <tr
@@ -758,8 +759,8 @@ export default function DashboardPage() {
                             field: 'topic_name',
                             value: topic.topic_name
                           })}
-                          className={`transition-colors group hover:bg-neutral-900/70 ${
-                            isSelectedRow ? 'bg-neutral-900/50' : ''
+                          className={`transition-all duration-150 group hover:bg-neutral-900/80 ${staggerClass} ${
+                            isSelectedRow ? 'bg-neutral-900/60' : ''
                           }`}
                         >
                           {/* Row Index Gutter */}
@@ -952,7 +953,7 @@ export default function DashboardPage() {
 
             {/* ─── In-Cell Calibration Micro-Drawer (if active) ─── */}
             {inCellCalibrate && (
-              <div className="p-3 bg-neutral-900 border-t border-primary/30 flex flex-wrap items-center justify-between gap-3 animate-fade-in text-xs font-mono">
+              <div className="p-3 bg-neutral-900 border-t-2 border-primary flex flex-wrap items-center justify-between gap-3 animate-slide-down text-xs font-mono shadow-xl">
                 <div className="flex items-center gap-2">
                   <span className="text-primary font-bold">CALIBRATE:</span>
                   <span className="text-white">{inCellCalibrate.topicName}</span>
@@ -964,7 +965,7 @@ export default function DashboardPage() {
                       key={val}
                       onClick={() => handleQuickCalibrate(inCellCalibrate.topicId, val)}
                       disabled={savingConf}
-                      className={`w-7 h-7 rounded text-xs font-bold font-mono transition-transform hover:scale-110 ${
+                      className={`w-7 h-7 rounded text-xs font-bold font-mono transition-transform hover:scale-110 press-feedback ${
                         inCellCalibrate.currentVal === val
                           ? 'bg-primary text-black ring-2 ring-white'
                           : 'bg-neutral-800 text-white hover:bg-neutral-700'
@@ -975,7 +976,7 @@ export default function DashboardPage() {
                   ))}
                   <button
                     onClick={() => setInCellCalibrate(null)}
-                    className="ml-2 text-white/50 hover:text-white p-1"
+                    className="ml-2 text-white/50 hover:text-white p-1 press-feedback"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -1024,11 +1025,11 @@ export default function DashboardPage() {
               </h3>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                {topics.map(topic => (
+                {topics.map((topic, tileIdx) => (
                   <div
                     key={topic.topic_id}
                     onClick={() => navigate(`/topics/${topic.topic_id}`)}
-                    className="metro-tile relative cursor-pointer p-4 flex flex-col justify-between overflow-hidden rounded-sm select-none aspect-square bg-surface-container hover:border-primary border border-white/10"
+                    className={`metro-tile relative cursor-pointer p-4 flex flex-col justify-between overflow-hidden rounded-sm select-none aspect-square bg-surface-container hover:border-primary border border-white/10 animate-tile-flip hover-lift ${tileIdx < 6 ? `stagger-${tileIdx + 1}` : ''}`}
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-mono uppercase tracking-wider opacity-60">

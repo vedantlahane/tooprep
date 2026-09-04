@@ -208,7 +208,7 @@ body {
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
 /* ============================================================
-   Animations
+   Fluid Motion & Animations (Windows Phone / Fluent Dynamics)
    ============================================================ */
 
 @keyframes fadeIn {
@@ -216,22 +216,159 @@ body {
   to { opacity: 1; transform: scale(1); }
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.2s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes tileFlip {
+  from {
+    opacity: 0;
+    transform: perspective(1000px) rotateX(10deg) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(1000px) rotateX(0deg) translateY(0);
+  }
 }
 
 @keyframes pulse-soft {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  50% { opacity: 0.45; }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(0, 191, 255, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px 4px rgba(0, 191, 255, 0.2);
+  }
+}
+
+@keyframes pulseUrgent {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 51, 51, 0.5);
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 16px 3px rgba(255, 51, 51, 0.3);
+    opacity: 0.8;
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Core Animation Utilities */
+.animate-fade-in {
+  animation: fadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-slide-down {
+  animation: slideDown 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-tile-flip {
+  animation: tileFlip 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .animate-pulse-soft {
   animation: pulse-soft 2s ease-in-out infinite;
 }
 
+.animate-pulse-glow {
+  animation: pulseGlow 2.5s ease-in-out infinite;
+}
+
+.animate-pulse-urgent {
+  animation: pulseUrgent 1.2s ease-in-out infinite;
+}
+
 .timer-urgent {
   color: var(--color-error);
-  animation: pulse-soft 1s ease-in-out infinite;
+  animation: pulseUrgent 1s ease-in-out infinite;
+}
+
+/* Fluid Stagger Delays */
+.stagger-1 { animation-delay: 40ms; }
+.stagger-2 { animation-delay: 80ms; }
+.stagger-3 { animation-delay: 120ms; }
+.stagger-4 { animation-delay: 160ms; }
+.stagger-5 { animation-delay: 200ms; }
+.stagger-6 { animation-delay: 240ms; }
+.stagger-7 { animation-delay: 280ms; }
+.stagger-8 { animation-delay: 320ms; }
+
+/* Micro-Interaction Utilities */
+.press-feedback {
+  transition: transform 0.12s cubic-bezier(0.2, 0.9, 0.3, 1), filter 0.15s ease;
+  will-change: transform;
+}
+
+.press-feedback:active {
+  transform: scale(0.96);
+}
+
+.hover-lift {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+  will-change: transform;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 25px -3px var(--color-primary);
+}
+
+/* Respect Accessibility Preferences */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 /* ============================================================
    Modern Metro / Fluent UI Utilities

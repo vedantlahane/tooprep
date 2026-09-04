@@ -299,7 +299,7 @@ export default function EvaluationPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-6 items-start">
         {/* Main Question Display */}
-        <div className="space-y-6 min-w-0">
+        <div key={currentIndex} className="space-y-6 min-w-0 animate-slide-up">
           <QuestionCard
             question={currentQuestion}
             selectedAnswer={answers[currentQuestion?.id] || null}
@@ -313,7 +313,7 @@ export default function EvaluationPage() {
             <button
               onClick={() => handleNavigateQuestion(Math.max(0, currentIndex - 1))}
               disabled={currentIndex === 0}
-              className="px-4 py-2.5 bg-surface-container border border-outline-variant text-white/80 hover:text-white rounded-sm text-xs font-mono uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors"
+              className="px-4 py-2.5 bg-surface-container border border-outline-variant text-white/80 hover:text-white rounded-sm text-xs font-mono uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors press-feedback"
             >
               <ChevronLeft className="w-4 h-4" />
               <span>Previous</span>
@@ -321,7 +321,7 @@ export default function EvaluationPage() {
 
             <button
               onClick={toggleMarkForReview}
-              className={`px-4 py-2.5 border rounded-sm text-xs font-mono uppercase tracking-wider flex items-center gap-1.5 transition-colors ${
+              className={`px-4 py-2.5 border rounded-sm text-xs font-mono uppercase tracking-wider flex items-center gap-1.5 transition-colors press-feedback ${
                 markedForReview.has(currentQuestion?.id)
                   ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
                   : 'bg-surface-dim border-outline-variant text-white/60 hover:text-white'
@@ -334,7 +334,7 @@ export default function EvaluationPage() {
             <button
               onClick={() => handleNavigateQuestion(Math.min(questions.length - 1, currentIndex + 1))}
               disabled={currentIndex === questions.length - 1}
-              className="px-4 py-2.5 bg-primary text-black font-bold rounded-sm text-xs font-mono uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors"
+              className="px-4 py-2.5 bg-primary text-black font-bold rounded-sm text-xs font-mono uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors press-feedback"
             >
               <span>Next</span>
               <ChevronRight className="w-4 h-4" />
