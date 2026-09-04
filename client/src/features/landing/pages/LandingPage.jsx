@@ -9,14 +9,20 @@ import Icon, {
   AlertTriangle,
   TrendingUp,
   ArrowRight,
-  ChevronRight,
   Target,
   Zap,
   Grid,
   Smartphone,
   Apple,
   Monitor,
-  Check
+  Check,
+  User,
+  Activity,
+  Layers,
+  Sparkles,
+  BookOpen,
+  MoreHorizontal,
+  RotateCcw
 } from '@/shared/components/Icon';
 
 export default function LandingPage() {
@@ -24,9 +30,11 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const [installPrompt, setInstallPrompt] = useState(null);
   const [installed, setInstalled] = useState(false);
+  const [activePivot, setActivePivot] = useState('start'); // 'start', 'telemetry', 'install', 'why'
   const [activeInstallTab, setActiveInstallTab] = useState('android'); // 'android', 'ios', 'desktop'
+  const [appBarExpanded, setAppBarExpanded] = useState(false);
 
-  // Interactive Live Calibration Demo State
+  // Interactive Live Calibration Demo State (Simulated on Live Tile)
   const [demoConfidence, setDemoConfidence] = useState(8);
   const [demoAccuracy, setDemoAccuracy] = useState(38);
 
@@ -37,27 +45,33 @@ export default function LandingPage() {
   const demoStatus = useMemo(() => {
     if (demoGap <= -20) {
       return {
-        label: 'Overconfident',
-        badgeClass: 'bg-error/20 text-error border-error/40',
+        label: 'overconfident',
+        badgeBg: 'bg-[#FF2E55]',
+        textColor: 'text-[#FF2E55]',
+        tileBg: 'bg-[#FF2E55] text-white',
         icon: AlertTriangle,
-        desc: 'High Risk of -1 Negative Marks! You feel prepared, but exam pressure reveals critical conceptual blind spots.',
-        action: 'Immediate Diagnostic Mock Recommended'
+        desc: 'High risk of -1 negative marks! You feel prepared, but exam pressure reveals conceptual blind spots.',
+        action: 'Immediate Diagnostic Mock Required'
       };
     }
     if (demoGap >= 20) {
       return {
-        label: 'Underconfident',
-        badgeClass: 'bg-primary/20 text-primary border-primary/40',
+        label: 'underconfident',
+        badgeBg: 'bg-[#00BFFF]',
+        textColor: 'text-[#00BFFF]',
+        tileBg: 'bg-[#00BFFF] text-black',
         icon: TrendingUp,
-        desc: 'Unwarranted Hesitation. You solve problems accurately but second-guess yourself, wasting valuable exam minutes.',
+        desc: 'Unwarranted hesitation. You solve accurately but second-guess yourself, wasting valuable exam minutes.',
         action: 'Build Speed with Timed Practice Drills'
       };
     }
     return {
-      label: 'Aligned & Exam Ready',
-      badgeClass: 'bg-status-aligned/20 text-status-aligned border-status-aligned/40',
+      label: 'aligned',
+      badgeBg: 'bg-[#107C10]',
+      textColor: 'text-[#107C10]',
+      tileBg: 'bg-[#107C10] text-white',
       icon: Target,
-      desc: 'Optimal Calibration. Your subjective confidence matches objective performance. Minimal negative mark vulnerability.',
+      desc: 'Optimal calibration. Your subjective confidence matches objective performance. Minimal negative mark vulnerability.',
       action: 'Maintain Calibration with Periodic Reviews'
     };
   }, [demoGap]);
@@ -94,438 +108,661 @@ export default function LandingPage() {
   const DemoStatusIcon = demoStatus.icon;
 
   return (
-    <div className="min-h-screen bg-black text-on-surface flex flex-col selection:bg-primary selection:text-black">
-      {/* ─── Top Ambient Telemetry Header ─── */}
-      <header className="sticky top-0 z-50 bg-black/90 backdrop-blur-md border-b border-white/10 px-4 md:px-8 py-3 flex items-center justify-between animate-fade-in">
+    <div className="min-h-screen bg-black text-white selection:bg-primary selection:text-black font-sans flex flex-col pb-24">
+      {/* ─── Windows Phone Top Telemetry Bar ─── */}
+      <div className="w-full bg-black/90 backdrop-blur border-b border-neutral-900 px-4 md:px-8 py-2 flex items-center justify-between text-[11px] font-mono tracking-widest text-white/50 select-none">
+        <div className="flex items-center gap-2">
+          <span className="text-primary font-bold">TOOPREP</span>
+          <span>//</span>
+          <span className="text-white/80">JEE MAIN 2026</span>
+          <span className="hidden sm:inline text-white/30">|</span>
+          <span className="hidden sm:inline text-emerald-400">100% PWA OFFLINE</span>
+        </div>
         <div className="flex items-center gap-3">
-          <Link to="/" className="flex items-center gap-2 group">
-            <span className="text-primary font-bold tracking-widest text-sm uppercase">TOOPREP</span>
-            <span className="text-white/30 font-light">//</span>
-            <span className="text-white/70 uppercase text-xs tracking-widest group-hover:text-white transition-colors">
-              JEE 2026
-            </span>
-          </Link>
-          <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-primary/10 border border-primary/30 text-primary text-[10px] font-mono uppercase tracking-wider">
-            PWA Offline
-          </span>
+          {user ? (
+            <span className="text-white/70 truncate max-w-[120px]">{user.email?.split('@')[0]}</span>
+          ) : (
+            <Link to="/auth" className="text-primary hover:underline uppercase">Sign In</Link>
+          )}
+        </div>
+      </div>
+
+      {/* ─── Iconic Windows Phone Panoramic Horizon Header ─── */}
+      <header className="px-4 md:px-8 pt-8 md:pt-12 pb-6 max-w-7xl mx-auto w-full select-none">
+        <div className="text-[11px] font-mono text-primary uppercase tracking-[0.35em] mb-1">
+          // scientific jee calibration system
         </div>
 
-        <div className="flex items-center gap-3">
-          {installPrompt && !installed && (
-            <button
-              onClick={handleInstallClick}
-              className="px-3 py-1.5 bg-primary/20 border border-primary text-primary hover:bg-primary hover:text-black transition-all rounded-xs text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 press-feedback"
-            >
-              <Zap className="w-3.5 h-3.5" />
-              <span>Install App</span>
-            </button>
-          )}
+        {/* Panoramic Horizontal Pivot Titles */}
+        <div className="flex items-baseline gap-6 md:gap-10 overflow-x-auto no-scrollbar pt-2 border-b border-neutral-900 pb-4">
+          <button
+            onClick={() => setActivePivot('start')}
+            className={`text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight lowercase transition-colors cursor-pointer shrink-0 ${
+              activePivot === 'start' ? 'text-white' : 'text-white/35 hover:text-white/70'
+            }`}
+          >
+            start
+          </button>
 
-          {user ? (
-            <button
-              onClick={() => navigate('/')}
-              className="px-4 py-1.5 bg-primary text-black font-mono font-bold text-xs uppercase tracking-wider rounded-xs hover:brightness-110 transition-all flex items-center gap-1.5 press-feedback"
-            >
-              <span>Knowledge Map</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          ) : (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => navigate('/auth')}
-                className="px-3 py-1.5 text-white/70 hover:text-white font-mono text-xs uppercase tracking-wider transition-colors"
-              >
-                Sign In
-              </button>
-              <button
-                onClick={() => navigate('/auth')}
-                className="px-4 py-1.5 bg-primary text-black font-mono font-bold text-xs uppercase tracking-wider rounded-xs hover:brightness-110 transition-all flex items-center gap-1 press-feedback"
-              >
-                <span>Get Started</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
+          <button
+            onClick={() => setActivePivot('telemetry')}
+            className={`text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight lowercase transition-colors cursor-pointer shrink-0 ${
+              activePivot === 'telemetry' ? 'text-white' : 'text-white/35 hover:text-white/70'
+            }`}
+          >
+            telemetry
+          </button>
+
+          <button
+            onClick={() => setActivePivot('install')}
+            className={`text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight lowercase transition-colors cursor-pointer shrink-0 ${
+              activePivot === 'install' ? 'text-white' : 'text-white/35 hover:text-white/70'
+            }`}
+          >
+            install app
+          </button>
+
+          <button
+            onClick={() => setActivePivot('why')}
+            className={`text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight lowercase transition-colors cursor-pointer shrink-0 ${
+              activePivot === 'why' ? 'text-white' : 'text-white/35 hover:text-white/70'
+            }`}
+          >
+            why tooprep
+          </button>
         </div>
       </header>
 
-      {/* ─── Hero Section with Interactive Telemetry Widget ─── */}
-      <section className="relative px-4 md:px-8 pt-10 md:pt-16 pb-12 max-w-6xl mx-auto w-full space-y-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          {/* Left Column: Core Value Proposition */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, ease: 'easeOut' }}
-            className="lg:col-span-6 space-y-5"
-          >
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full text-xs font-mono text-primary uppercase tracking-widest">
-              <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-              SCIENTIFIC JEE TELEMETRY // 130 TOPICS
-            </div>
+      {/* ─── Main Panoramic Content ─── */}
+      <main className="flex-1 px-4 md:px-8 max-w-7xl mx-auto w-full">
+        <AnimatePresence mode="wait">
+          {/* ═══════════════════════════════════════════════════════════════════
+           * PIVOT 1: START (ICONIC WINDOWS PHONE LIVE TILES START SCREEN)
+           * ═══════════════════════════════════════════════════════════════════ */}
+          {activePivot === 'start' && (
+            <motion.div
+              key="start"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.22, ease: 'easeOut' }}
+              className="space-y-6 pt-2"
+            >
+              {/* Live Tiles Grid: Flat, Sharp Corners, Pure Metro Aesthetic */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
 
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extralight text-white tracking-tight leading-[1.15]">
-              calibrate your <span className="font-normal text-primary">jee confidence</span> against actual reality.
-            </h1>
-
-            <p className="text-sm sm:text-base text-white/60 font-light leading-relaxed">
-              Aspirants don’t lose ranks to difficult questions — they lose marks to <strong className="text-white font-medium">overconfidence</strong> in topics they thought they knew. TooPrep computes your subjective-to-objective performance gap to expose blind spots before the exam does.
-            </p>
-
-            <div className="flex flex-wrap items-center gap-3 pt-1">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => navigate(user ? '/' : '/auth')}
-                className="px-6 py-3 bg-primary text-black font-mono font-bold text-xs uppercase tracking-widest rounded-xs hover:brightness-110 shadow-lg shadow-primary/20 transition-all flex items-center gap-2 cursor-pointer"
-              >
-                <span>{user ? 'Open Knowledge Map' : 'Start Calibrating — Free'}</span>
-                <ArrowRight className="w-4 h-4" />
-              </motion.button>
-
-              <motion.a
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                href="#install"
-                className="px-4 py-3 bg-surface-container border border-white/15 hover:border-primary text-white/80 hover:text-white font-mono text-xs uppercase tracking-wider rounded-xs transition-colors flex items-center gap-2"
-              >
-                <Zap className="w-3.5 h-3.5 text-primary" />
-                <span>Install on Phone</span>
-              </motion.a>
-            </div>
-
-            <div className="flex items-center gap-6 pt-3 border-t border-white/10 text-xs font-mono">
-              <div>
-                <div className="text-xl font-bold text-white">130</div>
-                <div className="text-white/40 uppercase text-[10px]">Syllabus Topics</div>
-              </div>
-              <div className="w-px h-7 bg-white/10"></div>
-              <div>
-                <div className="text-xl font-bold text-primary">110</div>
-                <div className="text-white/40 uppercase text-[10px]">Verified PYQs</div>
-              </div>
-              <div className="w-px h-7 bg-white/10"></div>
-              <div>
-                <div className="text-xl font-bold text-emerald-400">100%</div>
-                <div className="text-white/40 uppercase text-[10px]">Offline PWA</div>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Right Column: Live Interactive Calibration Simulation Card */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.45, delay: 0.1, ease: 'easeOut' }}
-            className="lg:col-span-6"
-          >
-            <div className="acrylic-glass border border-white/15 rounded-md p-5 sm:p-6 shadow-2xl space-y-5 relative overflow-hidden group hover:border-primary/40 transition-colors">
-              <div className="flex items-center justify-between border-b border-white/10 pb-3 text-xs font-mono">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <span className="text-white/80 font-bold uppercase tracking-wider">Live Gap Diagnostic</span>
-                </div>
-                <span className="text-primary text-[11px]">fx =Acc - (Conf*10)</span>
-              </div>
-
-              {/* Slider 1: Self-Rated Confidence */}
-              <div className="space-y-1.5 font-mono text-xs">
-                <div className="flex justify-between items-center text-white/70">
-                  <span>1. Your Self-Reported Confidence:</span>
-                  <span className="text-primary font-bold text-sm bg-primary/10 border border-primary/30 px-2 py-0.5 rounded">
-                    {demoConfidence} / 10
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="1"
-                  max="10"
-                  value={demoConfidence}
-                  onChange={e => setDemoConfidence(Number(e.target.value))}
-                  className="w-full h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-primary"
-                />
-                <div className="flex justify-between text-[10px] text-white/30">
-                  <span>1 (Zero Clue)</span>
-                  <span>5 (Average)</span>
-                  <span>10 (Mastery)</span>
-                </div>
-              </div>
-
-              {/* Slider 2: Timed Mock Accuracy */}
-              <div className="space-y-1.5 font-mono text-xs">
-                <div className="flex justify-between items-center text-white/70">
-                  <span>2. Timed Mock Test Accuracy:</span>
-                  <span className="text-white font-bold text-sm bg-surface-container border border-white/15 px-2 py-0.5 rounded">
-                    {demoAccuracy}%
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  step="5"
-                  value={demoAccuracy}
-                  onChange={e => setDemoAccuracy(Number(e.target.value))}
-                  className="w-full h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-primary"
-                />
-                <div className="flex justify-between text-[10px] text-white/30">
-                  <span>0% (Blanked Out)</span>
-                  <span>50% (Cutoff Pace)</span>
-                  <span>100% (Flawless)</span>
-                </div>
-              </div>
-
-              {/* Dynamic Telemetry Calculation Display with Spring Animation */}
-              <AnimatePresence mode="wait">
+                {/* ─── Wide Hero Live Tile (Lumia Cyan #00BFFF) ─── */}
                 <motion.div
-                  key={demoStatus.label}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
-                  transition={{ duration: 0.18, ease: 'easeOut' }}
-                  className="p-3.5 bg-black/60 rounded border border-white/10 space-y-2.5 font-mono"
+                  whileHover={{ y: -3, scale: 1.01 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                  onClick={() => navigate(user ? '/' : '/auth')}
+                  className="sm:col-span-2 bg-[#00BFFF] text-black p-6 sm:p-7 flex flex-col justify-between rounded-none shadow-xl cursor-pointer metro-tile"
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-white/40 uppercase">Computed Calibration Gap:</span>
-                      <span className={`text-base font-bold ${
-                        demoGap < 0 ? 'text-error' : demoGap > 0 ? 'text-primary' : 'text-status-aligned'
-                      }`}>
-                        {demoGap > 0 ? `+${demoGap}%` : `${demoGap}%`}
-                      </span>
+                  <div className="space-y-2">
+                    <div className="text-[11px] font-mono font-bold uppercase tracking-widest bg-black/15 inline-block px-2 py-0.5">
+                      fx = accuracy - (confidence * 10)
                     </div>
-
-                    <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold uppercase border flex items-center gap-1 ${demoStatus.badgeClass}`}>
-                      <DemoStatusIcon className="w-3 h-3" />
-                      <span>{demoStatus.label}</span>
-                    </span>
+                    <h2 className="text-3xl sm:text-4xl font-light tracking-tight leading-tight lowercase">
+                      stop losing marks to overconfidence.
+                    </h2>
+                    <p className="text-xs sm:text-sm font-normal text-black/80 leading-relaxed max-w-md pt-1">
+                      Aspirants don’t lose ranks to difficult questions. They lose marks to false confidence in topics they thought they mastered. TooPrep calculates your calibration gap empirically.
+                    </p>
                   </div>
 
-                  <p className="text-[11px] text-white/70 leading-relaxed font-sans">
-                    {demoStatus.desc}
-                  </p>
-
-                  <div className="text-[10px] text-white/40 flex items-center gap-1.5 pt-1 border-t border-white/5">
-                    <span className="text-primary font-bold">→ Recommended Action:</span>
-                    <span className="text-white/80">{demoStatus.action}</span>
+                  <div className="pt-6 flex items-center justify-between border-t border-black/15">
+                    <span className="text-xs font-mono font-bold uppercase tracking-widest">
+                      {user ? 'Open Knowledge Map' : 'Start Calibrating Free'}
+                    </span>
+                    <ArrowRight className="w-5 h-5 stroke-[2.5]" />
                   </div>
                 </motion.div>
-              </AnimatePresence>
-            </div>
-          </motion.div>
-        </div>
-      </section>
 
-      {/* ─── 3 Core Pillars (Compact Grid) ─── */}
-      <section className="px-4 md:px-8 py-12 bg-neutral-950 border-y border-white/10">
-        <div className="max-w-6xl mx-auto space-y-6">
-          <div className="text-center space-y-1 max-w-xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-extralight text-white lowercase">
-              how tooprep protects your rank
-            </h2>
-            <p className="text-xs font-mono text-white/50">
-              Three precision tools designed to replace guesswork with empirical data.
-            </p>
-          </div>
+                {/* ─── Medium Tile 1: 130 Topics (Mango Orange #FF8C00) ─── */}
+                <motion.div
+                  whileHover={{ y: -3, scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                  onClick={() => navigate(user ? '/' : '/auth')}
+                  className="bg-[#FF8C00] text-black p-5 flex flex-col justify-between rounded-none shadow-xl cursor-pointer aspect-square sm:aspect-auto sm:h-auto min-h-[170px] metro-tile"
+                >
+                  <div className="flex items-center justify-between">
+                    <Grid className="w-5 h-5" />
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest bg-black/15 px-1.5 py-0.5">
+                      MATRIX
+                    </span>
+                  </div>
+                  <div>
+                    <div className="text-5xl font-extralight tracking-tighter">130</div>
+                    <div className="text-xs font-mono uppercase tracking-widest font-bold mt-1">
+                      Canonical Topics
+                    </div>
+                    <div className="text-[11px] text-black/70 font-sans">
+                      Physics, Chemistry, Math
+                    </div>
+                  </div>
+                </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono">
-            {/* Feature 1 */}
-            <div className="bg-surface-container/60 border border-white/10 hover:border-primary/50 p-5 rounded-sm space-y-3 transition-colors hover-lift group">
-              <div className="w-9 h-9 rounded bg-primary/10 border border-primary/30 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                <Grid className="w-4 h-4" />
+                {/* ─── Medium Tile 2: 110 Verified PYQs (Xbox Emerald #107C10) ─── */}
+                <motion.div
+                  whileHover={{ y: -3, scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                  onClick={() => navigate(user ? '/questions' : '/auth')}
+                  className="bg-[#107C10] text-white p-5 flex flex-col justify-between rounded-none shadow-xl cursor-pointer aspect-square sm:aspect-auto sm:h-auto min-h-[170px] metro-tile"
+                >
+                  <div className="flex items-center justify-between">
+                    <BookOpen className="w-5 h-5" />
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest bg-black/30 px-1.5 py-0.5">
+                      JEE 2018–24
+                    </span>
+                  </div>
+                  <div>
+                    <div className="text-5xl font-extralight tracking-tighter">110</div>
+                    <div className="text-xs font-mono uppercase tracking-widest font-bold mt-1">
+                      Verified PYQs
+                    </div>
+                    <div className="text-[11px] text-white/70 font-sans">
+                      Exam-grade test bank
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* ─── Large Interactive Diagnostic Live Tile (2 Cols Wide) ─── */}
+                <div className="sm:col-span-2 bg-[#161616] border border-neutral-800 p-6 flex flex-col justify-between rounded-none shadow-xl space-y-4">
+                  <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 bg-primary animate-pulse"></span>
+                      <span className="text-xs font-mono font-bold uppercase tracking-wider text-white">
+                        Live Calibration Tile
+                      </span>
+                    </div>
+                    <span className="text-[11px] font-mono text-primary">fx = Acc - (Conf*10)</span>
+                  </div>
+
+                  {/* Interactive Sliders */}
+                  <div className="space-y-4">
+                    <div className="space-y-1 text-xs font-mono">
+                      <div className="flex justify-between text-white/80">
+                        <span>1. Your Confidence (Self-Rating):</span>
+                        <span className="text-primary font-bold text-sm bg-primary/15 px-2 py-0.5 border border-primary/40">
+                          {demoConfidence}/10
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="1"
+                        max="10"
+                        value={demoConfidence}
+                        onChange={e => setDemoConfidence(Number(e.target.value))}
+                        className="w-full h-2 bg-neutral-800 rounded-none appearance-none cursor-pointer accent-primary"
+                      />
+                      <div className="flex justify-between text-[10px] text-white/40">
+                        <span>1 (Low)</span>
+                        <span>5 (Average)</span>
+                        <span>10 (Mastery)</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1 text-xs font-mono">
+                      <div className="flex justify-between text-white/80">
+                        <span>2. Timed Mock Score (Actual):</span>
+                        <span className="text-white font-bold text-sm bg-neutral-800 px-2 py-0.5 border border-white/20">
+                          {demoAccuracy}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="5"
+                        value={demoAccuracy}
+                        onChange={e => setDemoAccuracy(Number(e.target.value))}
+                        className="w-full h-2 bg-neutral-800 rounded-none appearance-none cursor-pointer accent-primary"
+                      />
+                      <div className="flex justify-between text-[10px] text-white/40">
+                        <span>0%</span>
+                        <span>50%</span>
+                        <span>100%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Live Gap Output Box */}
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={demoStatus.label}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.16 }}
+                      className={`p-3.5 rounded-none font-mono text-xs ${
+                        demoGap <= -20 ? 'bg-[#FF2E55]/15 border border-[#FF2E55]/40 text-white' :
+                        demoGap >= 20 ? 'bg-[#00BFFF]/15 border border-[#00BFFF]/40 text-white' :
+                        'bg-[#107C10]/15 border border-[#107C10]/40 text-white'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[11px] uppercase tracking-wider text-white/60">Calculated Gap:</span>
+                        <span className="font-bold text-base">
+                          {demoGap > 0 ? `+${demoGap}%` : `${demoGap}%`} [{demoStatus.label.toUpperCase()}]
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-white/80 font-sans leading-relaxed">
+                        {demoStatus.desc}
+                      </p>
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
+
+                {/* ─── Medium Tile 3: Negative Marks (Crimson #FF2E55) ─── */}
+                <motion.div
+                  whileHover={{ y: -3, scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                  onClick={() => setActivePivot('telemetry')}
+                  className="bg-[#FF2E55] text-white p-5 flex flex-col justify-between rounded-none shadow-xl cursor-pointer aspect-square sm:aspect-auto sm:h-auto min-h-[170px] metro-tile"
+                >
+                  <div className="flex items-center justify-between">
+                    <AlertTriangle className="w-5 h-5" />
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest bg-black/30 px-1.5 py-0.5">
+                      DANGER
+                    </span>
+                  </div>
+                  <div>
+                    <div className="text-5xl font-extralight tracking-tighter">-1</div>
+                    <div className="text-xs font-mono uppercase tracking-widest font-bold mt-1">
+                      Negative Marks
+                    </div>
+                    <div className="text-[11px] text-white/70 font-sans">
+                      Overconfidence exposure
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* ─── Medium Tile 4: 100% Offline PWA (Deep Cobalt #1F1F1F) ─── */}
+                <motion.div
+                  whileHover={{ y: -3, scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                  onClick={() => setActivePivot('install')}
+                  className="bg-[#1C1C1C] border border-neutral-800 hover:border-primary text-white p-5 flex flex-col justify-between rounded-none shadow-xl cursor-pointer aspect-square sm:aspect-auto sm:h-auto min-h-[170px] metro-tile"
+                >
+                  <div className="flex items-center justify-between">
+                    <Zap className="w-5 h-5 text-primary" />
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest bg-primary/20 text-primary px-1.5 py-0.5">
+                      STANDALONE
+                    </span>
+                  </div>
+                  <div>
+                    <div className="text-5xl font-extralight tracking-tighter text-primary">100%</div>
+                    <div className="text-xs font-mono uppercase tracking-widest font-bold mt-1">
+                      Offline PWA
+                    </div>
+                    <div className="text-[11px] text-white/50 font-sans">
+                      Works with zero internet
+                    </div>
+                  </div>
+                </motion.div>
+
               </div>
-              <h3 className="text-base font-semibold text-white font-sans">Excel Knowledge Map</h3>
-              <p className="text-xs text-white/50 leading-relaxed">
-                40 chapters and 130 canonical topics in a spreadsheet matrix with in-cell confidence calibration, sortable columns, and instant overconfidence alerts.
-              </p>
-            </div>
+            </motion.div>
+          )}
 
-            {/* Feature 2 */}
-            <div className="bg-surface-container/60 border border-white/10 hover:border-primary/50 p-5 rounded-sm space-y-3 transition-colors hover-lift group">
-              <div className="w-9 h-9 rounded bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-amber-400 group-hover:scale-110 transition-transform">
+          {/* ═══════════════════════════════════════════════════════════════════
+           * PIVOT 2: TELEMETRY (SCIENTIFIC GAP ENGINE)
+           * ═══════════════════════════════════════════════════════════════════ */}
+          {activePivot === 'telemetry' && (
+            <motion.div
+              key="telemetry"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.22, ease: 'easeOut' }}
+              className="space-y-6 pt-2"
+            >
+              <div className="space-y-2">
+                <h3 className="text-2xl sm:text-3xl font-light lowercase text-white">
+                  the mathematics of calibration
+                </h3>
+                <p className="text-xs font-mono text-white/50 max-w-2xl leading-relaxed">
+                  TooPrep eliminates guesswork by tracking your Subjective Rating (1-10) against your Objective Timed Test Score (0-100%).
+                </p>
+              </div>
+
+              {/* 3 Metro Panels for the 3 States */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-xs">
+                {/* Overconfident Panel */}
+                <div className="bg-neutral-950 border-l-4 border-[#FF2E55] p-5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#FF2E55] font-bold text-sm uppercase">1. Overconfident</span>
+                    <span className="text-[#FF2E55] text-[10px] bg-[#FF2E55]/15 px-2 py-0.5">Gap ≤ -20%</span>
+                  </div>
+                  <p className="text-white/70 font-sans leading-relaxed text-xs">
+                    You rate yourself 8/10 but score 35%. You enter the exam over-estimating your speed and knowledge, leading to hasty attempts, missed edge cases, and devastating -1 penalties.
+                  </p>
+                  <div className="pt-2 border-t border-neutral-900 text-[11px] text-white/40">
+                    Fix: Timed diagnostic mocks with withheld answers.
+                  </div>
+                </div>
+
+                {/* Aligned Panel */}
+                <div className="bg-neutral-950 border-l-4 border-[#107C10] p-5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#107C10] font-bold text-sm uppercase">2. Aligned</span>
+                    <span className="text-[#107C10] text-[10px] bg-[#107C10]/15 px-2 py-0.5">|Gap| &lt; 20%</span>
+                  </div>
+                  <p className="text-white/70 font-sans leading-relaxed text-xs">
+                    Your subjective confidence matches your objective test score. You know what you know, and you know what to skip. Minimal negative mark vulnerability.
+                  </p>
+                  <div className="pt-2 border-t border-neutral-900 text-[11px] text-white/40">
+                    Target: 80%+ of your syllabus calibrated in Aligned.
+                  </div>
+                </div>
+
+                {/* Underconfident Panel */}
+                <div className="bg-neutral-950 border-l-4 border-[#00BFFF] p-5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#00BFFF] font-bold text-sm uppercase">3. Underconfident</span>
+                    <span className="text-[#00BFFF] text-[10px] bg-[#00BFFF]/15 px-2 py-0.5">Gap ≥ +20%</span>
+                  </div>
+                  <p className="text-white/70 font-sans leading-relaxed text-xs">
+                    You score 80% but rate yourself 4/10. Unwarranted hesitation causes slow pacing, leaving solvable questions unattempted at the end of the exam.
+                  </p>
+                  <div className="pt-2 border-t border-neutral-900 text-[11px] text-white/40">
+                    Fix: High-speed practice drills to build conviction.
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════════════════
+           * PIVOT 3: INSTALL APP (WINDOWS PHONE PWA HUB)
+           * ═══════════════════════════════════════════════════════════════════ */}
+          {activePivot === 'install' && (
+            <motion.div
+              key="install"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.22, ease: 'easeOut' }}
+              className="space-y-6 pt-2"
+            >
+              <div className="space-y-2">
+                <h3 className="text-2xl sm:text-3xl font-light lowercase text-white">
+                  install on your phone or desktop
+                </h3>
+                <p className="text-xs font-mono text-white/50">
+                  Zero app store friction. Installs directly in 10 seconds via your browser.
+                </p>
+              </div>
+
+              {/* Platform Selector */}
+              <div className="flex items-baseline gap-6 border-b border-neutral-900 pb-3 text-sm font-mono uppercase tracking-wider">
+                <button
+                  onClick={() => setActiveInstallTab('android')}
+                  className={`cursor-pointer ${activeInstallTab === 'android' ? 'text-primary font-bold border-b-2 border-primary pb-1' : 'text-white/40 hover:text-white'}`}
+                >
+                  Android
+                </button>
+                <button
+                  onClick={() => setActiveInstallTab('ios')}
+                  className={`cursor-pointer ${activeInstallTab === 'ios' ? 'text-primary font-bold border-b-2 border-primary pb-1' : 'text-white/40 hover:text-white'}`}
+                >
+                  iPhone (Safari)
+                </button>
+                <button
+                  onClick={() => setActiveInstallTab('desktop')}
+                  className={`cursor-pointer ${activeInstallTab === 'desktop' ? 'text-primary font-bold border-b-2 border-primary pb-1' : 'text-white/40 hover:text-white'}`}
+                >
+                  Windows / Mac
+                </button>
+              </div>
+
+              {/* Step Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {activeInstallTab === 'android' && (
+                  <>
+                    <div className="bg-neutral-900 p-5 space-y-2 border border-neutral-800">
+                      <div className="text-2xl font-light text-primary font-mono">01</div>
+                      <h4 className="text-sm font-semibold text-white">Open in Chrome</h4>
+                      <p className="text-xs text-white/60 font-sans">Open this website in Google Chrome or Brave on your Android device.</p>
+                    </div>
+                    <div className="bg-neutral-900 p-5 space-y-2 border border-neutral-800">
+                      <div className="text-2xl font-light text-primary font-mono">02</div>
+                      <h4 className="text-sm font-semibold text-white">Tap Menu (⋮)</h4>
+                      <p className="text-xs text-white/60 font-sans">Tap the three vertical dots in the top-right corner of Chrome.</p>
+                    </div>
+                    <div className="bg-neutral-900 p-5 space-y-2 border border-neutral-800">
+                      <div className="text-2xl font-light text-primary font-mono">03</div>
+                      <h4 className="text-sm font-semibold text-white">Install App</h4>
+                      <p className="text-xs text-white/60 font-sans">Select "Install app" or "Add to Home screen" to pin to your app drawer.</p>
+                    </div>
+                  </>
+                )}
+
+                {activeInstallTab === 'ios' && (
+                  <>
+                    <div className="bg-neutral-900 p-5 space-y-2 border border-neutral-800">
+                      <div className="text-2xl font-light text-primary font-mono">01</div>
+                      <h4 className="text-sm font-semibold text-white">Open in Safari</h4>
+                      <p className="text-xs text-white/60 font-sans">Open this site in Apple Safari on your iPhone or iPad.</p>
+                    </div>
+                    <div className="bg-neutral-900 p-5 space-y-2 border border-neutral-800">
+                      <div className="text-2xl font-light text-primary font-mono">02</div>
+                      <h4 className="text-sm font-semibold text-white">Tap Share</h4>
+                      <p className="text-xs text-white/60 font-sans">Tap the Share icon (square with arrow) in Safari's bottom toolbar.</p>
+                    </div>
+                    <div className="bg-neutral-900 p-5 space-y-2 border border-neutral-800">
+                      <div className="text-2xl font-light text-primary font-mono">03</div>
+                      <h4 className="text-sm font-semibold text-white">Add to Home Screen</h4>
+                      <p className="text-xs text-white/60 font-sans">Scroll down and select "Add to Home Screen", then tap "Add".</p>
+                    </div>
+                  </>
+                )}
+
+                {activeInstallTab === 'desktop' && (
+                  <>
+                    <div className="bg-neutral-900 p-5 space-y-2 border border-neutral-800">
+                      <div className="text-2xl font-light text-primary font-mono">01</div>
+                      <h4 className="text-sm font-semibold text-white">Look at Address Bar</h4>
+                      <p className="text-xs text-white/60 font-sans">Look for the install icon (⊕ or computer) on the right side of Chrome/Edge address bar.</p>
+                    </div>
+                    <div className="bg-neutral-900 p-5 space-y-2 border border-neutral-800">
+                      <div className="text-2xl font-light text-primary font-mono">02</div>
+                      <h4 className="text-sm font-semibold text-white">Click Install</h4>
+                      <p className="text-xs text-white/60 font-sans">Click "Install TooPrep" to launch in a clean standalone desktop window.</p>
+                    </div>
+                    <div className="bg-neutral-900 p-5 space-y-2 border border-neutral-800">
+                      <div className="text-2xl font-light text-primary font-mono">03</div>
+                      <h4 className="text-sm font-semibold text-white">Pin to Taskbar</h4>
+                      <p className="text-xs text-white/60 font-sans">Pin TooPrep to your Windows Taskbar or macOS Dock for 1-click access.</p>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Direct Install Button if supported by browser */}
+              {installPrompt && !installed && (
+                <div className="p-4 bg-primary/10 border border-primary/40 flex items-center justify-between gap-4">
+                  <div className="font-mono text-xs text-white/80">
+                    <span className="text-primary font-bold">One-Click Install Ready:</span> Add TooPrep to your home screen now.
+                  </div>
+                  <button
+                    onClick={handleInstallClick}
+                    className="px-5 py-2.5 bg-primary text-black font-mono font-bold text-xs uppercase tracking-wider cursor-pointer hover:brightness-110"
+                  >
+                    Install on this Device
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════════════════
+           * PIVOT 4: WHY TOOPREP
+           * ═══════════════════════════════════════════════════════════════════ */}
+          {activePivot === 'why' && (
+            <motion.div
+              key="why"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.22, ease: 'easeOut' }}
+              className="space-y-6 pt-2 max-w-4xl"
+            >
+              <div className="space-y-2">
+                <h3 className="text-2xl sm:text-3xl font-light lowercase text-white">
+                  built for the realities of jee main
+                </h3>
+                <p className="text-xs font-mono text-white/50">
+                  Why traditional preparation platforms fail to prevent rank drop on exam day.
+                </p>
+              </div>
+
+              <div className="space-y-4 text-xs font-mono">
+                <div className="p-5 bg-neutral-900 border border-neutral-800 space-y-2">
+                  <div className="text-primary font-bold uppercase text-sm">1. Solutions are Withheld during evaluations</div>
+                  <p className="text-white/70 font-sans leading-relaxed text-xs">
+                    Most mock test apps reveal answers immediately. This tricks your brain into thinking "I knew that!", inflating your perceived competence. TooPrep strictly withholds solutions until submission, reproducing the exact pressure of the actual exam hall.
+                  </p>
+                </div>
+
+                <div className="p-5 bg-neutral-900 border border-neutral-800 space-y-2">
+                  <div className="text-primary font-bold uppercase text-sm">2. Metacognitive Mistake Categorization</div>
+                  <p className="text-white/70 font-sans leading-relaxed text-xs">
+                    Wrong answers are categorized: Conceptual Lack, Calculation Error, Misread Question, or Time Pressure. You learn whether you need textbook revision or pacing discipline.
+                  </p>
+                </div>
+
+                <div className="p-5 bg-neutral-900 border border-neutral-800 space-y-2">
+                  <div className="text-primary font-bold uppercase text-sm">3. Excel-Style Knowledge Map</div>
+                  <p className="text-white/70 font-sans leading-relaxed text-xs">
+                    Track all 130 topics in a high-density matrix with in-cell confidence calibration, sorting, and instant overconfidence alerts.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </main>
+
+      {/* ─── Iconic Windows Phone Bottom Application Bar ─── */}
+      <footer className="fixed bottom-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-md border-t border-neutral-800 px-4 md:px-8 py-2.5">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-6 sm:gap-8">
+            {/* Action 1: Launch Knowledge Map */}
+            <button
+              onClick={() => navigate(user ? '/' : '/auth')}
+              className="flex flex-col items-center gap-1 group cursor-pointer"
+            >
+              <div className="metro-circle-btn">
+                <Play className="w-4 h-4 fill-current ml-0.5" />
+              </div>
+              <span className="text-[10px] font-mono text-white/60 group-hover:text-primary transition-colors lowercase">
+                {user ? 'map' : 'start'}
+              </span>
+            </button>
+
+            {/* Action 2: Diagnostic Test */}
+            <button
+              onClick={() => navigate(user ? '/evaluate' : '/auth')}
+              className="flex flex-col items-center gap-1 group cursor-pointer"
+            >
+              <div className="metro-circle-btn">
                 <Timer className="w-4 h-4 stroke-[2]" />
               </div>
-              <h3 className="text-base font-semibold text-white font-sans">Timed Mock Diagnostics</h3>
-              <p className="text-xs text-white/50 leading-relaxed">
-                Exam-grade pressure testing with withheld solutions to eliminate false confidence signals and expose topics susceptible to -1 negative penalties.
-              </p>
-            </div>
+              <span className="text-[10px] font-mono text-white/60 group-hover:text-primary transition-colors lowercase">
+                mock
+              </span>
+            </button>
 
-            {/* Feature 3 */}
-            <div className="bg-surface-container/60 border border-white/10 hover:border-primary/50 p-5 rounded-sm space-y-3 transition-colors hover-lift group">
-              <div className="w-9 h-9 rounded bg-emerald-400/10 border border-emerald-400/30 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
-                <Zap className="w-4 h-4" />
+            {/* Action 3: Questions */}
+            <button
+              onClick={() => navigate(user ? '/questions' : '/auth')}
+              className="flex flex-col items-center gap-1 group cursor-pointer"
+            >
+              <div className="metro-circle-btn">
+                <BookOpen className="w-4 h-4" />
               </div>
-              <h3 className="text-base font-semibold text-white font-sans">100% Offline PWA</h3>
-              <p className="text-xs text-white/50 leading-relaxed">
-                Zero app store friction. Add to Android or iOS home screen in seconds. Study on commutes or at coaching without internet connectivity.
-              </p>
-            </div>
+              <span className="text-[10px] font-mono text-white/60 group-hover:text-primary transition-colors lowercase">
+                bank
+              </span>
+            </button>
+
+            {/* Action 4: Install PWA */}
+            <button
+              onClick={() => {
+                if (installPrompt && !installed) {
+                  handleInstallClick();
+                } else {
+                  setActivePivot('install');
+                }
+              }}
+              className="flex flex-col items-center gap-1 group cursor-pointer"
+            >
+              <div className="metro-circle-btn">
+                <Zap className="w-4 h-4 text-primary" />
+              </div>
+              <span className="text-[10px] font-mono text-white/60 group-hover:text-primary transition-colors lowercase">
+                install
+              </span>
+            </button>
           </div>
-        </div>
-      </section>
 
-      {/* ─── Compact Phone & Desktop Install Section ─── */}
-      <section id="install" className="px-4 md:px-8 py-12 max-w-4xl mx-auto w-full space-y-6">
-        <div className="text-center space-y-1 max-w-lg mx-auto">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-primary/10 border border-primary/30 rounded-full text-[11px] font-mono text-primary uppercase tracking-widest">
-            <Zap className="w-3 h-3" />
-            10-Second Installation
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-extralight text-white lowercase">
-            install on your device
-          </h2>
-          <p className="text-xs text-white/50 font-mono">
-            No store downloads required. Installs directly via your web browser as a standalone app.
-          </p>
-        </div>
-
-        {/* Tab Selector */}
-        <div className="flex justify-center">
-          <div className="bg-neutral-900 p-1 rounded border border-white/15 inline-flex items-center gap-1.5 text-xs font-mono">
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setActiveInstallTab('android')}
-              className={`px-3.5 py-1.5 rounded transition-colors flex items-center gap-1.5 cursor-pointer ${
-                activeInstallTab === 'android'
-                  ? 'bg-primary text-black font-bold shadow'
-                  : 'text-white/60 hover:text-white'
-              }`}
+          {/* Right Ellipsis Menu Button */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setAppBarExpanded(!appBarExpanded)}
+              className="p-2 text-white/50 hover:text-white transition-colors cursor-pointer"
+              title="More System Options"
             >
-              <Smartphone className="w-3.5 h-3.5" />
-              <span>Android</span>
-            </motion.button>
-
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setActiveInstallTab('ios')}
-              className={`px-3.5 py-1.5 rounded transition-colors flex items-center gap-1.5 cursor-pointer ${
-                activeInstallTab === 'ios'
-                  ? 'bg-primary text-black font-bold shadow'
-                  : 'text-white/60 hover:text-white'
-              }`}
-            >
-              <Apple className="w-3.5 h-3.5" />
-              <span>iPhone (Safari)</span>
-            </motion.button>
-
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setActiveInstallTab('desktop')}
-              className={`px-3.5 py-1.5 rounded transition-colors flex items-center gap-1.5 cursor-pointer ${
-                activeInstallTab === 'desktop'
-                  ? 'bg-primary text-black font-bold shadow'
-                  : 'text-white/60 hover:text-white'
-              }`}
-            >
-              <Monitor className="w-3.5 h-3.5" />
-              <span>Desktop</span>
-            </motion.button>
+              <MoreHorizontal className="w-5 h-5" />
+            </button>
           </div>
         </div>
 
-        {/* Concise Instructions Card with Fluid Crossfade */}
-        <div className="acrylic-glass border border-white/15 rounded-md p-5 font-mono text-xs space-y-4">
-          <AnimatePresence mode="wait">
-            {activeInstallTab === 'android' && (
-              <motion.div
-                key="android"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.16, ease: 'easeOut' }}
-                className="space-y-2.5"
-              >
-                <div className="flex items-center gap-2 text-white font-medium">
-                  <Smartphone className="w-4 h-4 text-emerald-400" />
-                  <span>Android Chrome / Brave / Edge Setup</span>
-                </div>
-                <ul className="space-y-1.5 text-white/60 pl-6 list-decimal">
-                  <li>Open this site in Chrome on your phone.</li>
-                  <li>Tap the three vertical dots (⋮) in the top-right corner.</li>
-                  <li>Tap <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong>.</li>
-                </ul>
-              </motion.div>
-            )}
-
-            {activeInstallTab === 'ios' && (
-              <motion.div
-                key="ios"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.16, ease: 'easeOut' }}
-                className="space-y-2.5"
-              >
-                <div className="flex items-center gap-2 text-white font-medium">
-                  <Apple className="w-4 h-4 text-cyan-400" />
-                  <span>iPhone & iPad Safari Setup</span>
-                </div>
-                <ul className="space-y-1.5 text-white/60 pl-6 list-decimal">
-                  <li>Open this site in Safari on your iPhone.</li>
-                  <li>Tap the Share button in the bottom navigation bar.</li>
-                  <li>Scroll down and tap <strong>"Add to Home Screen"</strong>, then tap <strong>"Add"</strong>.</li>
-                </ul>
-              </motion.div>
-            )}
-
-            {activeInstallTab === 'desktop' && (
-              <motion.div
-                key="desktop"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.16, ease: 'easeOut' }}
-                className="space-y-2.5"
-              >
-                <div className="flex items-center gap-2 text-white font-medium">
-                  <Monitor className="w-4 h-4 text-violet-400" />
-                  <span>Desktop Chrome / Edge Setup</span>
-                </div>
-                <ul className="space-y-1.5 text-white/60 pl-6 list-decimal">
-                  <li>Look at the right side of the address bar for the install icon (⊕).</li>
-                  <li>Click <strong>"Install TooPrep"</strong> to pin to your Windows Taskbar or Mac Dock.</li>
-                  <li>Enjoy distraction-free fullscreen mode with offline data sync.</li>
-                </ul>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* 1-Click Install Button if supported by browser */}
-          {installPrompt && !installed && (
-            <div className="pt-3 border-t border-white/10 flex items-center justify-between gap-3">
-              <span className="text-[11px] text-white/50">One-click install available:</span>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleInstallClick}
-                className="px-4 py-2 bg-primary text-black font-bold text-[11px] uppercase tracking-wider rounded-xs hover:brightness-110 flex items-center gap-1.5 cursor-pointer"
-              >
-                <Zap className="w-3.5 h-3.5" />
-                <span>Install on this Device</span>
-              </motion.button>
-            </div>
+        {/* Expandable Application Bar Menu (Classic Windows Phone App Bar Drawer) */}
+        <AnimatePresence>
+          {appBarExpanded && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.18 }}
+              className="max-w-7xl mx-auto pt-3 border-t border-neutral-900 mt-2 font-mono text-xs space-y-2 overflow-hidden"
+            >
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-white/80">
+                <button
+                  onClick={() => { setActivePivot('start'); setAppBarExpanded(false); }}
+                  className="p-2 bg-neutral-900 hover:bg-neutral-800 text-left cursor-pointer"
+                >
+                  // start screen
+                </button>
+                <button
+                  onClick={() => { setActivePivot('telemetry'); setAppBarExpanded(false); }}
+                  className="p-2 bg-neutral-900 hover:bg-neutral-800 text-left cursor-pointer"
+                >
+                  // telemetry engine
+                </button>
+                <button
+                  onClick={() => { setActivePivot('install'); setAppBarExpanded(false); }}
+                  className="p-2 bg-neutral-900 hover:bg-neutral-800 text-left cursor-pointer"
+                >
+                  // install guide
+                </button>
+                <button
+                  onClick={() => { navigate(user ? '/profile' : '/auth'); setAppBarExpanded(false); }}
+                  className="p-2 bg-primary/20 text-primary text-left cursor-pointer"
+                >
+                  {user ? '// profile & settings' : '// student sign in'}
+                </button>
+              </div>
+            </motion.div>
           )}
-        </div>
-      </section>
-
-      {/* ─── Minimalist Footer ─── */}
-      <footer className="mt-auto px-4 md:px-8 py-6 border-t border-white/10 bg-black text-xs font-mono text-white/40 flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span className="text-primary font-bold">TOOPREP</span>
-          <span>&middot;</span>
-          <span>Scientific JEE Main Telemetry</span>
-        </div>
-        <div className="flex items-center gap-4 text-white/60">
-          <a href="#install" className="hover:text-primary">Install Guide</a>
-          <Link to="/auth" className="hover:text-primary">Sign In</Link>
-          <button onClick={() => navigate(user ? '/' : '/auth')} className="text-primary hover:underline">
-            {user ? 'Open Map →' : 'Get Started →'}
-          </button>
-        </div>
+        </AnimatePresence>
       </footer>
     </div>
   );
