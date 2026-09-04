@@ -1,6 +1,55 @@
--- Comprehensive JEE Main Curriculum Migration
--- Expands curriculum to 138 topics across Physics, Chemistry, and Mathematics
-
--- Physics Subjects / Chapters / Topics
--- Already seeded via server/src/scripts/seed-full-curriculum.js into live Supabase.
--- This migration file documents the complete set of chapters and topics added.
+-- ============================================================================
+-- TooPrep Comprehensive JEE Main Curriculum Specification
+-- Migration: 007_jee_full_curriculum.sql
+-- ============================================================================
+-- Canonical curriculum comprising exactly 40 chapters and 130 topics:
+--
+-- PHYSICS (17 Chapters, 59 Topics):
+--   1. Units, Dimensions and Measurements (3 topics)
+--   2. Kinematics (4 topics)
+--   3. Laws of Motion (3 topics)
+--   4. Work, Energy and Power (3 topics)
+--   5. Rotational Motion (4 topics)
+--   6. Gravitation (3 topics)
+--   7. Mechanical Properties of Solids and Fluids (4 topics)
+--   8. Thermal Physics and Thermodynamics (4 topics)
+--   9. Oscillations and Waves (4 topics)
+--   10. Electrostatics (4 topics)
+--   11. Current Electricity (3 topics)
+--   12. Magnetic Effects of Current and Magnetism (4 topics)
+--   13. Electromagnetic Induction and Alternating Current (4 topics)
+--   14. Electromagnetic Waves (2 topics)
+--   15. Optics (4 topics)
+--   16. Modern Physics (3 topics)
+--   17. Semiconductor Electronics (3 topics)
+--
+-- CHEMISTRY (13 Chapters, 39 Topics):
+--   1. Some Basic Concepts of Chemistry (2 topics)
+--   2. Atomic Structure (3 topics)
+--   3. Periodic Properties and Chemical Bonding (4 topics)
+--   4. Chemical Thermodynamics (3 topics)
+--   5. Chemical and Ionic Equilibrium (3 topics)
+--   6. Redox Reactions and Electrochemistry (3 topics)
+--   7. Chemical Kinetics and Surface Chemistry (3 topics)
+--   8. Solutions (2 topics)
+--   9. Inorganic Chemistry and Coordination Compounds (4 topics)
+--   10. General Organic Chemistry (3 topics)
+--   11. Hydrocarbons (2 topics)
+--   12. Organic Compounds with Functional Groups (5 topics)
+--   13. Biomolecules and Polymers (2 topics)
+--
+-- MATHEMATICS (10 Chapters, 32 Topics):
+--   1. Sets, Relations and Functions (2 topics)
+--   2. Algebra (5 topics)
+--   3. Matrices and Determinants (2 topics)
+--   4. Differential Calculus (5 topics)
+--   5. Integral Calculus (3 topics)
+--   6. Differential Equations (2 topics)
+--   7. Coordinate Geometry (5 topics)
+--   8. Vector Algebra and 3D Geometry (2 topics)
+--   9. Probability and Statistics (3 topics)
+--   10. Trigonometry and Mathematical Reasoning (3 topics)
+--
+-- Total: 40 Chapters, 130 Canonical Topics, 110 Verified Questions preserved.
+-- Seeded into live Supabase via server/src/scripts/seed-full-curriculum.js
+-- ============================================================================

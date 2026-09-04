@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/features/auth/context/AuthContext';
 import ProtectedRoute from '@/features/auth/components/ProtectedRoute';
+import AdminRoute from '@/features/auth/components/AdminRoute';
 import Layout from '@/shared/components/Layout';
 import AuthPage from '@/features/auth/pages/AuthPage';
 import OnboardingPage from '@/features/auth/pages/OnboardingPage';
@@ -166,20 +167,20 @@ function App() {
           <Route
             path="/admin/questions"
             element={
-              <ProtectedRoute>
+              <AdminRoute>
                 <Layout>
                   <AdminQuestionsPage />
                 </Layout>
-              </ProtectedRoute>
+              </AdminRoute>
             }
           />
           <Route
             path="/admin/content"
-            element={<ProtectedRoute><Layout><ContentAdminPage /></Layout></ProtectedRoute>}
+            element={<AdminRoute><Layout><ContentAdminPage /></Layout></AdminRoute>}
           />
           <Route
             path="/admin/syncs"
-            element={<ProtectedRoute><Layout><ContentSyncPage /></Layout></ProtectedRoute>}
+            element={<AdminRoute><Layout><ContentSyncPage /></Layout></AdminRoute>}
           />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

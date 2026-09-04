@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { dashboardService } from '../services/dashboardService';
 import { confidenceService } from '@/features/confidence/services/confidenceService';
@@ -21,7 +21,9 @@ import Icon, {
   Sparkles,
   Layers,
   Check,
-  X
+  X,
+  RefreshCw,
+  Hash
 } from '@/shared/components/Icon';
 
 export default function DashboardPage() {
@@ -32,12 +34,27 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
-  const [sortBy, setSortBy] = useState('gap_asc'); // gap_asc, acc_asc, conf_desc, name_asc
-  const [calibrateModal, setCalibrateModal] = useState(null); // { topicId, name, currentConf }
+  
+  // Excel-style sorting: column and direction
+  const [sortCol, setSortCol] = useState('default'); // 'default', 'subject', 'chapter', 'topic', 'conf', 'acc', 'gap', 'status', 'attempts'
+  const [sortDir, setSortDir] = useState('asc'); // 'asc', 'desc'
+
+  // Excel-style active cell selection
+  const [activeCell, setActiveCell] = useState({ coord: 'C1', col: 'C', row: 1, field: 'topic_name', value: '' });
+
+  // In-cell confidence calibration popover
+  const [inCellCalibrate, setInCellCalibrate] = useState(null); // { topicId, currentVal, topicName, x, y }
+  const [savingConf, setSavingConf] = useState(false);
+
+  // Full calibration modal (optional deep calibration)
+  const [calibrateModal, setCalibrateModal] = useState(null);
   const [calibrateVal, setCalibrateVal] = useState(5);
   const [calibrating, setCalibrating] = useState(false);
+
+  // Mobile compact toggle
   const [mobileExpandedTopic, setMobileExpandedTopic] = useState(null);
 
+  const formulaInputRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -60,15 +77,40 @@ export default function DashboardPage() {
     localStorage.setItem('tooprep_map_view', mode);
   };
 
-  const subjects = useMemo(() => {
-    const set = new Set(data.map(r => r.subject_name).filter(Boolean));
-    return ['ALL', ...Array.from(set).sort()];
+  // Pre-calculated subject counts for workbook tabs
+  const subjectCounts = useMemo(() => {
+    const counts = { ALL: data.length, Physics: 0, Chemistry: 0, Mathematics: 0 };
+    data.forEach(d => {
+      const s = d.subject_name;
+      if (s && counts[s] !== undefined) {
+        counts[s]++;
+      }
+    });
+    return counts;
   }, [data]);
 
+  // Handle Excel column header click for sorting
+  const handleSortHeader = (col) => {
+    if (sortCol === col) {
+      // Toggle direction or reset to default
+      if (sortDir === 'asc') {
+        setSortDir('desc');
+      } else {
+        setSortCol('default');
+        setSortDir('asc');
+      }
+    } else {
+      setSortCol(col);
+      // High-to-low makes more sense first for numeric columns
+      setSortDir(['conf', 'acc', 'gap', 'attempts'].includes(col) ? 'desc' : 'asc');
+    }
+  };
+
+  // Filtered & Sorted Dataset
   const filteredAndSorted = useMemo(() => {
     let list = [...data];
 
-    // 1. Subject filter
+    // 1. Subject Tab filter
     if (subjectFilter !== 'ALL') {
       list = list.filter(r => r.subject_name === subjectFilter);
     }
@@ -82,7 +124,7 @@ export default function DashboardPage() {
       }
     }
 
-    // 3. Search query
+    // 3. Search / Formula bar query
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       list = list.filter(r =>
@@ -92,33 +134,61 @@ export default function DashboardPage() {
       );
     }
 
-    // 4. Sorting
+    // 4. Excel Column Sorting
     list.sort((a, b) => {
-      if (sortBy === 'gap_asc') {
-        // Most negative gap (overconfident) first
-        const gapA = a.gap !== null ? a.gap : 999;
-        const gapB = b.gap !== null ? b.gap : 999;
-        return gapA - gapB;
+      if (sortCol === 'subject') {
+        const cmp = (a.subject_name || '').localeCompare(b.subject_name || '');
+        return sortDir === 'asc' ? cmp : -cmp;
       }
-      if (sortBy === 'acc_asc') {
-        const accA = a.evaluation_accuracy !== null ? a.evaluation_accuracy : 999;
-        const accB = b.evaluation_accuracy !== null ? b.evaluation_accuracy : 999;
-        return accA - accB;
+      if (sortCol === 'chapter') {
+        const cmp = (a.chapter_name || '').localeCompare(b.chapter_name || '');
+        return sortDir === 'asc' ? cmp : -cmp;
       }
-      if (sortBy === 'conf_desc') {
-        const confA = a.confidence !== null ? a.confidence : -1;
-        const confB = b.confidence !== null ? b.confidence : -1;
-        return confB - confA;
+      if (sortCol === 'topic') {
+        const cmp = (a.topic_name || '').localeCompare(b.topic_name || '');
+        return sortDir === 'asc' ? cmp : -cmp;
       }
-      if (sortBy === 'name_asc') {
-        return (a.topic_name || '').localeCompare(b.topic_name || '');
+      if (sortCol === 'conf') {
+        const valA = a.confidence !== null ? a.confidence : -1;
+        const valB = b.confidence !== null ? b.confidence : -1;
+        return sortDir === 'asc' ? valA - valB : valB - valA;
       }
-      return 0;
+      if (sortCol === 'acc') {
+        const valA = a.evaluation_accuracy !== null ? a.evaluation_accuracy : -1;
+        const valB = b.evaluation_accuracy !== null ? b.evaluation_accuracy : -1;
+        return sortDir === 'asc' ? valA - valB : valB - valA;
+      }
+      if (sortCol === 'gap') {
+        const valA = a.gap !== null ? a.gap : 999;
+        const valB = b.gap !== null ? b.gap : 999;
+        return sortDir === 'asc' ? valA - valB : valB - valA;
+      }
+      if (sortCol === 'status') {
+        const cmp = (a.status || '').localeCompare(b.status || '');
+        return sortDir === 'asc' ? cmp : -cmp;
+      }
+      if (sortCol === 'attempts') {
+        const valA = a.questions_attempted || 0;
+        const valB = b.questions_attempted || 0;
+        return sortDir === 'asc' ? valA - valB : valB - valA;
+      }
+
+      // Default sorting: Natural JEE Syllabus order (Physics -> Chemistry -> Mathematics, Chapter, Topic)
+      const subOrder = { 'Physics': 1, 'Chemistry': 2, 'Mathematics': 3 };
+      const orderA = subOrder[a.subject_name] || 99;
+      const orderB = subOrder[b.subject_name] || 99;
+      if (orderA !== orderB) return orderA - orderB;
+
+      const chCmp = (a.chapter_name || '').localeCompare(b.chapter_name || '');
+      if (chCmp !== 0) return chCmp;
+
+      return (a.topic_name || '').localeCompare(b.topic_name || '');
     });
 
     return list;
-  }, [data, subjectFilter, statusFilter, searchQuery, sortBy]);
+  }, [data, subjectFilter, statusFilter, searchQuery, sortCol, sortDir]);
 
+  // Priority Gap Hero
   const biggestGapTopic = useMemo(() => {
     const overconfident = data
       .filter(d => d.status === 'OVERCONFIDENT')
@@ -126,16 +196,7 @@ export default function DashboardPage() {
     return overconfident[0] || null;
   }, [data]);
 
-  const groupedByChapter = useMemo(() => {
-    const groups = {};
-    filteredAndSorted.forEach(topic => {
-      const groupName = `${topic.subject_name} \u203A ${topic.chapter_name}`;
-      if (!groups[groupName]) groups[groupName] = [];
-      groups[groupName].push(topic);
-    });
-    return groups;
-  }, [filteredAndSorted]);
-
+  // Aggregate Metrics for Excel Sheet Telemetry
   const summary = useMemo(() => {
     const total = data.length;
     const overconfident = data.filter(t => t.status === 'OVERCONFIDENT').length;
@@ -146,6 +207,7 @@ export default function DashboardPage() {
     const avgConfidence = rated.reduce((sum, t) => sum + t.confidence, 0) / Math.max(1, rated.length);
     const evaluated = data.filter(t => t.evaluation_accuracy !== null);
     const avgAccuracy = evaluated.reduce((sum, t) => sum + t.evaluation_accuracy, 0) / Math.max(1, evaluated.length);
+    const totalAttempts = data.reduce((sum, t) => sum + (t.questions_attempted || 0), 0);
 
     return {
       total,
@@ -154,16 +216,37 @@ export default function DashboardPage() {
       aligned,
       untested,
       avgConfidence: Number.isFinite(avgConfidence) ? avgConfidence.toFixed(1) : '0.0',
-      avgAccuracy: Number.isFinite(avgAccuracy) ? Math.round(avgAccuracy) : 0
+      avgAccuracy: Number.isFinite(avgAccuracy) ? Math.round(avgAccuracy) : 0,
+      totalAttempts
     };
   }, [data]);
 
-  const handleSaveConfidence = async () => {
+  // Quick In-Cell Confidence Calibration
+  const handleQuickCalibrate = async (topicId, score) => {
+    setSavingConf(true);
+    try {
+      await confidenceService.setConfidence(topicId, score, 'INITIAL');
+      setData(prev => prev.map(t => {
+        if (t.topic_id === topicId) {
+          const newGap = t.evaluation_accuracy !== null ? Math.round(t.evaluation_accuracy - (score * 10)) : null;
+          return { ...t, confidence: score, gap: newGap };
+        }
+        return t;
+      }));
+      setInCellCalibrate(null);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSavingConf(false);
+    }
+  };
+
+  // Full Modal Confidence Calibration
+  const handleSaveModalConfidence = async () => {
     if (!calibrateModal) return;
     setCalibrating(true);
     try {
       await confidenceService.setConfidence(calibrateModal.topicId, calibrateVal, 'INITIAL');
-      // Update locally
       setData(prev => prev.map(t => {
         if (t.topic_id === calibrateModal.topicId) {
           const newGap = t.evaluation_accuracy !== null ? Math.round(t.evaluation_accuracy - (calibrateVal * 10)) : null;
@@ -178,6 +261,17 @@ export default function DashboardPage() {
       setCalibrating(false);
     }
   };
+
+  // Metro Live Tiles group
+  const groupedByChapter = useMemo(() => {
+    const groups = {};
+    filteredAndSorted.forEach(topic => {
+      const groupName = `${topic.subject_name} › ${topic.chapter_name}`;
+      if (!groups[groupName]) groups[groupName] = [];
+      groups[groupName].push(topic);
+    });
+    return groups;
+  }, [filteredAndSorted]);
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -232,6 +326,17 @@ export default function DashboardPage() {
     return 'text-white/60 border-white/20 bg-white/5';
   };
 
+  const renderSortIndicator = (col) => {
+    if (sortCol !== col) {
+      return <span className="opacity-0 group-hover:opacity-40 ml-1 text-[9px]">↕</span>;
+    }
+    return (
+      <span className="text-primary font-bold ml-1 text-[10px]">
+        {sortDir === 'asc' ? '▲' : '▼'}
+      </span>
+    );
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-36 space-y-6">
@@ -240,42 +345,54 @@ export default function DashboardPage() {
           <div className="w-16 h-16 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
         </div>
         <div className="text-label-sm-mono text-primary uppercase tracking-[0.3em] text-xs">
-          Loading Windows Phone Knowledge Map...
+          Loading TooPrep Excel Matrix // 130 Topics...
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 pb-20">
-      {/* ─── Top Telemetry Header ─── */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-white/10 pb-5">
-        <div>
-          <div className="text-label-sm-mono uppercase tracking-[0.25em] text-primary text-xs">
-            Curriculum Telemetry &middot; Calibration Matrix
+    <div className="space-y-4 pb-20 select-none">
+      {/* ─── Excel Application Title & Telemetry Header ─── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-white/10 pb-3">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded bg-emerald-600/30 border border-emerald-500/50 flex items-center justify-center text-emerald-400 font-bold font-mono text-sm shadow-sm">
+            XLS
           </div>
-          <h1 className="text-4xl md:text-5xl font-extralight text-white tracking-tight lowercase mt-1">
-            knowledge map
-          </h1>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl md:text-2xl font-light text-white tracking-tight lowercase">
+                knowledge map
+              </h1>
+              <span className="text-[11px] font-mono text-white/40">// JEE_MAIN_2026_CURRICULUM.XLSX</span>
+            </div>
+            <div className="text-[11px] font-mono text-white/50 flex items-center gap-3 mt-0.5">
+              <span>{summary.total} canonical syllabus topics</span>
+              <span className="text-white/20">|</span>
+              <span>avg confidence: <strong className="text-primary">{summary.avgConfidence}/10</strong></span>
+              <span className="text-white/20">|</span>
+              <span>avg accuracy: <strong className="text-white">{summary.avgAccuracy}%</strong></span>
+            </div>
+          </div>
         </div>
 
-        {/* View Mode Switcher */}
-        <div className="flex items-center gap-3">
+        {/* View Switcher: Excel Spreadsheet vs Metro Live Tiles */}
+        <div className="flex items-center gap-2">
           <div className="bg-surface-container p-1 rounded-sm border border-outline-variant flex items-center gap-1 text-xs font-mono">
             <button
               onClick={() => handleSwitchView('sheet')}
-              className={`px-3 py-1.5 rounded-sm transition-colors flex items-center gap-1.5 ${
+              className={`px-3 py-1 rounded-sm transition-colors flex items-center gap-1.5 ${
                 viewMode === 'sheet'
                   ? 'bg-primary text-black font-bold shadow'
                   : 'text-white/60 hover:text-white'
               }`}
             >
               <span>⊞</span>
-              <span>Sheet Matrix</span>
+              <span>XLS Sheet</span>
             </button>
             <button
               onClick={() => handleSwitchView('tiles')}
-              className={`px-3 py-1.5 rounded-sm transition-colors flex items-center gap-1.5 ${
+              className={`px-3 py-1 rounded-sm transition-colors flex items-center gap-1.5 ${
                 viewMode === 'tiles'
                   ? 'bg-primary text-black font-bold shadow'
                   : 'text-white/60 hover:text-white'
@@ -288,321 +405,517 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ─── Metric Telemetry Tiles ─── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-        <div className="acrylic-glass p-3.5 rounded-sm border border-white/10 space-y-1">
-          <div className="text-[10px] font-mono text-white/50 uppercase tracking-wider">Curriculum</div>
-          <div className="text-xl font-mono font-bold text-white">{summary.total}</div>
-          <div className="text-[10px] text-white/40 font-mono">total topics</div>
-        </div>
-
-        <div className="acrylic-glass p-3.5 rounded-sm border border-error/30 bg-error/5 space-y-1">
-          <div className="text-[10px] font-mono text-error uppercase tracking-wider flex items-center gap-1">
-            <AlertTriangle className="w-3 h-3" />
-            <span>Overconfident</span>
-          </div>
-          <div className="text-xl font-mono font-bold text-error">{summary.overconfident}</div>
-          <div className="text-[10px] text-error/60 font-mono">conf &gt; accuracy</div>
-        </div>
-
-        <div className="acrylic-glass p-3.5 rounded-sm border border-primary/30 bg-primary/5 space-y-1">
-          <div className="text-[10px] font-mono text-primary uppercase tracking-wider flex items-center gap-1">
-            <TrendingUp className="w-3 h-3" />
-            <span>Underconfident</span>
-          </div>
-          <div className="text-xl font-mono font-bold text-primary">{summary.underconfident}</div>
-          <div className="text-[10px] text-primary/60 font-mono">accuracy &gt; conf</div>
-        </div>
-
-        <div className="acrylic-glass p-3.5 rounded-sm border border-status-aligned/30 bg-status-aligned/5 space-y-1">
-          <div className="text-[10px] font-mono text-status-aligned uppercase tracking-wider flex items-center gap-1">
-            <CheckCircle2 className="w-3 h-3" />
-            <span>Aligned</span>
-          </div>
-          <div className="text-xl font-mono font-bold text-status-aligned">{summary.aligned}</div>
-          <div className="text-[10px] text-status-aligned/60 font-mono">calibrated &plusmn;20%</div>
-        </div>
-
-        <div className="acrylic-glass p-3.5 rounded-sm border border-white/10 space-y-1">
-          <div className="text-[10px] font-mono text-white/50 uppercase tracking-wider">Avg Confidence</div>
-          <div className="text-xl font-mono font-bold text-primary">{summary.avgConfidence}<span className="text-xs font-normal text-white/40">/10</span></div>
-          <div className="text-[10px] text-white/40 font-mono">student rating</div>
-        </div>
-
-        <div className="acrylic-glass p-3.5 rounded-sm border border-white/10 space-y-1">
-          <div className="text-[10px] font-mono text-white/50 uppercase tracking-wider">Avg Accuracy</div>
-          <div className="text-xl font-mono font-bold text-white">{summary.avgAccuracy}%</div>
-          <div className="text-[10px] text-white/40 font-mono">mock eval score</div>
-        </div>
-      </div>
-
-      {/* ─── Hero Live Gap Banner ─── */}
+      {/* ─── Priority Overconfidence Alert Banner ─── */}
       {biggestGapTopic && (
         <div
           onClick={() => navigate(`/topics/${biggestGapTopic.topic_id}`)}
-          className="relative cursor-pointer overflow-hidden p-5 md:p-6 rounded-sm bg-gradient-to-r from-error/90 via-error to-rose-700 text-white shadow-xl shadow-error/20 border-2 border-error/80 group"
+          className="relative cursor-pointer overflow-hidden px-4 py-3 rounded-sm bg-error/15 border border-error/50 hover:bg-error/25 transition-all text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
         >
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2 text-label-sm-mono uppercase tracking-widest text-white/90 text-xs">
-                <AlertTriangle className="w-4 h-4 text-white" />
-                <span>Priority Overconfidence Gap</span>
-                <span className="bg-black/30 px-2 py-0.5 rounded text-[10px] font-mono">
-                  GAP: {biggestGapTopic.gap}%
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-error/30 border border-error/60 flex items-center justify-center text-error shrink-0">
+              <AlertTriangle className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-[10px] font-mono uppercase tracking-widest text-error font-bold flex items-center gap-2">
+                <span>⚠️ Highest Overconfidence Risk Identified</span>
+                <span className="text-white/50 text-[9px] font-normal">({biggestGapTopic.subject_name} › {biggestGapTopic.chapter_name})</span>
+              </div>
+              <div className="text-sm font-medium text-white flex items-baseline gap-2">
+                <span>{biggestGapTopic.topic_name}</span>
+                <span className="text-xs font-mono text-white/70">
+                  Self-Rating: <strong className="text-error">{biggestGapTopic.confidence}/10</strong> vs Mock Score: <strong className="text-white">{biggestGapTopic.evaluation_accuracy}%</strong> (Gap: <strong className="text-error">{biggestGapTopic.gap}%</strong>)
                 </span>
               </div>
-              <h2 className="text-xl md:text-2xl font-light tracking-tight text-white">
-                {biggestGapTopic.topic_name}
-              </h2>
-              <p className="text-white/80 text-xs font-light">
-                {biggestGapTopic.subject_name} &rsaquo; {biggestGapTopic.chapter_name} &middot; Confidence {biggestGapTopic.confidence}/10 vs {biggestGapTopic.evaluation_accuracy}% accuracy
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3 pt-2 md:pt-0">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/practice?topic=${biggestGapTopic.topic_id}`);
-                }}
-                className="px-4 py-2 bg-black text-white text-xs font-mono uppercase tracking-wider rounded-sm font-bold flex items-center gap-1.5 hover:bg-white hover:text-black transition-colors"
-              >
-                <Play className="w-3.5 h-3.5 fill-current" />
-                <span>Drill Now</span>
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/evaluate?topic=${biggestGapTopic.topic_id}`);
-                }}
-                className="px-4 py-2 bg-white text-black text-xs font-mono uppercase tracking-wider rounded-sm font-bold flex items-center gap-1.5 hover:bg-black hover:text-white transition-colors"
-              >
-                <Timer className="w-3.5 h-3.5 stroke-[2]" />
-                <span>Mock Test</span>
-              </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* ─── Search & Filter Controls Bar ─── */}
-      <div className="acrylic-glass p-4 rounded-sm border border-outline-variant space-y-3.5">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-          {/* Real-time Search Input */}
-          <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search topic or chapter by name..."
-              className="w-full bg-black/50 border border-outline-variant rounded-sm pl-9 pr-8 py-2 text-xs font-mono text-white placeholder:text-white/30 focus:border-primary outline-none"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white text-xs"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-
-          {/* Sort By Dropdown */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-mono text-white/50 uppercase tracking-wider shrink-0">Sort:</span>
-            <select
-              value={sortBy}
-              onChange={e => setSortBy(e.target.value)}
-              className="bg-black/50 border border-outline-variant rounded-sm px-3 py-1.5 text-xs font-mono text-white outline-none focus:border-primary"
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/evaluate?topic=${biggestGapTopic.topic_id}`);
+              }}
+              className="px-3 py-1.5 bg-error text-white font-mono text-[11px] font-bold uppercase tracking-wider rounded-sm hover:brightness-110 flex items-center gap-1"
             >
-              <option value="gap_asc">⚠️ Overconfident Gap (Largest First)</option>
-              <option value="acc_asc">Lowest Accuracy First</option>
-              <option value="conf_desc">Highest Confidence First</option>
-              <option value="name_asc">Topic Name (A-Z)</option>
-            </select>
+              <Timer className="w-3.5 h-3.5 stroke-[2]" />
+              <span>Diagnostic Mock</span>
+            </button>
           </div>
-        </div>
-
-        {/* Subject & Status Filter Pills */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-white/5">
-          {/* Subject Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-            {subjects.map(s => {
-              const isSelected = subjectFilter === s;
-              const count = s === 'ALL'
-                ? data.length
-                : data.filter(d => d.subject_name === s).length;
-              return (
-                <button
-                  key={s}
-                  onClick={() => setSubjectFilter(s)}
-                  className={`px-2.5 py-1 rounded-sm text-xs font-mono uppercase tracking-wider transition-colors flex items-center gap-1.5 ${
-                    isSelected
-                      ? 'bg-primary text-black font-bold'
-                      : 'bg-surface-container text-white/60 hover:text-white border border-white/10'
-                  }`}
-                >
-                  <span>{s}</span>
-                  <span className={`px-1 py-0.2 rounded text-[10px] ${isSelected ? 'bg-black/20 text-black' : 'bg-white/10 text-white/50'}`}>
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Status Filter Pills */}
-          <div className="flex items-center gap-1.5 text-xs font-mono">
-            {['ALL', 'OVERCONFIDENT', 'UNDERCONFIDENT', 'ALIGNED', 'UNTESTED'].map(st => {
-              const isSelected = statusFilter === st;
-              return (
-                <button
-                  key={st}
-                  onClick={() => setStatusFilter(st)}
-                  className={`px-2 py-0.5 rounded-sm text-[10px] uppercase tracking-wider transition-colors ${
-                    isSelected
-                      ? 'bg-white/20 text-white font-bold border border-white/40'
-                      : 'text-white/40 hover:text-white/70'
-                  }`}
-                >
-                  {st}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {error && (
-        <div className="p-4 bg-error/10 border-l-4 border-error text-error text-sm rounded-r-sm">
-          {error}
         </div>
       )}
 
-      {/* ─── VIEW MODE 1: EXCEL SHEET MATRIX VIEW ─── */}
+      {/* ═══════════════════════════════════════════════════════════════════
+       * VIEW MODE 1: AUTHENTIC EXCEL SPREADSHEET (XLS SHEET MATRIX)
+       * ═══════════════════════════════════════════════════════════════════ */}
       {viewMode === 'sheet' && (
-        <div className="space-y-4">
-          {/* Desktop & Tablet High-Density Excel Matrix */}
-          <div className="hidden md:block acrylic-glass rounded-sm border border-outline-variant overflow-hidden shadow-2xl">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse font-mono text-xs">
-                <thead>
-                  <tr className="border-b border-outline-variant bg-surface-container/80 text-white/60 uppercase tracking-widest text-[10px]">
-                    <th className="py-3 px-3 w-12 text-center">#</th>
-                    <th className="py-3 px-3 w-28">Subject</th>
-                    <th className="py-3 px-3 w-48">Chapter</th>
-                    <th className="py-3 px-4 min-w-[220px]">Curriculum Topic</th>
-                    <th className="py-3 px-3 w-28 text-center">Confidence</th>
-                    <th className="py-3 px-3 w-28 text-center">Accuracy</th>
-                    <th className="py-3 px-3 w-28 text-center">Gap</th>
-                    <th className="py-3 px-3 w-36 text-center">Status</th>
-                    <th className="py-3 px-4 w-44 text-right">Quick Action</th>
+        <div className="space-y-2">
+          {/* ─── Excel Formula & Name Box Bar ─── */}
+          <div className="acrylic-glass border border-white/10 rounded-sm p-1.5 flex items-center gap-2 bg-surface-container/90">
+            {/* Name Box (Active Cell Coordinate) */}
+            <div
+              className="px-2.5 py-1 bg-black/60 border border-white/15 rounded text-primary font-mono text-xs font-bold min-w-[64px] text-center shrink-0 tracking-wider"
+              title="Active Cell Coordinate"
+            >
+              {activeCell.coord}
+            </div>
+
+            {/* Excel Formula fx Button */}
+            <div className="w-6 h-6 flex items-center justify-center font-serif italic text-white/50 text-sm border-r border-white/10 pr-2 shrink-0 select-none">
+              fx
+            </div>
+
+            {/* Formula / Search Input Box */}
+            <div className="flex-1 relative flex items-center">
+              <input
+                ref={formulaInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder='=FILTER(Syllabus, "search topic, chapter, or subject...")'
+                className="w-full bg-transparent text-xs font-mono text-white placeholder:text-white/30 outline-none px-2 py-1"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="p-1 text-white/40 hover:text-white text-xs mr-1"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Quick Status Pill Filter inside formula bar */}
+            <div className="hidden lg:flex items-center gap-1 text-[10px] font-mono border-l border-white/10 pl-2">
+              <span className="text-white/40 uppercase mr-1">Status:</span>
+              {[
+                { id: 'ALL', label: 'All' },
+                { id: 'OVERCONFIDENT', label: 'Over' },
+                { id: 'ALIGNED', label: 'Aligned' },
+                { id: 'UNTESTED', label: 'Untested' }
+              ].map(st => (
+                <button
+                  key={st.id}
+                  onClick={() => setStatusFilter(st.id)}
+                  className={`px-2 py-0.5 rounded transition-colors ${
+                    statusFilter === st.id
+                      ? 'bg-primary/20 text-primary border border-primary/40 font-bold'
+                      : 'text-white/50 hover:text-white'
+                  }`}
+                >
+                  {st.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* ─── Excel Workbook Sheet Tabs Bar ─── */}
+          <div className="flex items-center justify-between border-b border-white/10 pt-1 px-1 overflow-x-auto no-scrollbar">
+            <div className="flex items-center gap-1 min-w-max">
+              {/* Sheet 1: All Topics */}
+              <button
+                onClick={() => setSubjectFilter('ALL')}
+                className={`px-3.5 py-1.5 text-xs font-mono rounded-t border-t border-x transition-all flex items-center gap-2 ${
+                  subjectFilter === 'ALL'
+                    ? 'bg-surface-container border-white/20 text-white font-bold border-b-2 border-b-primary shadow-sm'
+                    : 'bg-black/40 border-transparent text-white/50 hover:text-white/80 hover:bg-surface-container/40'
+                }`}
+              >
+                <span>📊 All Topics</span>
+                <span className="px-1.5 py-0.2 bg-white/10 rounded-full text-[10px] font-normal">
+                  {subjectCounts.ALL}
+                </span>
+              </button>
+
+              {/* Sheet 2: Physics */}
+              <button
+                onClick={() => setSubjectFilter('Physics')}
+                className={`px-3.5 py-1.5 text-xs font-mono rounded-t border-t border-x transition-all flex items-center gap-2 ${
+                  subjectFilter === 'Physics'
+                    ? 'bg-surface-container border-primary/30 text-primary font-bold border-b-2 border-b-primary shadow-sm'
+                    : 'bg-black/40 border-transparent text-white/50 hover:text-white/80 hover:bg-surface-container/40'
+                }`}
+              >
+                <span>⚡ Physics</span>
+                <span className="px-1.5 py-0.2 bg-primary/20 text-primary rounded-full text-[10px] font-normal">
+                  {subjectCounts.Physics}
+                </span>
+              </button>
+
+              {/* Sheet 3: Chemistry */}
+              <button
+                onClick={() => setSubjectFilter('Chemistry')}
+                className={`px-3.5 py-1.5 text-xs font-mono rounded-t border-t border-x transition-all flex items-center gap-2 ${
+                  subjectFilter === 'Chemistry'
+                    ? 'bg-surface-container border-amber-500/30 text-amber-400 font-bold border-b-2 border-b-amber-400 shadow-sm'
+                    : 'bg-black/40 border-transparent text-white/50 hover:text-white/80 hover:bg-surface-container/40'
+                }`}
+              >
+                <span>🧪 Chemistry</span>
+                <span className="px-1.5 py-0.2 bg-amber-400/20 text-amber-400 rounded-full text-[10px] font-normal">
+                  {subjectCounts.Chemistry}
+                </span>
+              </button>
+
+              {/* Sheet 4: Mathematics */}
+              <button
+                onClick={() => setSubjectFilter('Mathematics')}
+                className={`px-3.5 py-1.5 text-xs font-mono rounded-t border-t border-x transition-all flex items-center gap-2 ${
+                  subjectFilter === 'Mathematics'
+                    ? 'bg-surface-container border-emerald-500/30 text-emerald-400 font-bold border-b-2 border-b-emerald-400 shadow-sm'
+                    : 'bg-black/40 border-transparent text-white/50 hover:text-white/80 hover:bg-surface-container/40'
+                }`}
+              >
+                <span>📐 Mathematics</span>
+                <span className="px-1.5 py-0.2 bg-emerald-400/20 text-emerald-400 rounded-full text-[10px] font-normal">
+                  {subjectCounts.Mathematics}
+                </span>
+              </button>
+            </div>
+
+            {/* Quick Spreadsheet Reset & Info */}
+            <div className="hidden sm:flex items-center gap-3 text-[11px] font-mono text-white/40 pr-2">
+              <span>Showing <strong>{filteredAndSorted.length}</strong> rows</span>
+              {(sortCol !== 'default' || searchQuery || statusFilter !== 'ALL') && (
+                <button
+                  onClick={() => {
+                    setSortCol('default');
+                    setSortDir('asc');
+                    setSearchQuery('');
+                    setStatusFilter('ALL');
+                  }}
+                  className="text-primary hover:underline"
+                >
+                  ↺ Reset Sheet
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* ─── The Master Excel Spreadsheet Grid ─── */}
+          <div className="border border-neutral-800 rounded-sm bg-black overflow-hidden shadow-2xl">
+            <div className="overflow-x-auto max-h-[640px] overflow-y-auto no-scrollbar relative">
+              <table className="w-full border-collapse text-left font-mono text-xs">
+                {/* ─── Excel Column Header Row ─── */}
+                <thead className="sticky top-0 z-20 bg-neutral-900/95 backdrop-blur-md text-white/70 border-b border-neutral-700">
+                  <tr>
+                    {/* Corner Box / Row Index */}
+                    <th className="py-2 px-2.5 w-12 text-center text-white/40 border-r border-neutral-800 bg-neutral-950 font-mono text-[10px] select-none">
+                      #
+                    </th>
+
+                    {/* Column A: Subject */}
+                    <th
+                      onClick={() => handleSortHeader('subject')}
+                      className="py-2 px-3 w-28 border-r border-neutral-800 cursor-pointer hover:bg-neutral-800/60 transition-colors group select-none"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1">
+                          <span className="text-white/30 text-[9px] font-bold">A</span>
+                          <span className="font-semibold text-white/80">Subject</span>
+                        </div>
+                        {renderSortIndicator('subject')}
+                      </div>
+                    </th>
+
+                    {/* Column B: Chapter */}
+                    <th
+                      onClick={() => handleSortHeader('chapter')}
+                      className="py-2 px-3 w-56 border-r border-neutral-800 cursor-pointer hover:bg-neutral-800/60 transition-colors group select-none"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1">
+                          <span className="text-white/30 text-[9px] font-bold">B</span>
+                          <span className="font-semibold text-white/80">Chapter</span>
+                        </div>
+                        {renderSortIndicator('chapter')}
+                      </div>
+                    </th>
+
+                    {/* Column C: Topic Name */}
+                    <th
+                      onClick={() => handleSortHeader('topic')}
+                      className="py-2 px-4 min-w-[240px] border-r border-neutral-800 cursor-pointer hover:bg-neutral-800/60 transition-colors group select-none"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1">
+                          <span className="text-white/30 text-[9px] font-bold">C</span>
+                          <span className="font-semibold text-white/90">Topic Curriculum</span>
+                        </div>
+                        {renderSortIndicator('topic')}
+                      </div>
+                    </th>
+
+                    {/* Column D: Confidence */}
+                    <th
+                      onClick={() => handleSortHeader('conf')}
+                      className="py-2 px-3 w-32 text-center border-r border-neutral-800 cursor-pointer hover:bg-neutral-800/60 transition-colors group select-none"
+                    >
+                      <div className="flex items-center justify-center gap-1">
+                        <span className="text-white/30 text-[9px] font-bold">D</span>
+                        <span className="font-semibold text-white/80">Confidence</span>
+                        {renderSortIndicator('conf')}
+                      </div>
+                    </th>
+
+                    {/* Column E: Accuracy */}
+                    <th
+                      onClick={() => handleSortHeader('acc')}
+                      className="py-2 px-3 w-28 text-center border-r border-neutral-800 cursor-pointer hover:bg-neutral-800/60 transition-colors group select-none"
+                    >
+                      <div className="flex items-center justify-center gap-1">
+                        <span className="text-white/30 text-[9px] font-bold">E</span>
+                        <span className="font-semibold text-white/80">Accuracy</span>
+                        {renderSortIndicator('acc')}
+                      </div>
+                    </th>
+
+                    {/* Column F: Gap */}
+                    <th
+                      onClick={() => handleSortHeader('gap')}
+                      className="py-2 px-3 w-24 text-center border-r border-neutral-800 cursor-pointer hover:bg-neutral-800/60 transition-colors group select-none"
+                    >
+                      <div className="flex items-center justify-center gap-1">
+                        <span className="text-white/30 text-[9px] font-bold">F</span>
+                        <span className="font-semibold text-white/80">Gap</span>
+                        {renderSortIndicator('gap')}
+                      </div>
+                    </th>
+
+                    {/* Column G: Status */}
+                    <th
+                      onClick={() => handleSortHeader('status')}
+                      className="py-2 px-3 w-36 text-center border-r border-neutral-800 cursor-pointer hover:bg-neutral-800/60 transition-colors group select-none"
+                    >
+                      <div className="flex items-center justify-center gap-1">
+                        <span className="text-white/30 text-[9px] font-bold">G</span>
+                        <span className="font-semibold text-white/80">Status</span>
+                        {renderSortIndicator('status')}
+                      </div>
+                    </th>
+
+                    {/* Column H: Questions Attempted */}
+                    <th
+                      onClick={() => handleSortHeader('attempts')}
+                      className="py-2 px-3 w-20 text-center border-r border-neutral-800 cursor-pointer hover:bg-neutral-800/60 transition-colors group select-none"
+                    >
+                      <div className="flex items-center justify-center gap-1">
+                        <span className="text-white/30 text-[9px] font-bold">H</span>
+                        <span className="font-semibold text-white/80">Qs</span>
+                        {renderSortIndicator('attempts')}
+                      </div>
+                    </th>
+
+                    {/* Column I: Quick Actions */}
+                    <th className="py-2 px-4 w-40 text-center bg-neutral-900/95 font-semibold text-white/80 select-none">
+                      <div className="flex items-center justify-center gap-1">
+                        <span className="text-white/30 text-[9px] font-bold">I</span>
+                        <span>Action</span>
+                      </div>
+                    </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+
+                {/* ─── Excel Spreadsheet Rows ─── */}
+                <tbody className="divide-y divide-neutral-800/80 bg-black">
                   {filteredAndSorted.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="py-16 text-center text-white/40 text-sm font-sans">
-                        No topics match the selected filters.
+                      <td colSpan={10} className="py-20 text-center text-white/40 font-mono">
+                        <div className="flex flex-col items-center gap-2">
+                          <span className="text-lg">∅</span>
+                          <span>No topics found matching formula filter: "{searchQuery || subjectFilter}"</span>
+                          <button
+                            onClick={() => { setSearchQuery(''); setSubjectFilter('ALL'); setStatusFilter('ALL'); }}
+                            className="mt-2 text-xs text-primary underline"
+                          >
+                            Clear filters
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ) : (
                     filteredAndSorted.map((topic, idx) => {
+                      const rowNum = idx + 1;
+                      const isSelectedRow = activeCell.row === rowNum;
                       const gap = topic.gap;
-                      const isOver = topic.status === 'OVERCONFIDENT';
-                      const isUnder = topic.status === 'UNDERCONFIDENT';
-                      const isAligned = topic.status === 'ALIGNED';
 
                       return (
                         <tr
                           key={topic.topic_id}
-                          className="hover:bg-surface-container/50 transition-colors group"
+                          onClick={() => setActiveCell({
+                            coord: `C${rowNum}`,
+                            col: 'C',
+                            row: rowNum,
+                            field: 'topic_name',
+                            value: topic.topic_name
+                          })}
+                          className={`transition-colors group hover:bg-neutral-900/70 ${
+                            isSelectedRow ? 'bg-neutral-900/50' : ''
+                          }`}
                         >
-                          {/* Row # */}
-                          <td className="py-2.5 px-3 text-center text-white/30 font-mono text-[11px]">
-                            {idx + 1}
+                          {/* Row Index Gutter */}
+                          <td className="py-1.5 px-2 text-center text-white/30 font-mono text-[10px] bg-neutral-950/80 border-r border-neutral-800 select-none group-hover:text-primary">
+                            {rowNum}
                           </td>
 
-                          {/* Subject Pill */}
-                          <td className="py-2.5 px-3">
-                            <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold border ${getSubjectColor(topic.subject_name)}`}>
+                          {/* Cell A: Subject */}
+                          <td
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveCell({ coord: `A${rowNum}`, col: 'A', row: rowNum, field: 'subject_name', value: topic.subject_name });
+                            }}
+                            className={`py-1.5 px-3 border-r border-neutral-800/80 text-[11px] truncate ${
+                              activeCell.coord === `A${rowNum}` ? 'ring-2 ring-primary ring-inset bg-primary/5' : ''
+                            }`}
+                          >
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${getSubjectColor(topic.subject_name)}`}>
                               {topic.subject_name}
                             </span>
                           </td>
 
-                          {/* Chapter */}
-                          <td className="py-2.5 px-3 text-white/60 text-[11px] truncate max-w-[200px]" title={topic.chapter_name}>
+                          {/* Cell B: Chapter */}
+                          <td
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveCell({ coord: `B${rowNum}`, col: 'B', row: rowNum, field: 'chapter_name', value: topic.chapter_name });
+                            }}
+                            className={`py-1.5 px-3 border-r border-neutral-800/80 text-white/60 text-[11px] truncate max-w-[220px] ${
+                              activeCell.coord === `B${rowNum}` ? 'ring-2 ring-primary ring-inset bg-primary/5 text-white' : ''
+                            }`}
+                            title={topic.chapter_name}
+                          >
                             {topic.chapter_name}
                           </td>
 
-                          {/* Topic Name (Clickable link) */}
-                          <td className="py-2.5 px-4 font-sans font-medium text-white group-hover:text-primary transition-colors">
-                            <button
-                              onClick={() => navigate(`/topics/${topic.topic_id}`)}
-                              className="text-left hover:underline flex items-center gap-1.5"
-                            >
-                              <span>{topic.topic_name}</span>
-                              <ChevronRight className="w-3 h-3 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </button>
+                          {/* Cell C: Topic Name (Clickable to Topic Detail) */}
+                          <td
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveCell({ coord: `C${rowNum}`, col: 'C', row: rowNum, field: 'topic_name', value: topic.topic_name });
+                            }}
+                            className={`py-1.5 px-4 border-r border-neutral-800/80 font-sans text-xs text-white/90 font-medium ${
+                              activeCell.coord === `C${rowNum}` ? 'ring-2 ring-primary ring-inset bg-primary/5 text-primary' : ''
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <button
+                                onClick={() => navigate(`/topics/${topic.topic_id}`)}
+                                className="text-left hover:text-primary hover:underline truncate"
+                                title="Click to view deep topic analytics"
+                              >
+                                {topic.topic_name}
+                              </button>
+                              <ChevronRight className="w-3 h-3 text-primary opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                            </div>
                           </td>
 
-                          {/* Confidence with in-place calibration click */}
-                          <td className="py-2.5 px-3 text-center">
-                            <button
-                              onClick={() => {
-                                setCalibrateModal({ topicId: topic.topic_id, name: topic.topic_name, currentConf: topic.confidence });
-                                setCalibrateVal(topic.confidence || 5);
-                              }}
-                              className="px-2 py-1 rounded bg-surface border border-white/10 hover:border-primary hover:text-primary transition-colors font-bold text-[11px] inline-flex items-center gap-1"
-                              title="Click to calibrate confidence"
-                            >
-                              <span>{topic.confidence !== null ? `${topic.confidence}/10` : '--'}</span>
+                          {/* Cell D: Confidence (with in-cell calibration) */}
+                          <td
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveCell({ coord: `D${rowNum}`, col: 'D', row: rowNum, field: 'confidence', value: topic.confidence });
+                              setInCellCalibrate(inCellCalibrate?.topicId === topic.topic_id ? null : {
+                                topicId: topic.topic_id,
+                                currentVal: topic.confidence || 5,
+                                topicName: topic.topic_name
+                              });
+                            }}
+                            className={`py-1.5 px-2.5 text-center border-r border-neutral-800/80 cursor-pointer ${
+                              activeCell.coord === `D${rowNum}` ? 'ring-2 ring-primary ring-inset bg-primary/5' : ''
+                            }`}
+                          >
+                            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-surface border border-white/10 hover:border-primary transition-colors text-[11px] font-bold">
+                              <span className={topic.confidence !== null ? 'text-primary' : 'text-white/30'}>
+                                {topic.confidence !== null ? `${topic.confidence}/10` : '--'}
+                              </span>
                               <span className="text-[9px] text-white/30">✎</span>
-                            </button>
+                            </div>
                           </td>
 
-                          {/* Accuracy with subtle mini-bar */}
-                          <td className="py-2.5 px-3 text-center">
+                          {/* Cell E: Evaluation Accuracy (with mini data-bar) */}
+                          <td
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveCell({ coord: `E${rowNum}`, col: 'E', row: rowNum, field: 'evaluation_accuracy', value: topic.evaluation_accuracy });
+                            }}
+                            className={`py-1.5 px-3 text-center border-r border-neutral-800/80 ${
+                              activeCell.coord === `E${rowNum}` ? 'ring-2 ring-primary ring-inset bg-primary/5' : ''
+                            }`}
+                          >
                             {topic.evaluation_accuracy !== null ? (
                               <div className="flex flex-col items-center">
-                                <span className="font-bold text-[11px]">{topic.evaluation_accuracy}%</span>
-                                <div className="w-12 h-1 bg-white/10 rounded-full overflow-hidden mt-0.5">
+                                <span className="font-bold text-[11px] text-white">{topic.evaluation_accuracy}%</span>
+                                <div className="w-14 h-1 bg-white/10 rounded-full overflow-hidden mt-0.5">
                                   <div
-                                    className={`h-full ${topic.evaluation_accuracy >= 70 ? 'bg-status-aligned' : topic.evaluation_accuracy >= 40 ? 'bg-status-weak' : 'bg-error'}`}
+                                    className={`h-full ${
+                                      topic.evaluation_accuracy >= 70
+                                        ? 'bg-status-aligned'
+                                        : topic.evaluation_accuracy >= 40
+                                        ? 'bg-status-weak'
+                                        : 'bg-error'
+                                    }`}
                                     style={{ width: `${topic.evaluation_accuracy}%` }}
                                   />
                                 </div>
                               </div>
                             ) : (
-                              <span className="text-white/30">--</span>
+                              <span className="text-white/30 text-[11px]">--</span>
                             )}
                           </td>
 
-                          {/* Calibration Gap */}
-                          <td className="py-2.5 px-3 text-center font-bold">
+                          {/* Cell F: Calibration Gap */}
+                          <td
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveCell({ coord: `F${rowNum}`, col: 'F', row: rowNum, field: 'gap', value: gap });
+                            }}
+                            className={`py-1.5 px-3 text-center font-bold border-r border-neutral-800/80 ${
+                              activeCell.coord === `F${rowNum}` ? 'ring-2 ring-primary ring-inset bg-primary/5' : ''
+                            }`}
+                          >
                             {gap !== null ? (
-                              <span className={`text-[11px] ${gap < 0 ? 'text-error' : gap > 0 ? 'text-primary' : 'text-status-aligned'}`}>
+                              <span className={`text-[11px] font-bold ${
+                                gap < 0 ? 'text-error' : gap > 0 ? 'text-primary' : 'text-status-aligned'
+                              }`}>
                                 {gap > 0 ? `+${gap}%` : `${gap}%`}
                               </span>
                             ) : (
-                              <span className="text-white/30">--</span>
+                              <span className="text-white/30 text-[11px]">--</span>
                             )}
                           </td>
 
-                          {/* Status Badge */}
-                          <td className="py-2.5 px-3 text-center">
+                          {/* Cell G: Status Badge */}
+                          <td
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveCell({ coord: `G${rowNum}`, col: 'G', row: rowNum, field: 'status', value: topic.status });
+                            }}
+                            className={`py-1.5 px-3 text-center border-r border-neutral-800/80 ${
+                              activeCell.coord === `G${rowNum}` ? 'ring-2 ring-primary ring-inset bg-primary/5' : ''
+                            }`}
+                          >
                             <div className="flex justify-center">
                               {getStatusBadge(topic.status)}
                             </div>
                           </td>
 
-                          {/* Quick Action Buttons */}
-                          <td className="py-2.5 px-4 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
+                          {/* Cell H: Questions Attempted */}
+                          <td
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveCell({ coord: `H${rowNum}`, col: 'H', row: rowNum, field: 'questions_attempted', value: topic.questions_attempted });
+                            }}
+                            className={`py-1.5 px-3 text-center text-white/50 text-[11px] border-r border-neutral-800/80 ${
+                              activeCell.coord === `H${rowNum}` ? 'ring-2 ring-primary ring-inset bg-primary/5 text-white' : ''
+                            }`}
+                          >
+                            {topic.questions_attempted || 0}
+                          </td>
+
+                          {/* Cell I: Quick Action Buttons */}
+                          <td className="py-1.5 px-3 text-center">
+                            <div className="flex items-center justify-center gap-1.5">
                               <button
                                 onClick={() => navigate(`/practice?topic=${topic.topic_id}`)}
-                                className="px-2.5 py-1 bg-surface-container border border-outline-variant hover:border-primary hover:text-primary text-white/80 rounded-sm uppercase tracking-wider text-[10px] font-bold flex items-center gap-1 transition-colors"
+                                className="px-2 py-1 bg-surface-container border border-outline-variant hover:border-primary hover:text-primary text-white/80 rounded-xs uppercase tracking-wider text-[10px] font-bold flex items-center gap-1 transition-colors"
                                 title="Practice Questions"
                               >
                                 <Play className="w-2.5 h-2.5 fill-current" />
@@ -610,7 +923,7 @@ export default function DashboardPage() {
                               </button>
                               <button
                                 onClick={() => navigate(`/evaluate?topic=${topic.topic_id}`)}
-                                className="px-2.5 py-1 bg-primary/10 border border-primary/40 hover:bg-primary hover:text-black text-primary rounded-sm uppercase tracking-wider text-[10px] font-bold flex items-center gap-1 transition-colors"
+                                className="px-2 py-1 bg-primary/15 border border-primary/40 hover:bg-primary hover:text-black text-primary rounded-xs uppercase tracking-wider text-[10px] font-bold flex items-center gap-1 transition-colors"
                                 title="Timed Mock Test"
                               >
                                 <Timer className="w-2.5 h-2.5 stroke-[2]" />
@@ -626,118 +939,69 @@ export default function DashboardPage() {
               </table>
             </div>
 
-            {/* Sheet Footer Count */}
-            <div className="p-3 bg-surface-container/60 border-t border-outline-variant flex items-center justify-between text-[11px] font-mono text-white/50">
-              <span>Showing {filteredAndSorted.length} of {data.length} topics</span>
-              <span className="text-white/40">Tip: Click any confidence score to calibrate on the fly</span>
-            </div>
-          </div>
-
-          {/* Mobile Ultra-Dense Responsive Accordion List (< 768px) */}
-          <div className="block md:hidden space-y-2">
-            <div className="text-[11px] font-mono text-white/50 px-1 flex justify-between">
-              <span>{filteredAndSorted.length} topics found</span>
-              <span>Tap row to expand</span>
-            </div>
-
-            {filteredAndSorted.map((topic, idx) => {
-              const isExpanded = mobileExpandedTopic === topic.topic_id;
-              return (
-                <div
-                  key={topic.topic_id}
-                  className="acrylic-glass border border-outline-variant rounded-sm overflow-hidden"
-                >
-                  {/* Compact Row (<50px height) */}
-                  <div
-                    onClick={() => setMobileExpandedTopic(isExpanded ? null : topic.topic_id)}
-                    className="p-3 flex items-center justify-between gap-2 cursor-pointer select-none active:bg-surface-container"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="text-[10px] font-mono text-white/40 w-5 shrink-0 text-center">
-                        {idx + 1}
-                      </span>
-                      <div className="min-w-0">
-                        <div className="text-xs font-medium text-white truncate font-sans">
-                          {topic.topic_name}
-                        </div>
-                        <div className="text-[10px] font-mono text-white/50 truncate">
-                          {topic.subject_name} &rsaquo; {topic.chapter_name}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      {topic.gap !== null ? (
-                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${topic.gap < 0 ? 'bg-error/20 text-error' : topic.gap > 0 ? 'bg-primary/20 text-primary' : 'bg-status-aligned/20 text-status-aligned'}`}>
-                          {topic.gap > 0 ? `+${topic.gap}%` : `${topic.gap}%`}
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-mono text-white/30">untested</span>
-                      )}
-                      <ChevronDown className={`w-3.5 h-3.5 text-white/40 transition-transform ${isExpanded ? 'rotate-180 text-primary' : ''}`} />
-                    </div>
-                  </div>
-
-                  {/* Expanded Detail Drawer */}
-                  {isExpanded && (
-                    <div className="p-3 bg-surface-container/60 border-t border-white/5 space-y-3 animate-fade-in text-xs font-mono">
-                      <div className="grid grid-cols-3 gap-2 text-center">
-                        <div className="p-2 bg-black/40 rounded border border-white/10">
-                          <div className="text-[10px] text-white/40">CONFIDENCE</div>
-                          <div className="font-bold text-sm text-primary">{topic.confidence !== null ? `${topic.confidence}/10` : '--'}</div>
-                        </div>
-                        <div className="p-2 bg-black/40 rounded border border-white/10">
-                          <div className="text-[10px] text-white/40">ACCURACY</div>
-                          <div className="font-bold text-sm text-white">{topic.evaluation_accuracy !== null ? `${topic.evaluation_accuracy}%` : '--'}</div>
-                        </div>
-                        <div className="p-2 bg-black/40 rounded border border-white/10">
-                          <div className="text-[10px] text-white/40">GAP</div>
-                          <div className={`font-bold text-sm ${topic.gap < 0 ? 'text-error' : topic.gap > 0 ? 'text-primary' : 'text-status-aligned'}`}>
-                            {topic.gap !== null ? (topic.gap > 0 ? `+${topic.gap}%` : `${topic.gap}%`) : '--'}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-white/50 uppercase">Status:</span>
-                        {getStatusBadge(topic.status)}
-                      </div>
-
-                      <div className="grid grid-cols-3 gap-2 pt-1">
-                        <button
-                          onClick={() => {
-                            setCalibrateModal({ topicId: topic.topic_id, name: topic.topic_name, currentConf: topic.confidence });
-                            setCalibrateVal(topic.confidence || 5);
-                          }}
-                          className="py-2 bg-surface-dim border border-white/20 text-white rounded-sm text-[11px] font-bold uppercase tracking-wider hover:border-primary"
-                        >
-                          Calibrate
-                        </button>
-                        <button
-                          onClick={() => navigate(`/practice?topic=${topic.topic_id}`)}
-                          className="py-2 bg-surface-container border border-outline-variant text-white rounded-sm text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-1"
-                        >
-                          <Play className="w-3 h-3 fill-current" />
-                          <span>Drill</span>
-                        </button>
-                        <button
-                          onClick={() => navigate(`/evaluate?topic=${topic.topic_id}`)}
-                          className="py-2 bg-primary text-black rounded-sm text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-1"
-                        >
-                          <Timer className="w-3 h-3 stroke-[2]" />
-                          <span>Mock</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
+            {/* ─── In-Cell Calibration Micro-Drawer (if active) ─── */}
+            {inCellCalibrate && (
+              <div className="p-3 bg-neutral-900 border-t border-primary/30 flex flex-wrap items-center justify-between gap-3 animate-fade-in text-xs font-mono">
+                <div className="flex items-center gap-2">
+                  <span className="text-primary font-bold">CALIBRATE:</span>
+                  <span className="text-white">{inCellCalibrate.topicName}</span>
+                  <span className="text-white/40">// Select Confidence (1-10):</span>
                 </div>
-              );
-            })}
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(val => (
+                    <button
+                      key={val}
+                      onClick={() => handleQuickCalibrate(inCellCalibrate.topicId, val)}
+                      disabled={savingConf}
+                      className={`w-7 h-7 rounded text-xs font-bold font-mono transition-transform hover:scale-110 ${
+                        inCellCalibrate.currentVal === val
+                          ? 'bg-primary text-black ring-2 ring-white'
+                          : 'bg-neutral-800 text-white hover:bg-neutral-700'
+                      }`}
+                    >
+                      {val}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setInCellCalibrate(null)}
+                    className="ml-2 text-white/50 hover:text-white px-2 py-1"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ─── Excel Bottom Status Bar ─── */}
+            <div className="px-3 py-2 bg-neutral-950 border-t border-neutral-800 flex flex-wrap items-center justify-between text-[11px] font-mono text-white/50">
+              <div className="flex items-center gap-3">
+                <span className="flex items-center gap-1.5 text-emerald-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  READY
+                </span>
+                <span className="text-white/30">|</span>
+                <span>SHEET: <strong className="text-white">{subjectFilter}</strong></span>
+                <span className="text-white/30">|</span>
+                <span>ROWS: <strong className="text-white">{filteredAndSorted.length}</strong> of {data.length}</span>
+                <span className="text-white/30">|</span>
+                <span>CELL: <strong className="text-primary">{activeCell.coord}</strong></span>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <span>AVG CONF: <strong className="text-primary">{summary.avgConfidence}/10</strong></span>
+                <span>AVG ACC: <strong className="text-white">{summary.avgAccuracy}%</strong></span>
+                <span>TOTAL QS: <strong className="text-white">{summary.totalAttempts}</strong></span>
+                <span className="hidden sm:inline text-white/30">|</span>
+                <span className="hidden sm:inline text-white/40">100% ZOOM</span>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* ─── VIEW MODE 2: WINDOWS PHONE METRO LIVE TILES ─── */}
+      {/* ═══════════════════════════════════════════════════════════════════
+       * VIEW MODE 2: WINDOWS PHONE METRO LIVE TILES
+       * ═══════════════════════════════════════════════════════════════════ */}
       {viewMode === 'tiles' && (
         <div className="space-y-8">
           {Object.entries(groupedByChapter).map(([groupName, topics]) => (
@@ -792,7 +1056,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ─── In-Place Quick Confidence Calibration Modal ─── */}
+      {/* ─── Modal Confidence Calibration (Fallback) ─── */}
       {calibrateModal && (
         <div
           className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
@@ -829,7 +1093,7 @@ export default function DashboardPage() {
 
             <div className="flex items-center gap-3 pt-2">
               <button
-                onClick={handleSaveConfidence}
+                onClick={handleSaveModalConfidence}
                 disabled={calibrating}
                 className="flex-1 py-2.5 bg-primary text-black text-xs font-mono font-bold uppercase tracking-wider rounded-sm hover:brightness-110 disabled:opacity-50"
               >

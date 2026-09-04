@@ -16,7 +16,8 @@ import Icon, {
   Sliders,
   LogOut,
   Palette,
-  Sparkles
+  Sparkles,
+  History
 } from './Icon';
 
 const PIVOT_ITEMS = [
@@ -246,50 +247,123 @@ export default function Layout({ children }) {
 
         {/* ─── Expandable Windows Phone Flyout Drawer ─── */}
         {appBarOpen && (
-          <div className="mt-3 pt-3 border-t border-white/10 max-w-7xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-3 animate-fade-in text-sm">
-            <button
-              onClick={() => { navigate('/admin/content'); setAppBarOpen(false); }}
-              className="flex items-center gap-3 p-3 bg-surface-container hover:bg-surface-bright rounded-sm border border-white/5 transition-colors text-left"
-            >
-              <UploadCloud className="w-5 h-5 text-primary" />
+          <div className="mt-3 pt-3 border-t border-white/10 max-w-7xl mx-auto animate-fade-in">
+            {profile?.is_admin ? (
+              /* Admin Operations Drawer */
               <div>
-                <div className="font-semibold text-xs uppercase tracking-wider text-white">Content Ops</div>
-                <div className="text-[11px] text-white/50">PDF Ingestion & Review</div>
-              </div>
-            </button>
+                <div className="text-[10px] font-mono text-primary uppercase tracking-widest mb-2 px-1">
+                  Administrative Tools // Staff Only
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                  <button
+                    onClick={() => { navigate('/admin/content'); setAppBarOpen(false); }}
+                    className="flex items-center gap-3 p-3 bg-surface-container hover:bg-surface-bright rounded-sm border border-white/5 transition-colors text-left"
+                  >
+                    <UploadCloud className="w-5 h-5 text-primary shrink-0" />
+                    <div>
+                      <div className="font-semibold text-xs uppercase tracking-wider text-white">Content Ops</div>
+                      <div className="text-[11px] text-white/50">PDF Ingestion & Review</div>
+                    </div>
+                  </button>
 
-            <button
-              onClick={() => { navigate('/admin/questions'); setAppBarOpen(false); }}
-              className="flex items-center gap-3 p-3 bg-surface-container hover:bg-surface-bright rounded-sm border border-white/5 transition-colors text-left"
-            >
-              <BookOpen className="w-5 h-5 text-primary" />
-              <div>
-                <div className="font-semibold text-xs uppercase tracking-wider text-white">Admin Bank</div>
-                <div className="text-[11px] text-white/50">Full Database Browser</div>
-              </div>
-            </button>
+                  <button
+                    onClick={() => { navigate('/admin/questions'); setAppBarOpen(false); }}
+                    className="flex items-center gap-3 p-3 bg-surface-container hover:bg-surface-bright rounded-sm border border-white/5 transition-colors text-left"
+                  >
+                    <BookOpen className="w-5 h-5 text-primary shrink-0" />
+                    <div>
+                      <div className="font-semibold text-xs uppercase tracking-wider text-white">Admin Bank</div>
+                      <div className="text-[11px] text-white/50">Full Database Browser</div>
+                    </div>
+                  </button>
 
-            <button
-              onClick={() => { navigate('/admin/syncs'); setAppBarOpen(false); }}
-              className="flex items-center gap-3 p-3 bg-surface-container hover:bg-surface-bright rounded-sm border border-white/5 transition-colors text-left"
-            >
-              <RefreshCw className="w-5 h-5 text-primary" />
-              <div>
-                <div className="font-semibold text-xs uppercase tracking-wider text-white">Sync Monitor</div>
-                <div className="text-[11px] text-white/50">Storage Telemetry</div>
-              </div>
-            </button>
+                  <button
+                    onClick={() => { navigate('/admin/syncs'); setAppBarOpen(false); }}
+                    className="flex items-center gap-3 p-3 bg-surface-container hover:bg-surface-bright rounded-sm border border-white/5 transition-colors text-left"
+                  >
+                    <RefreshCw className="w-5 h-5 text-primary shrink-0" />
+                    <div>
+                      <div className="font-semibold text-xs uppercase tracking-wider text-white">Sync Monitor</div>
+                      <div className="text-[11px] text-white/50">Storage Telemetry</div>
+                    </div>
+                  </button>
 
-            <button
-              onClick={() => { handleSignOut(); setAppBarOpen(false); }}
-              className="flex items-center gap-3 p-3 bg-error/10 hover:bg-error/20 rounded-sm border border-error/20 transition-colors text-left text-error"
-            >
-              <LogOut className="w-5 h-5 text-error" />
-              <div>
-                <div className="font-semibold text-xs uppercase tracking-wider">Sign Out</div>
-                <div className="text-[11px] opacity-70">End current session</div>
+                  <button
+                    onClick={() => { handleSignOut(); setAppBarOpen(false); }}
+                    className="flex items-center gap-3 p-3 bg-error/10 hover:bg-error/20 rounded-sm border border-error/20 transition-colors text-left text-error"
+                  >
+                    <LogOut className="w-5 h-5 text-error shrink-0" />
+                    <div>
+                      <div className="font-semibold text-xs uppercase tracking-wider">Sign Out</div>
+                      <div className="text-[11px] opacity-70">End current session</div>
+                    </div>
+                  </button>
+                </div>
               </div>
-            </button>
+            ) : (
+              /* Student Tools Drawer */
+              <div>
+                <div className="text-[10px] font-mono text-white/50 uppercase tracking-widest mb-2 px-1">
+                  Student Navigation & Tools
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-sm">
+                  <button
+                    onClick={() => { navigate('/plan'); setAppBarOpen(false); }}
+                    className="flex items-center gap-3 p-3 bg-surface-container hover:bg-surface-bright rounded-sm border border-white/5 transition-colors text-left"
+                  >
+                    <ListTodo className="w-5 h-5 text-primary shrink-0" />
+                    <div>
+                      <div className="font-semibold text-xs uppercase tracking-wider text-white">Study Plan</div>
+                      <div className="text-[11px] text-white/50">Topics & Checklist</div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => { navigate('/trends'); setAppBarOpen(false); }}
+                    className="flex items-center gap-3 p-3 bg-surface-container hover:bg-surface-bright rounded-sm border border-white/5 transition-colors text-left"
+                  >
+                    <TrendingUp className="w-5 h-5 text-primary shrink-0" />
+                    <div>
+                      <div className="font-semibold text-xs uppercase tracking-wider text-white">Trends</div>
+                      <div className="text-[11px] text-white/50">Accuracy Trajectory</div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => { navigate('/history'); setAppBarOpen(false); }}
+                    className="flex items-center gap-3 p-3 bg-surface-container hover:bg-surface-bright rounded-sm border border-white/5 transition-colors text-left"
+                  >
+                    <History className="w-5 h-5 text-primary shrink-0" />
+                    <div>
+                      <div className="font-semibold text-xs uppercase tracking-wider text-white">History</div>
+                      <div className="text-[11px] text-white/50">Past Sessions & Evals</div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => { navigate('/profile'); setAppBarOpen(false); }}
+                    className="flex items-center gap-3 p-3 bg-surface-container hover:bg-surface-bright rounded-sm border border-white/5 transition-colors text-left"
+                  >
+                    <User className="w-5 h-5 text-primary shrink-0" />
+                    <div>
+                      <div className="font-semibold text-xs uppercase tracking-wider text-white">Profile</div>
+                      <div className="text-[11px] text-white/50">Exam Year & Stats</div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => { handleSignOut(); setAppBarOpen(false); }}
+                    className="flex items-center gap-3 p-3 bg-error/10 hover:bg-error/20 rounded-sm border border-error/20 transition-colors text-left text-error col-span-2 sm:col-span-1"
+                  >
+                    <LogOut className="w-5 h-5 text-error shrink-0" />
+                    <div>
+                      <div className="font-semibold text-xs uppercase tracking-wider">Sign Out</div>
+                      <div className="text-[11px] opacity-70">End session</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </footer>
