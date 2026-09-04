@@ -1,3 +1,4 @@
+import { Bookmark, Check, X } from 'lucide-react';
 import MathText from './MathText';
 
 export { MathText };
@@ -67,9 +68,7 @@ export default function QuestionCard({
                 : 'border-transparent text-on-surface-variant hover:border-outline-variant'
             }`}
           >
-            <span className={`material-symbols-outlined ${markedForReview ? 'filled' : ''}`}>
-              bookmark
-            </span>
+            <Bookmark className={`w-5 h-5 ${markedForReview ? 'fill-current text-status-weak' : ''}`} />
           </button>
         )}
       </div>
@@ -97,10 +96,10 @@ export default function QuestionCard({
               <MathText text={opt.text} />
             </span>
             {showResult && question.correct_answer === opt.id && (
-              <span className="material-symbols-outlined flex-shrink-0 text-white">check</span>
+              <Check className="w-5 h-5 flex-shrink-0 text-white" />
             )}
             {showResult && selectedAnswer === opt.id && selectedAnswer !== question.correct_answer && (
-              <span className="material-symbols-outlined flex-shrink-0 text-white">close</span>
+              <X className="w-5 h-5 flex-shrink-0 text-white" />
             )}
           </button>
         ))}

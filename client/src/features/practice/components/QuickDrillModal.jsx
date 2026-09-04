@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { practiceService } from '../services/practiceService';
 import QuestionCard from '@/features/questions/components/QuestionCard';
 import { confidenceService } from '@/features/confidence/services/confidenceService';
+import { X, Zap, Check, ArrowRight, Award } from 'lucide-react';
 
 export default function QuickDrillModal({ topicId, topicName, isOpen, onClose, onComplete }) {
   const [step, setStep] = useState('ready'); // ready, drilling, summary
@@ -102,7 +103,7 @@ export default function QuickDrillModal({ topicId, topicName, isOpen, onClose, o
             onClick={onClose}
             className="text-on-surface-variant hover:text-on-surface"
           >
-            <span className="material-symbols-outlined">close</span>
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -110,22 +111,22 @@ export default function QuickDrillModal({ topicId, topicName, isOpen, onClose, o
         <div className="flex-1 p-6 overflow-y-auto">
           {step === 'ready' && (
             <div className="text-center space-y-6">
-              <span className="material-symbols-outlined text-[64px] text-primary block opacity-80">bolt</span>
+              <Zap className="w-14 h-14 text-primary mx-auto mb-2 opacity-80" />
               <div>
                 <h3 className="text-headline-lg text-on-surface mb-2">Fast Focus Practice</h3>
                 <p className="text-body-lg text-on-surface-variant">5 quick questions • untimed • instant feedback</p>
               </div>
               <div className="space-y-3 text-body-md text-on-surface-variant text-left max-w-sm mx-auto">
                 <div className="flex gap-2">
-                  <span className="material-symbols-outlined text-primary">check</span>
+                  <Check className="w-4 h-4 text-primary mt-0.5" />
                   <span>No timer—work at your own pace</span>
                 </div>
                 <div className="flex gap-2">
-                  <span className="material-symbols-outlined text-primary">check</span>
+                  <Check className="w-4 h-4 text-primary mt-0.5" />
                   <span>Solutions shown after each answer</span>
                 </div>
                 <div className="flex gap-2">
-                  <span className="material-symbols-outlined text-primary">check</span>
+                  <Check className="w-4 h-4 text-primary mt-0.5" />
                   <span>Takes ~5-10 minutes</span>
                 </div>
               </div>
@@ -189,7 +190,7 @@ export default function QuickDrillModal({ topicId, topicName, isOpen, onClose, o
                     className="flex-1 py-3 bg-primary text-on-primary text-body-md font-semibold uppercase tracking-widest rounded-lg hover:brightness-110 transition-all flex items-center justify-center gap-2"
                   >
                     {currentIndex < questions.length - 1 ? 'Next Question' : 'Finish Drill'}
-                    <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                    <ArrowRight className="w-4 h-4" />
                   </button>
                 )}
               </div>
@@ -198,9 +199,7 @@ export default function QuickDrillModal({ topicId, topicName, isOpen, onClose, o
 
           {step === 'summary' && summary && (
             <div className="text-center space-y-6">
-              <span className="material-symbols-outlined text-[64px] text-status-aligned block opacity-80">
-                {summary.accuracy >= 70 ? 'sentiment_satisfied' : 'sentiment_neutral'}
-              </span>
+              <Award className="w-14 h-14 text-status-aligned mx-auto mb-2 opacity-80" />
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 bg-surface-dim rounded-lg border border-outline-variant">

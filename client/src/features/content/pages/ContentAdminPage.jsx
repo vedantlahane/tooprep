@@ -3,6 +3,16 @@ import { contentService } from '../services/contentService';
 import { topicsService } from '@/features/topics/services/topicsService';
 import MathText from '@/features/questions/components/MathText';
 import { extractOptionsFromText, detectAnswerKey, isInstructionSnippet } from '../lib/candidateParser';
+import {
+  UploadCloud,
+  FileText,
+  CheckCircle2,
+  AlertTriangle,
+  Zap,
+  Check,
+  ListFilter,
+  Send
+} from 'lucide-react';
 
 const REJECTION_PRESETS = [
   'Cover Page / Instructions',
@@ -144,7 +154,7 @@ function Candidate({ candidate, jobId, topics, onReviewed }) {
       <div className="bg-surface-container px-4 py-3 flex justify-between items-center border-b border-outline-variant flex-wrap gap-2">
         <div className="flex items-center gap-3 flex-wrap">
           <div className="text-label-sm-mono uppercase tracking-widest text-primary font-bold flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px]">description</span>
+            <FileText className="w-4 h-4 text-primary" />
             Q.{candidate.source_question_number} &middot; Page {candidate.source_pages?.join(', ')}
           </div>
 
@@ -166,7 +176,7 @@ function Candidate({ candidate, jobId, topics, onReviewed }) {
 
           {candidate.has_solution && (
             <span className="px-2 py-0.5 bg-status-aligned/10 border border-status-aligned/30 text-status-aligned text-xs rounded-sm flex items-center gap-1">
-              <span className="material-symbols-outlined text-[12px]">check</span>
+              <Check className="w-3 h-3" />
               Solution
             </span>
           )}
@@ -181,10 +191,10 @@ function Candidate({ candidate, jobId, topics, onReviewed }) {
         <div className="flex items-center gap-2">
           <button
             onClick={handleAutoExtract}
-            className="px-3 py-1 text-label-sm-mono uppercase tracking-widest border border-primary text-primary hover:bg-primary hover:text-white transition-colors rounded-sm flex items-center gap-1 text-xs"
+            className="px-3 py-1 text-label-sm-mono uppercase tracking-widest border border-primary text-primary hover:bg-primary hover:text-white transition-colors rounded-sm flex items-center gap-1.5 text-xs"
             title="Auto-extract Options (A), (B), (C), (D) from question text"
           >
-            <span className="material-symbols-outlined text-[14px]">bolt</span>
+            <Zap className="w-3.5 h-3.5" />
             Extract Options
           </button>
           <button
@@ -207,7 +217,7 @@ function Candidate({ candidate, jobId, topics, onReviewed }) {
         {similarQuestions.length > 0 && (
           <div className="bg-surface-container border border-outline-variant rounded p-4 space-y-3">
             <div className="text-label-sm-mono text-status-weak uppercase tracking-widest flex items-center gap-2">
-              <span className="material-symbols-outlined text-[18px]">warning</span>
+              <AlertTriangle className="w-4 h-4" />
               Potential Duplicates Found
             </div>
             {similarQuestions.map((sim, i) => (
@@ -478,7 +488,7 @@ export default function ContentAdminPage() {
           <div className="relative">
             <input required type="file" accept="application/pdf,.pdf" onChange={e => setFile(e.target.files[0] || null)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
             <div className={`w-full bg-surface-container border ${file ? 'border-primary' : 'border-outline-variant'} border-dashed p-4 flex items-center justify-center gap-3 rounded-sm transition-colors`}>
-              <span className="material-symbols-outlined text-primary">upload_file</span>
+              <UploadCloud className="w-5 h-5 text-primary" />
               <span className={`text-body-md ${file ? 'text-primary font-semibold' : 'text-on-surface-variant'}`}>{file ? file.name : 'Click to select or drag PDF here'}</span>
             </div>
           </div>
@@ -550,7 +560,7 @@ export default function ContentAdminPage() {
                   disabled={bulkPublishing}
                   className="px-4 py-2 bg-primary text-white text-label-sm-mono uppercase tracking-widest text-xs rounded-sm hover:brightness-110 transition-all flex items-center gap-2 font-semibold"
                 >
-                  <span className="material-symbols-outlined text-[16px]">publish</span>
+                  <CheckCircle2 className="w-4 h-4" />
                   {bulkPublishing ? 'Publishing...' : 'Publish All Ready'}
                 </button>
               </div>
@@ -579,14 +589,14 @@ export default function ContentAdminPage() {
           <div className="space-y-6">
             {!selectedJob && (
               <div className="border border-outline-variant border-dashed p-12 flex flex-col items-center justify-center text-on-surface-variant rounded-md">
-                <span className="material-symbols-outlined text-4xl mb-4 opacity-50">rule</span>
+                <ListFilter className="w-10 h-10 mb-4 opacity-40 text-primary" />
                 <p>Select a job from the sidebar to start verifying candidates.</p>
               </div>
             )}
 
             {selectedJob && candidates.length === 0 && (selectedJob.stage === 'COMPLETED' || selectedJob.stage === 'AWAITING_REVIEW') && (
               <div className="border border-status-aligned bg-status-aligned/10 p-12 flex flex-col items-center justify-center text-status-aligned rounded-md">
-                <span className="material-symbols-outlined text-4xl mb-4">task_alt</span>
+                <CheckCircle2 className="w-10 h-10 mb-4 text-status-aligned" />
                 <p className="font-semibold">All candidates verified and published!</p>
               </div>
             )}

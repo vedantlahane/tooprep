@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { GraduationCap, ChevronDown } from 'lucide-react';
 import { dashboardService } from '../services/dashboardService';
 
 const STATUS_COLORS = {
@@ -9,15 +10,6 @@ const STATUS_COLORS = {
   INSUFFICIENT_DATA: 'on-surface-variant',
   UNDERCONFIDENT: 'status-underconfident',
   ALIGNED: 'status-aligned'
-};
-
-const STATUS_ICONS = {
-  OVERCONFIDENT: 'warning',
-  WEAK_ALIGNED: 'trending_flat',
-  PRELIMINARY: 'lightbulb',
-  INSUFFICIENT_DATA: 'help_center',
-  UNDERCONFIDENT: 'trending_up',
-  ALIGNED: 'check_circle'
 };
 
 export default function SubjectMasteryPage() {
@@ -149,7 +141,7 @@ export default function SubjectMasteryPage() {
 
       {subjectMastery.length === 0 ? (
         <div className="text-center py-20 border border-outline-variant rounded-lg bg-surface-container">
-          <span className="material-symbols-outlined text-primary text-[64px] block opacity-50 mb-4">school</span>
+          <GraduationCap className="w-16 h-16 text-primary block opacity-50 mb-4 mx-auto" />
           <h3 className="text-headline-lg text-on-surface font-light mb-2">No data yet</h3>
           <p className="text-body-lg text-on-surface-variant">Start practicing to see your subject mastery breakdown.</p>
         </div>
@@ -193,9 +185,7 @@ export default function SubjectMasteryPage() {
                   </div>
                 </div>
 
-                <span className={`material-symbols-outlined text-on-surface-variant transition-transform ${expandedSubject === subject.subjectName ? 'rotate-180' : ''}`}>
-                  expand_more
-                </span>
+                <ChevronDown className={`w-5 h-5 text-on-surface-variant transition-transform duration-200 ${expandedSubject === subject.subjectName ? 'rotate-180' : ''}`} />
               </button>
 
               {/* Expanded: Chapter List */}

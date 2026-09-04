@@ -3,6 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { profileService } from '../services/profileService';
 import { dashboardService } from '@/features/dashboard/services/dashboardService';
 import { useAuth } from '@/features/auth/context/AuthContext';
+import {
+  User,
+  GraduationCap,
+  History,
+  Play,
+  Timer,
+  Shield,
+  UploadCloud,
+  RefreshCw,
+  LogOut,
+  BookOpen
+} from 'lucide-react';
 
 export default function ProfilePage() {
   const { user, signOut } = useAuth();
@@ -60,11 +72,11 @@ export default function ProfilePage() {
       <h2 className="text-display text-on-surface font-light lowercase">profile</h2>
 
       {/* Profile Header Card */}
-      <div className="acrylic border border-outline-variant rounded-md overflow-hidden">
+      <div className="acrylic-glass border border-outline-variant rounded-md overflow-hidden">
         <div className="h-28 bg-gradient-to-r from-primary/20 via-primary/10 to-transparent"></div>
         <div className="p-6 md:p-8 relative">
           <div className="absolute -top-12 left-6 md:left-8 w-20 h-20 bg-surface border-2 border-outline-variant rounded-md flex items-center justify-center shadow-lg">
-            <span className="material-symbols-outlined text-primary text-[40px]">person</span>
+            <User className="w-10 h-10 text-primary" />
           </div>
 
           <div className="mt-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
@@ -73,7 +85,7 @@ export default function ProfilePage() {
               <p className="text-body-md text-on-surface-variant font-light mt-0.5">{user?.email}</p>
               {profile?.target_exam_year && (
                 <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 bg-primary/10 border border-primary/30 text-primary rounded-sm text-label-sm-mono uppercase tracking-widest text-xs">
-                  <span className="material-symbols-outlined text-[14px]">school</span>
+                  <GraduationCap className="w-4 h-4" />
                   JEE {profile.target_exam_year}
                 </div>
               )}
@@ -138,7 +150,7 @@ export default function ProfilePage() {
           onClick={() => navigate('/history')}
           className="metro-tile cursor-pointer bg-surface-container border border-outline-variant hover:border-primary text-on-surface p-6 rounded-md flex flex-col justify-between aspect-auto sm:aspect-square transition-colors"
         >
-          <span className="material-symbols-outlined text-[36px] text-primary mb-4">history</span>
+          <History className="w-9 h-9 text-primary mb-4" />
           <div>
             <h3 className="text-headline-md font-light lowercase">Session History</h3>
             <p className="text-body-sm text-on-surface-variant font-light mt-1">Review past evaluations, practice attempts, and accuracy trends.</p>
@@ -149,7 +161,7 @@ export default function ProfilePage() {
           onClick={() => navigate('/practice')}
           className="metro-tile cursor-pointer bg-surface-container border border-outline-variant hover:border-primary text-on-surface p-6 rounded-md flex flex-col justify-between aspect-auto sm:aspect-square transition-colors"
         >
-          <span className="material-symbols-outlined text-[36px] text-primary mb-4">school</span>
+          <Play className="w-9 h-9 text-primary mb-4" />
           <div>
             <h3 className="text-headline-md font-light lowercase">Practice Mode</h3>
             <p className="text-body-sm text-on-surface-variant font-light mt-1">Untimed questions with instant solution explanations.</p>
@@ -160,7 +172,7 @@ export default function ProfilePage() {
           onClick={() => navigate('/evaluate')}
           className="metro-tile cursor-pointer bg-primary text-white p-6 rounded-md flex flex-col justify-between aspect-auto sm:aspect-square"
         >
-          <span className="material-symbols-outlined text-[36px] mb-4">quiz</span>
+          <Timer className="w-9 h-9 mb-4" />
           <div>
             <h3 className="text-headline-md font-light lowercase text-white">Timed Evaluation</h3>
             <p className="text-body-sm text-white/80 font-light mt-1">Test yourself under real exam conditions to calibrate your gap score.</p>
@@ -170,27 +182,37 @@ export default function ProfilePage() {
 
       {/* Admin Section */}
       {profile?.is_admin && (
-        <div className="acrylic border border-primary/30 p-6 md:p-8 rounded-md">
+        <div className="acrylic-glass border border-primary/30 p-6 md:p-8 rounded-md">
           <h3 className="text-label-sm-mono text-primary uppercase tracking-widest mb-4 flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px]">admin_panel_settings</span>
+            <Shield className="w-5 h-5" />
             Administration
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <button
               onClick={() => navigate('/admin/content')}
               className="p-5 border border-outline-variant bg-surface-container hover:border-primary transition-colors text-left rounded-sm group flex items-start gap-4"
             >
-              <span className="material-symbols-outlined text-primary text-[28px] mt-0.5 group-hover:scale-110 transition-transform">upload_file</span>
+              <UploadCloud className="w-7 h-7 text-primary mt-0.5 group-hover:scale-110 transition-transform flex-shrink-0" />
               <div>
                 <div className="text-body-md font-semibold text-on-surface">Content Ops</div>
                 <div className="text-body-sm text-on-surface-variant mt-0.5">Upload exam PDFs and verify extracted questions</div>
               </div>
             </button>
             <button
+              onClick={() => navigate('/admin/questions')}
+              className="p-5 border border-outline-variant bg-surface-container hover:border-primary transition-colors text-left rounded-sm group flex items-start gap-4"
+            >
+              <BookOpen className="w-7 h-7 text-primary mt-0.5 group-hover:scale-110 transition-transform flex-shrink-0" />
+              <div>
+                <div className="text-body-md font-semibold text-on-surface">Question Bank</div>
+                <div className="text-body-sm text-on-surface-variant mt-0.5">Browse all 110 published questions with answers</div>
+              </div>
+            </button>
+            <button
               onClick={() => navigate('/admin/syncs')}
               className="p-5 border border-outline-variant bg-surface-container hover:border-primary transition-colors text-left rounded-sm group flex items-start gap-4"
             >
-              <span className="material-symbols-outlined text-primary text-[28px] mt-0.5 group-hover:scale-110 transition-transform">sync</span>
+              <RefreshCw className="w-7 h-7 text-primary mt-0.5 group-hover:scale-110 transition-transform flex-shrink-0" />
               <div>
                 <div className="text-body-md font-semibold text-on-surface">Sync Status</div>
                 <div className="text-body-sm text-on-surface-variant mt-0.5">Monitor vector search and publication syncs</div>
@@ -206,7 +228,7 @@ export default function ProfilePage() {
           onClick={signOut}
           className="flex items-center gap-2 px-6 py-2.5 border border-outline-variant text-on-surface-variant text-label-sm-mono uppercase tracking-widest hover:text-error hover:border-error transition-colors rounded-sm text-xs"
         >
-          <span className="material-symbols-outlined text-[16px]">logout</span>
+          <LogOut className="w-4 h-4" />
           Sign Out
         </button>
       </div>

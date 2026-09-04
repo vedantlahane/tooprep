@@ -4,6 +4,7 @@ import { topicsService } from '../services/topicsService';
 import { confidenceService } from '@/features/confidence/services/confidenceService';
 import ConfidenceSlider from '@/features/confidence/components/ConfidenceSlider';
 import QuickDrillModal from '@/features/practice/components/QuickDrillModal';
+import { ArrowLeft, BookOpen, Zap, Play, Timer, ArrowRight } from 'lucide-react';
 
 export default function TopicDetailPage() {
   const { id } = useParams();
@@ -102,7 +103,7 @@ export default function TopicDetailPage() {
           onClick={() => navigate('/')}
           className="flex items-center gap-2 text-body-md text-on-surface-variant hover:text-on-surface uppercase tracking-widest"
         >
-          <span className="material-symbols-outlined text-lg">arrow_back</span>
+          <ArrowLeft className="w-4 h-4" />
           Back to Map
         </button>
 
@@ -110,7 +111,7 @@ export default function TopicDetailPage() {
           onClick={() => navigate(`/questions?topic=${id}`)}
           className="flex items-center gap-2 px-4 py-2 border border-outline-variant hover:border-primary text-label-sm-mono text-primary uppercase tracking-widest rounded-sm transition-colors"
         >
-          <span className="material-symbols-outlined text-[16px]">menu_book</span>
+          <BookOpen className="w-4 h-4" />
           Browse Topic Questions
         </button>
       </div>
@@ -184,21 +185,21 @@ export default function TopicDetailPage() {
           onClick={() => setShowDrill(true)}
           className="flex-1 py-4 border-2 border-status-aligned text-status-aligned text-label-sm-mono font-semibold uppercase tracking-widest hover:bg-status-aligned/10 transition-colors rounded-sm flex items-center justify-center gap-2"
         >
-          <span className="material-symbols-outlined">bolt</span>
+          <Zap className="w-4 h-4" />
           Quick Drill
         </button>
         <button
           onClick={() => navigate(`/practice?topic=${id}`)}
           className="flex-1 py-4 border-2 border-primary text-primary text-label-sm-mono font-semibold uppercase tracking-widest hover:bg-primary/10 transition-colors rounded-sm flex items-center justify-center gap-2"
         >
-          <span className="material-symbols-outlined">school</span>
+          <Play className="w-4 h-4 fill-current" />
           Practice Mode
         </button>
         <button
           onClick={() => navigate(`/evaluate?topic=${id}`)}
           className="flex-1 py-4 bg-primary text-white text-label-sm-mono font-semibold uppercase tracking-widest hover:brightness-110 transition-colors rounded-sm flex items-center justify-center gap-2"
         >
-          <span className="material-symbols-outlined">quiz</span>
+          <Timer className="w-4 h-4" />
           Timed Evaluation
         </button>
       </div>
@@ -338,7 +339,7 @@ export default function TopicDetailPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-label-sm-mono text-on-surface-variant uppercase">{formatDate(ev.started_at)}</span>
-                  <span className="material-symbols-outlined text-primary opacity-0 group-hover:opacity-100 transition-opacity">arrow_forward</span>
+                  <ArrowRight className="w-4 h-4 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               </div>
             ))}

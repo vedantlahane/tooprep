@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { TrendingUp, ArrowRight } from 'lucide-react';
 import { dashboardService } from '../services/dashboardService';
 import { evaluationsService } from '@/features/evaluations/services/evaluationsService';
 import { topicsService } from '@/features/topics/services/topicsService';
@@ -131,7 +132,7 @@ export default function PerformanceTrendPage() {
 
       {topicsWithTrends.length === 0 ? (
         <div className="text-center py-20 border border-outline-variant rounded-lg bg-surface-container">
-          <span className="material-symbols-outlined text-primary text-[64px] block opacity-50 mb-4">trending_up</span>
+          <TrendingUp className="w-16 h-16 text-primary block opacity-50 mb-4 mx-auto" />
           <h3 className="text-headline-lg text-on-surface font-light mb-2">No trends yet</h3>
           <p className="text-body-lg text-on-surface-variant mb-6">Retake evaluations on the same topic to see your improvement trend.</p>
           <button
@@ -225,7 +226,7 @@ export default function PerformanceTrendPage() {
                 {/* Trend Indicator */}
                 {selectedTopicData.improvement && (
                   <div className="mt-4 p-3 bg-status-aligned/10 border border-status-aligned rounded-lg flex items-center gap-3">
-                    <span className="material-symbols-outlined text-status-aligned text-[24px]">trending_up</span>
+                    <TrendingUp className="w-6 h-6 text-status-aligned flex-shrink-0" />
                     <div>
                       <div className="text-label-sm-mono text-status-aligned uppercase tracking-widest font-bold">Improving!</div>
                       <div className="text-body-sm text-on-surface">
@@ -334,9 +335,7 @@ export default function PerformanceTrendPage() {
                               </div>
                             )}
 
-                            <span className="material-symbols-outlined text-on-surface-variant group-hover:text-primary">
-                              arrow_forward
-                            </span>
+                            <ArrowRight className="w-5 h-5 text-on-surface-variant group-hover:text-primary transition-colors flex-shrink-0" />
                           </div>
                         </div>
                       </button>

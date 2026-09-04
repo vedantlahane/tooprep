@@ -1,3 +1,5 @@
+import Icon from '@/shared/components/Icon';
+
 const MISTAKE_TYPES = [
   { value: 'CONCEPTUAL', label: 'Conceptual', icon: 'psychology' },
   { value: 'CALCULATION', label: 'Calculation', icon: 'calculate' },
@@ -23,7 +25,7 @@ export default function MistakeTypeSelector({ value, onChange }) {
                 : 'bg-surface-dim border-outline-variant text-on-surface hover:border-on-surface'
             }`}
           >
-            <span className="material-symbols-outlined text-[20px]">{type.icon}</span>
+            <Icon name={type.icon} size={18} />
             <span className="lowercase text-body-md font-semibold">{type.label}</span>
           </button>
         ))}

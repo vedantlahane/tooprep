@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Timer as TimerIcon } from 'lucide-react';
 
 export default function Timer({ durationSeconds, onExpire, running = true }) {
   const [remaining, setRemaining] = useState(durationSeconds);
@@ -34,7 +35,7 @@ export default function Timer({ durationSeconds, onExpire, running = true }) {
         ? 'bg-status-weak/10 border-status-weak text-status-weak'
         : 'bg-surface-container-low border-outline-variant text-on-surface'
     }`}>
-      <span className="material-symbols-outlined text-lg">timer</span>
+      <TimerIcon className="w-5 h-5 flex-shrink-0" />
       <span className="text-headline-md font-bold tabular-nums">
         {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
       </span>

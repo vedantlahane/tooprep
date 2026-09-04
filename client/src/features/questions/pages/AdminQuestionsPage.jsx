@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { topicsService } from '@/features/topics/services/topicsService';
 import { questionsService } from '../services/questionsService';
 import MathText from '@/features/questions/components/MathText';
+import { Check, Copy, CheckCircle2, SearchX } from 'lucide-react';
 
 const DIFFICULTIES = ['Easy', 'Medium', 'Hard'];
 
@@ -57,10 +58,10 @@ function AdminQuestionCard({ q }) {
         )}
         <button
           onClick={handleCopyId}
-          className="ml-auto flex items-center gap-1 px-3 py-1 border border-outline-variant hover:border-primary text-on-surface-variant hover:text-primary transition-colors text-label-sm-mono uppercase tracking-widest text-xs"
+          className="ml-auto flex items-center gap-1.5 px-3 py-1 border border-outline-variant hover:border-primary text-on-surface-variant hover:text-primary transition-colors text-label-sm-mono uppercase tracking-widest text-xs"
           title={q.id}
         >
-          <span className="material-symbols-outlined text-[14px]">{copied ? 'check' : 'content_copy'}</span>
+          {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
           {copied ? 'Copied!' : 'Copy ID'}
         </button>
       </div>
@@ -95,7 +96,7 @@ function AdminQuestionCard({ q }) {
                   <MathText text={String(optionText)} />
                 </div>
                 {isCorrect && (
-                  <span className="material-symbols-outlined text-status-aligned text-[18px] shrink-0 mt-0.5">check_circle</span>
+                  <CheckCircle2 className="w-4 h-4 text-status-aligned shrink-0 mt-0.5" />
                 )}
               </div>
             );
@@ -290,7 +291,7 @@ export default function AdminQuestionsPage() {
 
       {!loading && hasSearched && questions.length === 0 && (
         <div className="text-center py-20 border border-outline-variant bg-surface-container">
-          <span className="material-symbols-outlined text-primary text-[64px] block opacity-40 mb-4">search_off</span>
+          <SearchX className="w-14 h-14 text-primary mx-auto mb-4 opacity-40" />
           <h3 className="text-headline-lg text-on-surface font-light mb-2">No Questions Found</h3>
           <p className="text-body-lg text-on-surface-variant font-light">Adjust filters to find questions.</p>
         </div>

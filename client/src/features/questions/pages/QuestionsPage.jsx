@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { topicsService } from '@/features/topics/services/topicsService';
 import { questionsService } from '../services/questionsService';
 import MathText from '@/features/questions/components/MathText';
+import { CheckCircle2, BookOpen, SearchX } from 'lucide-react';
 
 const DIFFICULTIES = ['Easy', 'Medium', 'Hard'];
 
@@ -76,7 +77,7 @@ function QuestionBrowserCard({ q }) {
                   <MathText text={String(optionText)} />
                 </div>
                 {isCorrect && (
-                  <span className="material-symbols-outlined text-status-aligned text-[18px] shrink-0 mt-0.5">check_circle</span>
+                  <CheckCircle2 className="w-4 h-4 text-status-aligned shrink-0 mt-0.5" />
                 )}
               </div>
             );
@@ -278,7 +279,7 @@ export default function QuestionsPage() {
 
       {!loading && !hasSearched && (
         <div className="text-center py-24 border border-outline-variant bg-surface-container">
-          <span className="material-symbols-outlined text-primary text-[64px] block opacity-40 mb-4">quiz</span>
+          <BookOpen className="w-14 h-14 text-primary mx-auto mb-4 opacity-40" />
           <h3 className="text-headline-lg text-on-surface font-light mb-2">Select a Topic</h3>
           <p className="text-body-lg text-on-surface-variant font-light">Choose a subject, chapter, and topic above to browse questions.</p>
         </div>
@@ -286,7 +287,7 @@ export default function QuestionsPage() {
 
       {!loading && hasSearched && questions.length === 0 && (
         <div className="text-center py-24 border border-outline-variant bg-surface-container">
-          <span className="material-symbols-outlined text-primary text-[64px] block opacity-40 mb-4">search_off</span>
+          <SearchX className="w-14 h-14 text-primary mx-auto mb-4 opacity-40" />
           <h3 className="text-headline-lg text-on-surface font-light mb-2">No Questions Found</h3>
           <p className="text-body-lg text-on-surface-variant font-light">Try a different topic or remove the difficulty filter.</p>
         </div>

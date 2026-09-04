@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
 import { dashboardService } from '../services/dashboardService';
 
 const PRIORITY_STATUS = {
@@ -200,7 +201,7 @@ export default function StudyPlanPage() {
                   <div className="text-body-lg text-on-surface">{topic.topic_name}</div>
                   <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest">{topic.subject_name} / {topic.chapter_name}</div>
                 </div>
-                <span className="material-symbols-outlined text-primary">arrow_forward</span>
+                <ArrowRight className="w-5 h-5 text-primary flex-shrink-0" />
               </button>
             ))}
           </div>

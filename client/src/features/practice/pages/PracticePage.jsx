@@ -6,6 +6,7 @@ import { confidenceService } from '@/features/confidence/services/confidenceServ
 import QuestionCard from '@/features/questions/components/QuestionCard';
 import MistakeTypeSelector from '@/features/questions/components/MistakeTypeSelector';
 import ConfidenceSlider from '@/features/confidence/components/ConfidenceSlider';
+import { Sparkles, CheckCircle2 } from 'lucide-react';
 
 export default function PracticePage() {
   const [searchParams] = useSearchParams();
@@ -288,7 +289,7 @@ export default function PracticePage() {
         {!confidenceUpdated ? (
           <div className="mb-8 p-6 bg-primary/10 border border-primary/30 rounded-md space-y-4 animate-fade-in">
             <div className="flex items-center gap-2 text-label-sm-mono text-primary uppercase tracking-widest font-semibold">
-              <span className="material-symbols-outlined text-[20px]">psychology</span>
+              <Sparkles className="w-5 h-5 text-primary" />
               Update Confidence?
             </div>
             <p className="text-body-md text-on-surface-variant">
@@ -313,7 +314,7 @@ export default function PracticePage() {
           </div>
         ) : (
           <div className="mb-8 p-4 bg-status-aligned/10 border border-status-aligned text-status-aligned text-body-md rounded-md flex items-center gap-2">
-            <span className="material-symbols-outlined text-[20px]">check_circle</span>
+            <CheckCircle2 className="w-5 h-5 text-status-aligned" />
             Confidence rating updated successfully!
           </div>
         )}

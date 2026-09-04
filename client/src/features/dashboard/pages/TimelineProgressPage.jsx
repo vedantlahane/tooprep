@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Icon, { AlertTriangle, Clock, ArrowRight, PartyPopper } from '@/shared/components/Icon';
 import { dashboardService } from '../services/dashboardService';
 import { profileService } from '@/features/profile/services/profileService';
 
@@ -157,10 +158,12 @@ export default function TimelineProgressPage() {
             ? 'bg-gradient-to-r from-status-overconfident to-error/70'
             : 'bg-gradient-to-r from-primary to-primary-container'
       }`}>
-        <div className="absolute top-0 right-0 opacity-10 pointer-events-none">
-          <span className="material-symbols-outlined text-[200px]">
-            {urgency === 'critical' ? 'emergency' : 'schedule'}
-          </span>
+        <div className="absolute top-0 right-0 opacity-10 pointer-events-none p-4">
+          {urgency === 'critical' ? (
+            <AlertTriangle size={180} />
+          ) : (
+            <Clock size={180} />
+          )}
         </div>
 
         <div className="relative z-10">
@@ -240,13 +243,15 @@ export default function TimelineProgressPage() {
             <div key={idx} className="border border-outline-variant bg-surface-container rounded-xl p-6">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
                 <div className="flex items-center gap-4">
-                  <span className={`material-symbols-outlined text-[40px] ${
-                    phase.color === 'error' ? 'text-status-overconfident' :
-                    phase.color === 'primary' ? 'text-primary' :
-                    'text-status-aligned'
-                  }`}>
-                    {phase.icon}
-                  </span>
+                  <Icon
+                    name={phase.icon}
+                    size={36}
+                    className={
+                      phase.color === 'error' ? 'text-status-overconfident' :
+                      phase.color === 'primary' ? 'text-primary' :
+                      'text-status-aligned'
+                    }
+                  />
                   <div>
                     <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest">
                       Week {phase.week}
@@ -301,7 +306,7 @@ export default function TimelineProgressPage() {
                   <div className="text-body-lg font-semibold text-on-surface">Address {stats.overconfident} overconfident topics</div>
                   <p className="text-body-sm text-on-surface-variant mt-1">Start with quick drills to recalibrate</p>
                 </div>
-                <span className="material-symbols-outlined text-on-surface-variant group-hover:text-error">arrow_forward</span>
+                <ArrowRight className="w-5 h-5 text-on-surface-variant group-hover:text-error transition-colors flex-shrink-0" />
               </div>
             </button>
           )}
@@ -316,7 +321,7 @@ export default function TimelineProgressPage() {
                   <div className="text-body-lg font-semibold text-on-surface">Evaluate {stats.needWork} untested topics</div>
                   <p className="text-body-sm text-on-surface-variant mt-1">Take short evaluations to build baseline confidence</p>
                 </div>
-                <span className="material-symbols-outlined text-on-surface-variant group-hover:text-primary">arrow_forward</span>
+                <ArrowRight className="w-5 h-5 text-on-surface-variant group-hover:text-primary transition-colors flex-shrink-0" />
               </div>
             </button>
           )}
@@ -330,7 +335,7 @@ export default function TimelineProgressPage() {
                 <div className="text-body-lg font-semibold text-on-surface">View your knowledge map</div>
                 <p className="text-body-sm text-on-surface-variant mt-1">See all topics and their current status</p>
               </div>
-              <span className="material-symbols-outlined text-on-surface-variant group-hover:text-on-surface">arrow_forward</span>
+              <ArrowRight className="w-5 h-5 text-on-surface-variant group-hover:text-on-surface transition-colors flex-shrink-0" />
             </div>
           </button>
         </div>
@@ -340,7 +345,7 @@ export default function TimelineProgressPage() {
       {stats.readiness >= 80 && (
         <div className="bg-status-aligned/10 border border-status-aligned rounded-xl p-6">
           <div className="flex gap-3">
-            <span className="material-symbols-outlined text-status-aligned text-[32px]">celebration</span>
+            <PartyPopper className="w-8 h-8 text-status-aligned flex-shrink-0" />
             <div>
               <div className="text-headline-md text-on-surface font-light">You're in strong shape!</div>
               <p className="text-body-md text-on-surface-variant mt-2">
@@ -354,7 +359,7 @@ export default function TimelineProgressPage() {
       {stats.readiness < 50 && (
         <div className="bg-error/10 border border-error rounded-xl p-6">
           <div className="flex gap-3">
-            <span className="material-symbols-outlined text-error text-[32px]">warning</span>
+            <AlertTriangle className="w-8 h-8 text-error flex-shrink-0" />
             <div>
               <div className="text-headline-md text-on-surface font-light">Intensive prep required</div>
               <p className="text-body-md text-on-surface-variant mt-2">

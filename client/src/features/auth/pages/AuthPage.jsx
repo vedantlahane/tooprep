@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
+import { CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const DEMO_MODE = String(import.meta.env.VITE_DEMO_AUTH ?? '').toLowerCase() === 'true';
@@ -71,7 +72,7 @@ export default function AuthPage() {
       <div className="min-h-screen px-6 py-12 md:p-12 animate-fade-in max-w-lg mx-auto">
         <h1 className="text-display text-primary mb-12 font-light">tooprep</h1>
         <div className="bg-primary text-on-primary p-8">
-          <span className="material-symbols-outlined text-white text-5xl mb-4 block">check_circle</span>
+          <CheckCircle2 className="w-12 h-12 text-white mb-4 block" />
           <h2 className="text-headline-lg font-light mb-2">account created</h2>
           <p className="text-body-md text-white/80 mb-8">
             check your email to confirm your account, then sign in.

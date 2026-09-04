@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { History, TrendingUp, ArrowRight } from 'lucide-react';
 import { practiceService } from '@/features/practice/services/practiceService';
 import { evaluationsService } from '@/features/evaluations/services/evaluationsService';
 
@@ -138,7 +139,7 @@ export default function SessionHistoryPage() {
 
       {allSessions.length === 0 ? (
         <div className="text-center py-20 border border-outline-variant rounded-lg bg-surface-container">
-          <span className="material-symbols-outlined text-primary text-[64px] block opacity-50 mb-4">history</span>
+          <History className="w-16 h-16 text-primary block opacity-50 mb-4 mx-auto" />
           <h3 className="text-headline-lg text-on-surface font-light mb-2">No sessions yet</h3>
           <p className="text-body-lg text-on-surface-variant mb-6">Start practicing to build your study history.</p>
           <button
@@ -186,7 +187,7 @@ export default function SessionHistoryPage() {
                   analytics.trend === 'improving' ? 'text-status-aligned' : 'text-on-surface-variant'
                 }`}>
                   {analytics.recentAvg !== null ? `${analytics.recentAvg}%` : '—'}
-                  {analytics.trend === 'improving' && <span className="material-symbols-outlined text-[20px]">trending_up</span>}
+                  {analytics.trend === 'improving' && <TrendingUp className="w-5 h-5 text-status-aligned flex-shrink-0" />}
                 </div>
                 <div className="text-body-sm text-on-surface-variant">last 7 sessions</div>
               </div>
@@ -322,9 +323,7 @@ export default function SessionHistoryPage() {
                         <div className="text-label-sm-mono text-on-surface-variant uppercase">Time</div>
                       </div>
 
-                      <span className="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">
-                        arrow_forward
-                      </span>
+                      <ArrowRight className="w-5 h-5 text-on-surface-variant group-hover:text-primary transition-colors flex-shrink-0" />
                     </div>
                   </div>
                 </div>

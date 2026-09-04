@@ -2,6 +2,16 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { dashboardService } from '@/features/dashboard/services/dashboardService';
 import QuickDrillModal from '@/features/practice/components/QuickDrillModal';
+import {
+  BarChart3,
+  AlertTriangle,
+  TrendingUp,
+  TrendingDown,
+  CheckCircle2,
+  HelpCircle,
+  Flame,
+  ListCheck
+} from 'lucide-react';
 
 export default function InsightsPage() {
   const [data, setData] = useState([]);
@@ -71,8 +81,8 @@ export default function InsightsPage() {
     return (
       <div className="max-w-4xl mx-auto animate-fade-in">
         <h2 className="text-display text-on-surface mb-8 font-light lowercase">Insights</h2>
-        <div className="acrylic border border-outline-variant p-12 text-center rounded-md">
-          <span className="material-symbols-outlined text-primary text-[80px] mb-6 block opacity-80">analytics</span>
+        <div className="acrylic-glass border border-outline-variant p-12 text-center rounded-md">
+          <BarChart3 className="w-16 h-16 text-primary mx-auto mb-6 opacity-80" />
           <h3 className="text-headline-lg text-on-surface mb-4 font-light lowercase">No Data Yet</h3>
           <p className="text-body-lg text-on-surface-variant mb-8 font-light lowercase">Start by rating your confidence and taking evaluations to generate insights.</p>
           <button
@@ -96,25 +106,28 @@ export default function InsightsPage() {
       {/* Status Summary Live Tiles */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
-          { label: 'overconfident', count: insights.overconfident.length, bg: 'bg-status-overconfident', icon: 'warning' },
-          { label: 'weak', count: insights.weakAligned.length, bg: 'bg-status-weak', icon: 'trending_flat' },
-          { label: 'underconfident', count: insights.underconfident.length, bg: 'bg-status-underconfident', icon: 'trending_up' },
-          { label: 'aligned', count: insights.aligned.length, bg: 'bg-status-aligned', icon: 'check_circle' },
-          { label: 'untested', count: insights.noData.length, bg: 'bg-surface-container-high', icon: 'help_center' },
-        ].map(s => (
-          <div key={s.label} className={`metro-tile p-5 rounded-md flex flex-col justify-between relative overflow-hidden group ${s.bg}`}>
-            <span className="material-symbols-outlined absolute top-3 right-3 opacity-20 text-[32px] group-hover:scale-125 transition-transform">{s.icon}</span>
-            <div className={`text-display font-light mb-4 ${s.bg === 'bg-surface-container-high' ? 'text-on-surface' : 'text-white'}`}>{s.count}</div>
-            <div className={`text-label-sm-mono uppercase tracking-widest ${s.bg === 'bg-surface-container-high' ? 'text-on-surface-variant' : 'text-white/80'}`}>{s.label}</div>
-          </div>
-        ))}
+          { label: 'overconfident', count: insights.overconfident.length, bg: 'bg-status-overconfident', icon: AlertTriangle },
+          { label: 'weak', count: insights.weakAligned.length, bg: 'bg-status-weak', icon: TrendingDown },
+          { label: 'underconfident', count: insights.underconfident.length, bg: 'bg-status-underconfident', icon: TrendingUp },
+          { label: 'aligned', count: insights.aligned.length, bg: 'bg-status-aligned', icon: CheckCircle2 },
+          { label: 'untested', count: insights.noData.length, bg: 'bg-surface-container-high', icon: HelpCircle },
+        ].map(s => {
+          const TileIcon = s.icon;
+          return (
+            <div key={s.label} className={`metro-tile p-5 rounded-md flex flex-col justify-between relative overflow-hidden group ${s.bg}`}>
+              <TileIcon className="absolute top-3 right-3 opacity-20 w-8 h-8 group-hover:scale-125 transition-transform" />
+              <div className={`text-display font-light mb-4 ${s.bg === 'bg-surface-container-high' ? 'text-on-surface' : 'text-white'}`}>{s.count}</div>
+              <div className={`text-label-sm-mono uppercase tracking-widest ${s.bg === 'bg-surface-container-high' ? 'text-on-surface-variant' : 'text-white/80'}`}>{s.label}</div>
+            </div>
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
         {/* Subject Breakdown */}
-        <div className="acrylic border border-outline-variant p-6 md:p-8 rounded-md">
+        <div className="acrylic-glass border border-outline-variant p-6 md:p-8 rounded-md">
           <h3 className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-6 flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px]">donut_large</span>
+            <BarChart3 className="w-4 h-4 text-primary" />
             Subject Mastery
           </h3>
           <div className="space-y-6">
@@ -158,11 +171,11 @@ export default function InsightsPage() {
           {insights.overconfident.length > 0 && (
             <div className="border border-error bg-error/5 p-6 md:p-8 rounded-md relative overflow-hidden">
               <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                <span className="material-symbols-outlined text-[150px] text-error">warning</span>
+                <Flame className="w-36 h-36 text-error" />
               </div>
               
               <h3 className="text-label-sm-mono text-error uppercase tracking-widest mb-6 font-bold flex items-center gap-2 relative z-10">
-                <span className="material-symbols-outlined text-[18px]">priority_high</span>
+                <Flame className="w-4 h-4" />
                 Critical Priority Review
               </h3>
               
@@ -180,7 +193,7 @@ export default function InsightsPage() {
                       <span className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mt-1 block">{t.subject_name} &rsaquo; {t.chapter_name}</span>
                       <div className="flex gap-4 mt-2">
                         <div className="bg-surface-dim px-3 py-1 rounded-sm text-label-sm-mono uppercase">
-                          <span className="text-on-surface-variant mr-2">Conf:</span><span className="text-primary font-bold">{t.confidence}/10</span>
+                           <span className="text-on-surface-variant mr-2">Conf:</span><span className="text-primary font-bold">{t.confidence}/10</span>
                         </div>
                         <div className="bg-surface-dim px-3 py-1 rounded-sm text-label-sm-mono uppercase">
                           <span className="text-on-surface-variant mr-2">Eval:</span><span className="text-on-surface font-bold">{t.evaluation_accuracy}%</span>
@@ -204,9 +217,9 @@ export default function InsightsPage() {
 
           {/* Untested topics */}
           {insights.noData.length > 0 && (
-            <div className="acrylic border border-outline-variant p-6 md:p-8 rounded-md">
+            <div className="acrylic-glass border border-outline-variant p-6 md:p-8 rounded-md">
               <h3 className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-6 flex items-center gap-2">
-                <span className="material-symbols-outlined text-[18px]">rule</span>
+                <ListCheck className="w-4 h-4 text-primary" />
                 Needs Evaluation ({insights.noData.length})
               </h3>
               <div className="flex flex-wrap gap-2">

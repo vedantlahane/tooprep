@@ -5,6 +5,7 @@ import { confidenceService } from '@/features/confidence/services/confidenceServ
 import { practiceService } from '@/features/practice/services/practiceService';
 import ConfidenceSlider from '@/features/confidence/components/ConfidenceSlider';
 import { MathText } from '@/features/questions/components/QuestionCard';
+import { Sparkles, CheckCircle2, AlertTriangle, RotateCcw } from 'lucide-react';
 
 export default function ResultsPage() {
   const { id } = useParams();
@@ -134,7 +135,7 @@ export default function ResultsPage() {
       {showConfidencePrompt && !confidenceSubmitted && topicId && (
         <div className="mb-6 bg-primary-fixed/20 border-2 border-primary-fixed rounded-xl p-6 animate-fade-in">
           <div className="flex items-start gap-3 mb-4">
-            <span className="material-symbols-outlined text-primary text-3xl">psychology</span>
+            <Sparkles className="w-8 h-8 text-primary flex-shrink-0 mt-0.5" />
             <div>
               <h3 className="text-headline-md text-on-surface">Re-rate Your Confidence</h3>
               <p className="text-body-md text-on-surface-variant mt-1">
@@ -163,7 +164,7 @@ export default function ResultsPage() {
 
       {confidenceSubmitted && (
         <div className="mb-6 p-4 rounded-lg bg-tertiary-container/10 border border-tertiary-container text-body-md text-on-surface flex items-center gap-2">
-          <span className="material-symbols-outlined text-tertiary-container">check_circle</span>
+          <CheckCircle2 className="w-5 h-5 text-status-aligned flex-shrink-0" />
           Confidence updated to <strong>{newConfidence}/10</strong>. Your gap will be recalculated.
         </div>
       )}
@@ -234,7 +235,7 @@ export default function ResultsPage() {
           </div>
           {summary.attempt_rate < 100 && (
             <div className="mb-6 px-4 py-2 bg-error/10 border-l-4 border-error text-error text-body-sm rounded-r-md flex items-center gap-2">
-              <span className="material-symbols-outlined text-[18px]">warning</span>
+              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
               <span>You left {summary.total_questions - summary.answered} questions unanswered. In real exams, unattempted questions yield 0 marks — practice pacing to attempt all questions.</span>
             </div>
           )}
@@ -288,7 +289,7 @@ export default function ResultsPage() {
               disabled={reDrillLoading}
               className="px-4 py-2 bg-error text-white text-label-sm-mono uppercase tracking-widest font-semibold hover:bg-error/80 transition-colors rounded-sm flex items-center gap-2"
             >
-              <span className="material-symbols-outlined text-[16px]">bolt</span>
+              <RotateCcw className="w-4 h-4" />
               {reDrillLoading ? 'Starting Drill...' : 'Re-drill Mistakes'}
             </button>
           </div>
@@ -327,7 +328,7 @@ export default function ResultsPage() {
             disabled={reDrillLoading}
             className="w-full mt-6 py-3.5 bg-error text-white text-body-md font-semibold uppercase tracking-widest hover:bg-error/80 transition-colors rounded-sm flex items-center justify-center gap-2"
           >
-            <span className="material-symbols-outlined text-[20px]">bolt</span>
+            <RotateCcw className="w-5 h-5" />
             {reDrillLoading ? 'Starting Targeted Session...' : `Practice All ${mistakes.length} Mistakes Now`}
           </button>
         </div>
