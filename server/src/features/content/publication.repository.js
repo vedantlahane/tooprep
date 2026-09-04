@@ -7,30 +7,63 @@ export async function upsertPublishedQuestion(question) {
     error.statusCode = 400;
     throw error;
   }
-  const { data, error } = await supabaseAdmin
+  const toIntOrNull = (val) => {
+    if (val === null || val === undefined || val === '') return null;
+    const parsed = parseInt(val, 10);
+    return Number.isNaN(parsed) ? null : parsed;
+  };
+
+  const payload = {
+    canonical_question_id: question.question_id,
+    topic_id: topicId,
+    source_type: question.provenance.source_type || 'PYQ',
+    provider: question.provenance.provider || 'LLAMA_PARSE',
+    exam_year: toIntOrNull(question.provenance?.year),
+    exam_session: toIntOrNull(question.provenance?.session),
+    exam_shift: toIntOrNull(question.provenance?.shift),
+    question_type: question.content.question_type,
+    question_text: question.content.question_text,
+    options: question.content.options,
+    correct_answer: question.content.correct_answer,
+    solution_text: question.content.solution_text,
+    difficulty: question.curriculum.difficulty || 'medium',
+    verified: true,
+    publication_status: 'PUBLISHED',
+    content_version: question.version,
+    source_pages: question.provenance.source_pages,
+    published_at: new Date().toISOString()
+  };
+
+  const { data: existing, error: findError } = await supabaseAdmin
     .from('questions')
-    .upsert({
-      canonical_question_id: question.question_id,
-      topic_id: topicId,
-      source_type: question.provenance.source_type || 'PYQ',
-      provider: question.provenance.provider || 'LLAMA_PARSE',
-      exam_year: question.provenance.year,
-      exam_session: question.provenance.session,
-      exam_shift: question.provenance.shift,
-      question_type: question.content.question_type,
-      question_text: question.content.question_text,
-      options: question.content.options,
-      correct_answer: question.content.correct_answer,
-      solution_text: question.content.solution_text,
-      difficulty: question.curriculum.difficulty || 'medium',
-      verified: true,
-      publication_status: 'PUBLISHED',
-      content_version: question.version,
-      source_pages: question.provenance.source_pages,
-      published_at: new Date().toISOString()
-    }, { onConflict: 'canonical_question_id' })
-    .select()
-    .single();
+    .select('id')
+    .eq('canonical_question_id', question.question_id)
+    .maybeSingle();
+
+  if (findError) throw new Error(`Unable to check existing question: ${findError.message}`);
+
+  let data;
+  let error;
+
+  if (existing?.id) {
+    const res = await supabaseAdmin
+      .from('questions')
+      .update(payload)
+      .eq('id', existing.id)
+      .select()
+      .single();
+    data = res.data;
+    error = res.error;
+  } else {
+    const res = await supabaseAdmin
+      .from('questions')
+      .insert(payload)
+      .select()
+      .single();
+    data = res.data;
+    error = res.error;
+  }
+
   if (error) throw new Error(`Unable to publish question projection: ${error.message}`);
   return data;
 }

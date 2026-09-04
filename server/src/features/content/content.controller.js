@@ -39,6 +39,12 @@ export const contentController = {
         year: req.body.year ? Number(req.body.year) : undefined,
         metadata
       }, req.user.id);
+
+      // Automatically trigger background worker processing asynchronously
+      import('./content.worker.js').then(({ processOneIngestionJob }) => {
+        processOneIngestionJob().catch(err => console.error('Background ingestion error:', err));
+      }).catch(() => {});
+
       return res.status(201).json(job);
     } catch (error) {
       if (error instanceof SyntaxError) error.statusCode = 400;

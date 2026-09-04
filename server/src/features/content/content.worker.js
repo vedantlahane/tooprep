@@ -48,7 +48,21 @@ export async function processOneIngestionJob(workerId = `worker_${randomUUID()}`
 
     const parsed = await getLlamaParseResult(providerJobId);
     await contentRepository.saveParsedDocument({ job_id: job.job_id, source: job.source, ...parsed, created_at: new Date() });
-    const candidates = extractQuestionCandidates(job.job_id, parsed.pages);
+    let allTopics = [];
+    try {
+      const { supabaseAdmin } = await import('../../lib/supabase.js');
+      const { data: dbTopics } = await supabaseAdmin
+        .from('topics')
+        .select('id, name, chapter_id, chapters(name, subjects(name))');
+      allTopics = (dbTopics || []).map(t => ({
+        id: t.id,
+        name: t.name,
+        chapter: t.chapters?.name,
+        subject: t.chapters?.subjects?.name
+      }));
+    } catch (e) {}
+
+    const candidates = extractQuestionCandidates(job.job_id, parsed.pages, allTopics);
     await contentRepository.saveExtractedCandidates(candidates);
 
     const structured = await contentRepository.setJobState(job.job_id, 'PARSING', 'STRUCTURING', {

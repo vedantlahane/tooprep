@@ -38,7 +38,7 @@ function Candidate({ candidate, jobId, topics, onReviewed }) {
 
     // Auto-detect answer key if not set
     const detectedAns = detectAnswerKey(candidate.raw_text);
-    if (detectedAns) ans = detectedAns;
+    if (!candidate.correct_answer && detectedAns) ans = detectedAns;
 
     return { questionText: qText, options: opts, correctAnswer: ans, solutionText: sol };
   }, [candidate]);
@@ -48,7 +48,7 @@ function Candidate({ candidate, jobId, topics, onReviewed }) {
   const [solutionText, setSolutionText] = useState(initialParsed.solutionText);
   const [correctAnswer, setCorrectAnswer] = useState(initialParsed.correctAnswer);
   const [difficulty, setDifficulty] = useState('medium');
-  const [topicId, setTopicId] = useState('');
+  const [topicId, setTopicId] = useState(candidate.suggested_topic_id || '');
 
   const [reason, setReason] = useState('');
   const [error, setError] = useState('');
@@ -59,6 +59,13 @@ function Candidate({ candidate, jobId, topics, onReviewed }) {
   const [viewMode, setViewMode] = useState('editor'); // 'editor' | 'preview'
 
   const isInstruction = useMemo(() => isInstructionSnippet(candidate.raw_text), [candidate.raw_text]);
+
+  // Keep topicId synced if candidate prop changes
+  useEffect(() => {
+    if (candidate.suggested_topic_id) {
+      setTopicId(candidate.suggested_topic_id);
+    }
+  }, [candidate.suggested_topic_id]);
 
   const handleAutoExtract = () => {
     const extracted = extractOptionsFromText(questionText || candidate.raw_text);
@@ -85,7 +92,12 @@ function Candidate({ candidate, jobId, topics, onReviewed }) {
         difficulty,
         source_type: 'PYQ',
         question_type: 'single_correct',
-        curriculum: { topic_id: topicId, difficulty }
+        curriculum: {
+          topic_id: topicId,
+          difficulty,
+          subject: candidate.subject,
+          chapter: candidate.suggested_chapter
+        }
       });
       onReviewed();
     } catch (err) { setError(err.message); } finally { setSaving(false); }
@@ -115,16 +127,53 @@ function Candidate({ candidate, jobId, topics, onReviewed }) {
     setOptions(newOps);
   };
 
+  // Group topics by subject for the dropdown
+  const groupedTopics = useMemo(() => {
+    const groups = {};
+    for (const t of topics) {
+      const subj = t.subject || 'Other';
+      if (!groups[subj]) groups[subj] = [];
+      groups[subj].push(t);
+    }
+    return groups;
+  }, [topics]);
+
   return (
     <article className={`border rounded-md overflow-hidden flex flex-col group transition-all ${isInstruction ? 'border-status-weak/40 bg-status-weak/5' : 'border-outline-variant bg-surface-dim'}`}>
       {/* Header bar */}
       <div className="bg-surface-container px-4 py-3 flex justify-between items-center border-b border-outline-variant flex-wrap gap-2">
-        <div className="text-label-sm-mono uppercase tracking-widest text-primary flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px]">description</span>
-          Page {candidate.source_pages?.join(', ')} &middot; Q{candidate.source_question_number}
-          {isInstruction && (
-            <span className="px-2 py-0.5 bg-status-weak/20 border border-status-weak/40 text-status-weak text-xs rounded-sm">
-              Detected Instruction
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="text-label-sm-mono uppercase tracking-widest text-primary font-bold flex items-center gap-2">
+            <span className="material-symbols-outlined text-[18px]">description</span>
+            Q.{candidate.source_question_number} &middot; Page {candidate.source_pages?.join(', ')}
+          </div>
+
+          {candidate.subject && (
+            <span className={`px-2.5 py-0.5 rounded-sm text-xs font-mono uppercase tracking-wider font-semibold ${
+              candidate.subject === 'Physics' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30' :
+              candidate.subject === 'Chemistry' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30' :
+              'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+            }`}>
+              {candidate.subject}
+            </span>
+          )}
+
+          {candidate.suggested_chapter && (
+            <span className="text-label-sm-mono text-on-surface-variant text-xs">
+              {candidate.suggested_chapter} &rsaquo; <strong className="text-on-surface">{candidate.suggested_topic}</strong>
+            </span>
+          )}
+
+          {candidate.has_solution && (
+            <span className="px-2 py-0.5 bg-status-aligned/10 border border-status-aligned/30 text-status-aligned text-xs rounded-sm flex items-center gap-1">
+              <span className="material-symbols-outlined text-[12px]">check</span>
+              Solution
+            </span>
+          )}
+
+          {candidate.correct_answer && (
+            <span className="px-2 py-0.5 bg-primary/10 border border-primary/30 text-primary text-xs rounded-sm font-mono font-bold">
+              Ans: {candidate.correct_answer}
             </span>
           )}
         </div>
@@ -132,7 +181,7 @@ function Candidate({ candidate, jobId, topics, onReviewed }) {
         <div className="flex items-center gap-2">
           <button
             onClick={handleAutoExtract}
-            className="px-3 py-1 text-label-sm-mono uppercase tracking-widest border border-primary text-primary hover:bg-primary hover:text-white transition-colors rounded-sm flex items-center gap-1"
+            className="px-3 py-1 text-label-sm-mono uppercase tracking-widest border border-primary text-primary hover:bg-primary hover:text-white transition-colors rounded-sm flex items-center gap-1 text-xs"
             title="Auto-extract Options (A), (B), (C), (D) from question text"
           >
             <span className="material-symbols-outlined text-[14px]">bolt</span>
@@ -140,13 +189,13 @@ function Candidate({ candidate, jobId, topics, onReviewed }) {
           </button>
           <button
             onClick={() => setViewMode('editor')}
-            className={`px-3 py-1 text-label-sm-mono uppercase tracking-widest transition-colors rounded-sm ${viewMode === 'editor' ? 'bg-primary text-white' : 'text-on-surface-variant hover:text-on-surface'}`}
+            className={`px-3 py-1 text-label-sm-mono uppercase tracking-widest transition-colors rounded-sm text-xs ${viewMode === 'editor' ? 'bg-primary text-white' : 'text-on-surface-variant hover:text-on-surface'}`}
           >
             Editor
           </button>
           <button
             onClick={() => setViewMode('preview')}
-            className={`px-3 py-1 text-label-sm-mono uppercase tracking-widest transition-colors rounded-sm ${viewMode === 'preview' ? 'bg-primary text-white' : 'text-on-surface-variant hover:text-on-surface'}`}
+            className={`px-3 py-1 text-label-sm-mono uppercase tracking-widest transition-colors rounded-sm text-xs ${viewMode === 'preview' ? 'bg-primary text-white' : 'text-on-surface-variant hover:text-on-surface'}`}
           >
             Preview
           </button>
@@ -175,7 +224,7 @@ function Candidate({ candidate, jobId, topics, onReviewed }) {
             <div className="space-y-2">
               <div className="flex justify-between items-end">
                 <label className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest">Question Text (LaTeX)</label>
-                <button onClick={findSimilar} disabled={searchingSimilar} className="text-label-sm-mono text-primary hover:underline uppercase tracking-widest">
+                <button onClick={findSimilar} disabled={searchingSimilar} className="text-label-sm-mono text-primary hover:underline uppercase tracking-widest text-xs">
                   {searchingSimilar ? 'Searching...' : 'Find Duplicates'}
                 </button>
               </div>
@@ -218,7 +267,7 @@ function Candidate({ candidate, jobId, topics, onReviewed }) {
             </div>
 
             <div className="space-y-2">
-              <label className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest">Solution (Optional LaTeX)</label>
+              <label className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest">Solution (Step-by-step LaTeX)</label>
               <textarea
                 value={solutionText}
                 onChange={e => setSolutionText(e.target.value)}
@@ -270,15 +319,25 @@ function Candidate({ candidate, jobId, topics, onReviewed }) {
         <div className="pt-4 border-t border-outline-variant space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest">Classification</label>
-              <select value={topicId} onChange={e => setTopicId(e.target.value)} className="w-full bg-surface-container border border-outline-variant p-3 text-on-surface outline-none focus:border-primary rounded-sm">
+              <label className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest">
+                Classification &bull; Topic
+              </label>
+              <select value={topicId} onChange={e => setTopicId(e.target.value)} className="w-full bg-surface-container border border-outline-variant p-3 text-on-surface outline-none focus:border-primary rounded-sm text-sm">
                 <option value="">Select Topic...</option>
-                {topics.map(topic => <option key={topic.id} value={topic.id}>{topic.subject} &rsaquo; {topic.chapter} &rsaquo; {topic.name}</option>)}
+                {Object.entries(groupedTopics).map(([subj, tList]) => (
+                  <optgroup key={subj} label={subj}>
+                    {tList.map(t => (
+                      <option key={t.id} value={t.id}>
+                        {t.chapter} &rsaquo; {t.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
               </select>
             </div>
             <div className="space-y-2">
               <label className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest">Difficulty</label>
-              <select value={difficulty} onChange={e => setDifficulty(e.target.value)} className="w-full bg-surface-container border border-outline-variant p-3 text-on-surface outline-none focus:border-primary rounded-sm">
+              <select value={difficulty} onChange={e => setDifficulty(e.target.value)} className="w-full bg-surface-container border border-outline-variant p-3 text-on-surface outline-none focus:border-primary rounded-sm text-sm">
                 <option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option>
               </select>
             </div>
@@ -291,10 +350,10 @@ function Candidate({ candidate, jobId, topics, onReviewed }) {
               placeholder="Custom rejection reason"
               className="flex-1 bg-surface-container border border-outline-variant p-3 text-on-surface outline-none focus:border-primary rounded-sm text-sm"
             />
-            <button disabled={saving} onClick={() => reject()} className="px-6 py-3 border border-error text-error uppercase tracking-widest font-semibold hover:bg-error/10 transition-colors disabled:opacity-50 rounded-sm">
+            <button disabled={saving} onClick={() => reject()} className="px-6 py-3 border border-error text-error uppercase tracking-widest font-semibold hover:bg-error/10 transition-colors disabled:opacity-50 rounded-sm text-xs">
               Reject
             </button>
-            <button disabled={saving} onClick={accept} className="px-6 py-3 bg-primary text-white uppercase tracking-widest font-semibold hover:brightness-110 transition-colors disabled:opacity-50 rounded-sm">
+            <button disabled={saving} onClick={accept} className="px-6 py-3 bg-primary text-white uppercase tracking-widest font-semibold hover:brightness-110 transition-colors disabled:opacity-50 rounded-sm text-xs">
               Verify & Publish
             </button>
           </div>
@@ -310,20 +369,25 @@ export default function ContentAdminPage() {
   const [selectedJob, setSelectedJob] = useState(null);
   const [candidates, setCandidates] = useState([]);
   const [topics, setTopics] = useState([]);
+  const [subjectTab, setSubjectTab] = useState('ALL');
   const [file, setFile] = useState(null);
   const [exam, setExam] = useState('JEE Main');
-  const [year, setYear] = useState(new Date().getFullYear().toString());
+  const [year, setYear] = useState('2018');
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
-  const [bulkRejecting, setBulkRejecting] = useState(false);
+  const [bulkPublishing, setBulkPublishing] = useState(false);
 
   const loadJobs = async () => {
     try { setJobs(await contentService.listJobs()); } catch (err) { setError(err.message); } finally { setLoading(false); }
   };
+
   const chooseJob = async (job) => {
     setSelectedJob(job); setCandidates([]); setError('');
-    try { setCandidates(await contentService.getCandidates(job.job_id)); } catch (err) { setError(err.message); }
+    try {
+      const cands = await contentService.getCandidates(job.job_id);
+      setCandidates(cands);
+    } catch (err) { setError(err.message); }
   };
 
   const upload = async (event) => {
@@ -341,25 +405,47 @@ export default function ContentAdminPage() {
     finally { setUploading(false); }
   };
 
-  const handleBulkRejectInstructions = async () => {
+  const handlePublishAllReady = async () => {
     if (!selectedJob || candidates.length === 0) return;
-    const instructionCandidates = candidates.filter(c => isInstructionSnippet(c.raw_text));
-    if (instructionCandidates.length === 0) {
-      alert('No instruction candidates detected in current list.');
+    const readyCandidates = candidates.filter(c => c.status === 'REVIEW_REQUIRED' && c.suggested_topic_id);
+    if (readyCandidates.length === 0) {
+      alert('No candidates with pre-assigned topics found to publish.');
       return;
     }
-    if (!window.confirm(`Reject ${instructionCandidates.length} detected non-question/instruction candidates?`)) return;
+    if (!window.confirm(`Publish all ${readyCandidates.length} ready questions with assigned topics to Supabase?`)) return;
 
-    setBulkRejecting(true);
+    setBulkPublishing(true);
+    let count = 0;
     try {
-      for (const c of instructionCandidates) {
-        await contentService.rejectCandidate(selectedJob.job_id, c.candidate_key, 'Cover Page / Instructions');
+      for (const c of readyCandidates) {
+        await contentService.acceptCandidate(selectedJob.job_id, c.candidate_key, {
+          question_text: c.question_text,
+          options: [
+            { id: 'A', text: c.options?.A || '' },
+            { id: 'B', text: c.options?.B || '' },
+            { id: 'C', text: c.options?.C || '' },
+            { id: 'D', text: c.options?.D || '' }
+          ],
+          correct_answer: c.correct_answer || 'A',
+          solution_text: c.solution_text || null,
+          difficulty: 'medium',
+          source_type: 'PYQ',
+          question_type: 'single_correct',
+          curriculum: {
+            topic_id: c.suggested_topic_id,
+            difficulty: 'medium',
+            subject: c.subject,
+            chapter: c.suggested_chapter
+          }
+        });
+        count++;
       }
       await chooseJob(selectedJob);
+      alert(`Successfully published ${count} questions to the question bank!`);
     } catch (err) {
       setError(err.message);
     } finally {
-      setBulkRejecting(false);
+      setBulkPublishing(false);
     }
   };
 
@@ -372,13 +458,17 @@ export default function ContentAdminPage() {
     ))).catch(err => setError(err.message));
   }, []);
 
-  const instructionCount = useMemo(() => candidates.filter(c => isInstructionSnippet(c.raw_text)).length, [candidates]);
+  // Filter candidates by subject tab
+  const filteredCandidates = useMemo(() => {
+    if (subjectTab === 'ALL') return candidates;
+    return candidates.filter(c => c.subject === subjectTab);
+  }, [candidates, subjectTab]);
 
   return (
     <div className="max-w-6xl mx-auto animate-fade-in space-y-8 pb-20">
       <div>
-        <h2 className="text-display text-on-surface font-light">Content Ops</h2>
-        <p className="text-on-surface-variant text-body-lg font-light mt-2">Upload PDFs, track ingestion, then verify every extracted candidate.</p>
+        <h2 className="text-display text-on-surface font-light lowercase">content ops</h2>
+        <p className="text-on-surface-variant text-body-lg font-light mt-1">Upload exam PDFs, track ingestion, verify questions, and auto-position to topics.</p>
       </div>
 
       {/* Upload Section */}
@@ -396,16 +486,16 @@ export default function ContentAdminPage() {
 
         <div className="space-y-2">
           <label className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest">Exam</label>
-          <input value={exam} onChange={e => setExam(e.target.value)} className="w-full bg-surface-container border border-outline-variant p-3 text-on-surface outline-none focus:border-primary rounded-sm" />
+          <input value={exam} onChange={e => setExam(e.target.value)} className="w-full bg-surface-container border border-outline-variant p-3 text-on-surface outline-none focus:border-primary rounded-sm text-sm" />
         </div>
 
         <div className="space-y-2 flex gap-3">
           <div className="flex-1">
             <label className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest block mb-2">Year</label>
-            <input value={year} onChange={e => setYear(e.target.value)} placeholder="YYYY" className="w-full bg-surface-container border border-outline-variant p-3 text-on-surface outline-none focus:border-primary rounded-sm" />
+            <input value={year} onChange={e => setYear(e.target.value)} placeholder="YYYY" className="w-full bg-surface-container border border-outline-variant p-3 text-on-surface outline-none focus:border-primary rounded-sm text-sm" />
           </div>
           <div className="flex-1 flex items-end">
-            <button disabled={uploading} className="w-full bg-primary text-white p-3 uppercase tracking-widest font-semibold hover:brightness-110 transition-all disabled:opacity-50 rounded-sm">
+            <button disabled={uploading} className="w-full bg-primary text-white p-3 uppercase tracking-widest font-semibold hover:brightness-110 transition-all disabled:opacity-50 rounded-sm text-xs">
               {uploading ? '...' : 'Ingest'}
             </button>
           </div>
@@ -431,10 +521,10 @@ export default function ContentAdminPage() {
                   {job.source?.filename || 'Unknown Document'}
                 </div>
                 <div className="flex justify-between items-center mt-2">
-                  <div className={`text-label-sm-mono uppercase tracking-widest ${job.stage === 'COMPLETED' ? 'text-status-aligned' : job.stage === 'FAILED' ? 'text-error' : 'text-primary'}`}>
+                  <div className={`text-label-sm-mono uppercase tracking-widest text-xs ${job.stage === 'COMPLETED' ? 'text-status-aligned' : job.stage === 'FAILED' ? 'text-error' : 'text-primary'}`}>
                     {job.stage}
                   </div>
-                  <div className="text-label-sm-mono text-on-surface-variant">
+                  <div className="text-label-sm-mono text-on-surface-variant text-xs">
                     {job.progress?.questions_extracted || 0} items
                   </div>
                 </div>
@@ -445,22 +535,46 @@ export default function ContentAdminPage() {
 
         {/* Candidates Feed */}
         <div>
-          <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
-            <h3 className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest">
-              {selectedJob ? `Review Candidates \u00B7 ${candidates.length} remaining` : 'Select a job to review'}
-            </h3>
+          {/* Header & Actions */}
+          <div className="flex justify-between items-center mb-6 flex-wrap gap-4 border-b border-outline-variant pb-4">
+            <div>
+              <h3 className="text-headline-md text-on-surface font-light">
+                {selectedJob ? `Review Candidates \u00B7 ${candidates.length} total` : 'Select a job to review'}
+              </h3>
+            </div>
 
-            {selectedJob && instructionCount > 0 && (
-              <button
-                onClick={handleBulkRejectInstructions}
-                disabled={bulkRejecting}
-                className="px-3 py-1.5 border border-status-weak/60 bg-status-weak/10 text-status-weak text-label-sm-mono uppercase tracking-widest text-xs rounded-sm hover:bg-status-weak/20 transition-colors flex items-center gap-1"
-              >
-                <span className="material-symbols-outlined text-[14px]">delete_sweep</span>
-                {bulkRejecting ? 'Rejecting...' : `Dismiss ${instructionCount} Instructions`}
-              </button>
+            {selectedJob && candidates.length > 0 && (
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handlePublishAllReady}
+                  disabled={bulkPublishing}
+                  className="px-4 py-2 bg-primary text-white text-label-sm-mono uppercase tracking-widest text-xs rounded-sm hover:brightness-110 transition-all flex items-center gap-2 font-semibold"
+                >
+                  <span className="material-symbols-outlined text-[16px]">publish</span>
+                  {bulkPublishing ? 'Publishing...' : 'Publish All Ready'}
+                </button>
+              </div>
             )}
           </div>
+
+          {/* Subject Filter Tabs */}
+          {selectedJob && candidates.length > 0 && (
+            <div className="flex gap-2 mb-6">
+              {['ALL', 'Physics', 'Chemistry', 'Mathematics'].map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setSubjectTab(tab)}
+                  className={`px-3.5 py-1.5 rounded-sm text-label-sm-mono uppercase tracking-widest text-xs transition-colors border ${
+                    subjectTab === tab
+                      ? 'bg-primary/20 border-primary text-primary font-bold'
+                      : 'border-outline-variant text-on-surface-variant hover:text-on-surface'
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+          )}
 
           <div className="space-y-6">
             {!selectedJob && (
@@ -473,19 +587,11 @@ export default function ContentAdminPage() {
             {selectedJob && candidates.length === 0 && (selectedJob.stage === 'COMPLETED' || selectedJob.stage === 'AWAITING_REVIEW') && (
               <div className="border border-status-aligned bg-status-aligned/10 p-12 flex flex-col items-center justify-center text-status-aligned rounded-md">
                 <span className="material-symbols-outlined text-4xl mb-4">task_alt</span>
-                <p className="font-semibold">All candidates verified!</p>
+                <p className="font-semibold">All candidates verified and published!</p>
               </div>
             )}
 
-            {selectedJob && candidates.length === 0 && selectedJob.stage !== 'COMPLETED' && selectedJob.stage !== 'AWAITING_REVIEW' && (
-              <div className="border border-primary bg-primary/5 p-12 flex flex-col items-center justify-center text-primary rounded-md">
-                <span className="material-symbols-outlined text-4xl mb-4 animate-spin">sync</span>
-                <p className="font-semibold">AI is parsing and extracting questions...</p>
-                <p className="text-sm mt-2 opacity-80">Status: {selectedJob.stage}</p>
-              </div>
-            )}
-
-            {candidates.map(candidate => (
+            {filteredCandidates.map(candidate => (
               <Candidate
                 key={candidate.candidate_key}
                 candidate={candidate}
