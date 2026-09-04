@@ -32,24 +32,47 @@ function cleanRunningHeaders(text) {
 }
 
 /**
- * Sanitizes question text and options by stripping fake imgur links and pseudo-paths.
+ * Sanitizes question text and options by:
+ * - Normalizing OCR/LaTeX glued commands (^\circC -> ^\circ \text{C}, \muC -> \mu\text{C})
+ * - Translating leaked HTML tags inside math (<u> -> \underline, <b> -> \mathbf)
+ * - Stripping fake imgur links and pseudo-paths
+ * - Stripping multi-column leakages and section headers
  */
 export function sanitizeQuestionText(text) {
   if (!text) return '';
   let cleaned = String(text);
 
-  // Strip fake imgur links: <img src="https://i.imgur.com/..." ...> or ![...](https://i.imgur.com/...)
+  // 1. Strip fake imgur links: <img src="https://i.imgur.com/..." ...> or ![...](https://i.imgur.com/...)
   cleaned = cleaned.replace(/<img\s+[^>]*src=["']https?:\/\/(?:i\.)?imgur\.com\/[^"']*["'][^>]*>/gi, '');
   cleaned = cleaned.replace(/!\[(.*?)\]\(https?:\/\/(?:i\.)?imgur\.com\/[^\)]*\)/gi, '');
 
-  // Strip pseudo img tags without valid URL: e.g. <img src="benzene ring..."> or <img src="reaction_structure"...>
+  // 2. Strip pseudo img tags without valid URL: e.g. <img src="benzene ring..."> or <img src="reaction_structure"...>
   cleaned = cleaned.replace(/<img\s+[^>]*src=["'](?!(?:https?:\/\/|\/|data:image\/))([^"']+)["'][^>]*>/gi, (match, pseudoSrc) => {
     const altMatch = match.match(/alt=["']([^"']+)["']/i);
     const desc = altMatch ? altMatch[1] : pseudoSrc;
     return `*[Diagram: ${desc.trim()}]*`;
   });
 
-  // Strip section headers at the end of option or question text
+  // 3. Normalize LaTeX glued units and symbols from OCR
+  cleaned = cleaned.replace(/\\circ([A-Za-z])/g, '\\circ \\text{$1}');
+  cleaned = cleaned.replace(/°([A-Za-z])/g, '^\\circ \\text{$1}');
+  cleaned = cleaned.replace(/\^o([A-Za-z])/g, '^\\circ \\text{$1}');
+
+  // 4. Translate HTML tags leaked into or around LaTeX
+  cleaned = cleaned.replace(/\\?<u>(.*?)<\/u>/gi, '\\underline{$1}');
+  cleaned = cleaned.replace(/\\?<b>(.*?)<\/b>/gi, '\\mathbf{$1}');
+  cleaned = cleaned.replace(/\\?<strong>(.*?)<\/strong>/gi, '\\mathbf{$1}');
+  cleaned = cleaned.replace(/\\?<i>(.*?)<\/i>/gi, '\\mathit{$1}');
+  cleaned = cleaned.replace(/\\?<em>(.*?)<\/em>/gi, '\\mathit{$1}');
+
+  // 5. Normalize micro units
+  cleaned = cleaned.replace(/\\mu([A-Z]|m|s|g|mol)\b/g, '\\mu\\text{$1}');
+
+  // 6. Normalize Greek subscripts
+  cleaned = cleaned.replace(/\\(alpha|beta|gamma|delta|epsilon|theta|lambda|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi|omega)([0-9]+)\b/g, '\\$1_{$2}');
+  cleaned = cleaned.replace(/\\(alpha|beta|gamma|theta|lambda|omega|phi|psi)(max|min|avg|net|eff|in|out|ext|int)\b/g, '\\$1_{\\text{$2}}');
+
+  // 7. Strip section headers at the end of option or question text
   cleaned = cleaned.replace(/\n\s*\*\*CHEMISTRY\*\*\s*$/i, '');
   cleaned = cleaned.replace(/\n\s*\*\*PHYSICS\*\*\s*$/i, '');
   cleaned = cleaned.replace(/\n\s*\*\*MATHEMATICS\*\*\s*$/i, '');
