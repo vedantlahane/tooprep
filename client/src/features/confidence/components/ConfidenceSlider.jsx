@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 
 export default function ConfidenceSlider({ value, onChange, disabled = false }) {
   const [hover, setHover] = useState(null);
@@ -33,22 +34,26 @@ export default function ConfidenceSlider({ value, onChange, disabled = false }) 
       </div>
       <div className="flex gap-1.5">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
-          <button
+          <motion.button
             key={n}
+            type="button"
             disabled={disabled}
+            whileHover={{ scale: disabled ? 1 : 1.12, y: disabled ? 0 : -2 }}
+            whileTap={{ scale: disabled ? 1 : 0.92 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 25 }}
             onMouseEnter={() => setHover(n)}
             onMouseLeave={() => setHover(null)}
             onClick={() => onChange(n)}
-            className={`flex-1 h-10 rounded transition-all duration-150 border text-label-mono font-bold
+            className={`flex-1 h-10 rounded transition-colors duration-150 border text-label-mono font-bold
               ${n <= (display || 0)
                 ? `${getColor(display)} text-white border-transparent shadow-sm`
                 : 'bg-surface-container-low text-on-surface-variant border-outline-variant/50 hover:border-primary/50'
               }
-              ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105 active:scale-95'}
+              ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
             `}
           >
             {n}
-          </button>
+          </motion.button>
         ))}
       </div>
     </div>

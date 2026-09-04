@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { practiceService } from '../services/practiceService';
 import { topicsService } from '@/features/topics/services/topicsService';
 import { confidenceService } from '@/features/confidence/services/confidenceService';
@@ -401,46 +402,67 @@ export default function PracticePage() {
         </div>
       )}
 
-      {/* Question Card */}
-      <QuestionCard
-        question={currentQuestion}
-        selectedAnswer={selectedAnswer}
-        onSelectAnswer={!submitted ? setSelectedAnswer : undefined}
-        showResult={submitted}
-        showSolution={showSolution}
-        disabled={submitted}
-        questionNumber={currentIndex + 1}
-      />
+      {/* Question Card with Directional Physics */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={currentQuestion?.id || currentIndex}
+          initial={{ opacity: 0, x: 24 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -24 }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
+        >
+          <QuestionCard
+            question={currentQuestion}
+            selectedAnswer={selectedAnswer}
+            onSelectAnswer={!submitted ? setSelectedAnswer : undefined}
+            showResult={submitted}
+            showSolution={showSolution}
+            disabled={submitted}
+            questionNumber={currentIndex + 1}
+          />
+        </motion.div>
+      </AnimatePresence>
 
       {/* Post-submission Mistake Selector */}
-      {submitted && !attempts[attempts.length - 1]?.correct && (
-        <div className="space-y-2">
-          <div className="text-xs font-mono uppercase tracking-wider text-error font-bold flex items-center gap-1.5">
-            <AlertTriangle className="w-3.5 h-3.5" />
-            <span>Categorize This Mistake (Metacognitive Reflection)</span>
-          </div>
-          <MistakeTypeSelector value={mistakeType} onChange={setMistakeType} />
-        </div>
-      )}
+      <AnimatePresence>
+        {submitted && !attempts[attempts.length - 1]?.correct && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="space-y-2 overflow-hidden"
+          >
+            <div className="text-xs font-mono uppercase tracking-wider text-error font-bold flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              <span>Categorize This Mistake (Metacognitive Reflection)</span>
+            </div>
+            <MistakeTypeSelector value={mistakeType} onChange={setMistakeType} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Action Controls */}
       <div className="pt-2">
         {!submitted ? (
-          <button
+          <motion.button
+            whileHover={!selectedAnswer || loading ? {} : { scale: 1.01 }}
+            whileTap={!selectedAnswer || loading ? {} : { scale: 0.98 }}
             onClick={handleSubmitAnswer}
             disabled={!selectedAnswer || loading}
-            className="w-full py-3.5 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest rounded-sm hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-primary/20"
+            className="w-full py-3.5 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest rounded-sm hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-primary/20 cursor-pointer"
           >
             {loading ? 'Submitting...' : 'Submit & Reveal Solution'}
-          </button>
+          </motion.button>
         ) : (
-          <button
+          <motion.button
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
             onClick={handleNext}
-            className="w-full py-3.5 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest rounded-sm hover:brightness-110 transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-primary/20"
+            className="w-full py-3.5 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest rounded-sm hover:brightness-110 transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-primary/20 cursor-pointer"
           >
             <span>{currentIndex < questions.length - 1 ? 'Next Question' : 'Complete Practice Session'}</span>
             <ArrowRight className="w-4 h-4" />
-          </button>
+          </motion.button>
         )}
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import Icon, {
   LayoutGrid,
@@ -152,135 +153,143 @@ export default function Layout({ children }) {
       </header>
 
       {/* ─── Expandable Header Slide-Down Menu ─── */}
-      {menuOpen && (
-        <div className="sticky top-[45px] z-40 bg-neutral-950/95 backdrop-blur-xl border-b border-white/15 px-4 md:px-8 py-4 animate-slide-down shadow-2xl">
-          <div className="max-w-7xl mx-auto space-y-4">
-            <div className="flex items-center justify-between border-b border-white/10 pb-2">
-              <span className="text-[10px] font-mono text-white/50 uppercase tracking-widest">
-                {profile?.is_admin ? 'Administrative & Student Systems' : 'Student Navigation & System Tools'}
-              </span>
-              <button
-                onClick={() => setMenuOpen(false)}
-                className="text-white/40 hover:text-white p-1"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* If Admin: Staff Operations */}
-            {profile?.is_admin && (
-              <div className="space-y-2">
-                <div className="text-[10px] font-mono text-primary uppercase tracking-widest">
-                  Administrative Access // Staff Only
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs font-mono">
-                  <button
-                    onClick={() => { navigate('/admin/content'); setMenuOpen(false); }}
-                    className="p-3 bg-surface-container hover:bg-surface-bright rounded-xs border border-white/10 hover:border-primary transition-colors text-left flex items-center gap-2.5"
-                  >
-                    <UploadCloud className="w-4 h-4 text-primary shrink-0" />
-                    <div>
-                      <div className="font-semibold text-white">Content Ops</div>
-                      <div className="text-[10px] text-white/40">PDF Question Review</div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => { navigate('/admin/questions'); setMenuOpen(false); }}
-                    className="p-3 bg-surface-container hover:bg-surface-bright rounded-xs border border-white/10 hover:border-primary transition-colors text-left flex items-center gap-2.5"
-                  >
-                    <BookOpen className="w-4 h-4 text-primary shrink-0" />
-                    <div>
-                      <div className="font-semibold text-white">Admin Bank</div>
-                      <div className="text-[10px] text-white/40">Full Database Browser</div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => { navigate('/admin/syncs'); setMenuOpen(false); }}
-                    className="p-3 bg-surface-container hover:bg-surface-bright rounded-xs border border-white/10 hover:border-primary transition-colors text-left flex items-center gap-2.5"
-                  >
-                    <RefreshCw className="w-4 h-4 text-primary shrink-0" />
-                    <div>
-                      <div className="font-semibold text-white">Sync Monitor</div>
-                      <div className="text-[10px] text-white/40">Storage Telemetry</div>
-                    </div>
-                  </button>
-                </div>
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0, y: -10 }}
+            animate={{ opacity: 1, height: 'auto', y: 0 }}
+            exit={{ opacity: 0, height: 0, y: -10 }}
+            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            className="sticky top-[45px] z-40 bg-neutral-950/95 backdrop-blur-xl border-b border-white/15 px-4 md:px-8 py-4 shadow-2xl overflow-hidden"
+          >
+            <div className="max-w-7xl mx-auto space-y-4">
+              <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                <span className="text-[10px] font-mono text-white/50 uppercase tracking-widest">
+                  {profile?.is_admin ? 'Administrative & Student Systems' : 'Student Navigation & System Tools'}
+                </span>
+                <button
+                  onClick={() => setMenuOpen(false)}
+                  className="text-white/40 hover:text-white p-1 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-            )}
 
-            {/* Student Navigation Tools */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5 text-xs font-mono">
-              <button
-                onClick={() => { navigate('/plan'); setMenuOpen(false); }}
-                className="p-3 bg-surface-container/60 hover:bg-surface-bright rounded-xs border border-white/10 hover:border-primary transition-colors text-left flex items-center gap-2.5"
-              >
-                <ListTodo className="w-4 h-4 text-primary shrink-0" />
-                <div>
-                  <div className="font-semibold text-white">Study Plan</div>
-                  <div className="text-[10px] text-white/40">Topic Checklist</div>
-                </div>
-              </button>
+              {/* If Admin: Staff Operations */}
+              {profile?.is_admin && (
+                <div className="space-y-2">
+                  <div className="text-[10px] font-mono text-primary uppercase tracking-widest">
+                    Administrative Access // Staff Only
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs font-mono">
+                    <button
+                      onClick={() => { navigate('/admin/content'); setMenuOpen(false); }}
+                      className="p-3 bg-surface-container hover:bg-surface-bright rounded-xs border border-white/10 hover:border-primary transition-colors text-left flex items-center gap-2.5 cursor-pointer"
+                    >
+                      <UploadCloud className="w-4 h-4 text-primary shrink-0" />
+                      <div>
+                        <div className="font-semibold text-white">Content Ops</div>
+                        <div className="text-[10px] text-white/40">PDF Question Review</div>
+                      </div>
+                    </button>
 
-              <button
-                onClick={() => { navigate('/trends'); setMenuOpen(false); }}
-                className="p-3 bg-surface-container/60 hover:bg-surface-bright rounded-xs border border-white/10 hover:border-primary transition-colors text-left flex items-center gap-2.5"
-              >
-                <TrendingUp className="w-4 h-4 text-primary shrink-0" />
-                <div>
-                  <div className="font-semibold text-white">Trends</div>
-                  <div className="text-[10px] text-white/40">Calibration Curve</div>
-                </div>
-              </button>
+                    <button
+                      onClick={() => { navigate('/admin/questions'); setMenuOpen(false); }}
+                      className="p-3 bg-surface-container hover:bg-surface-bright rounded-xs border border-white/10 hover:border-primary transition-colors text-left flex items-center gap-2.5 cursor-pointer"
+                    >
+                      <BookOpen className="w-4 h-4 text-primary shrink-0" />
+                      <div>
+                        <div className="font-semibold text-white">Admin Bank</div>
+                        <div className="text-[10px] text-white/40">Full Database Browser</div>
+                      </div>
+                    </button>
 
-              <button
-                onClick={() => { navigate('/history'); setMenuOpen(false); }}
-                className="p-3 bg-surface-container/60 hover:bg-surface-bright rounded-xs border border-white/10 hover:border-primary transition-colors text-left flex items-center gap-2.5"
-              >
-                <History className="w-4 h-4 text-primary shrink-0" />
-                <div>
-                  <div className="font-semibold text-white">History</div>
-                  <div className="text-[10px] text-white/40">Past Evaluations</div>
+                    <button
+                      onClick={() => { navigate('/admin/syncs'); setMenuOpen(false); }}
+                      className="p-3 bg-surface-container hover:bg-surface-bright rounded-xs border border-white/10 hover:border-primary transition-colors text-left flex items-center gap-2.5 cursor-pointer"
+                    >
+                      <RefreshCw className="w-4 h-4 text-primary shrink-0" />
+                      <div>
+                        <div className="font-semibold text-white">Sync Monitor</div>
+                        <div className="text-[10px] text-white/40">Storage Telemetry</div>
+                      </div>
+                    </button>
+                  </div>
                 </div>
-              </button>
+              )}
 
-              <button
-                onClick={() => { navigate('/install'); setMenuOpen(false); }}
-                className="p-3 bg-primary/10 hover:bg-primary/20 rounded-xs border border-primary/30 transition-colors text-left flex items-center gap-2.5 text-primary"
-              >
-                <Zap className="w-4 h-4 text-primary shrink-0" />
-                <div>
-                  <div className="font-semibold text-white">Install App</div>
-                  <div className="text-[10px] text-primary/70">Phone & PWA Guide</div>
-                </div>
-              </button>
+              {/* Student Navigation Tools */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5 text-xs font-mono">
+                <button
+                  onClick={() => { navigate('/plan'); setMenuOpen(false); }}
+                  className="p-3 bg-surface-container/60 hover:bg-surface-bright rounded-xs border border-white/10 hover:border-primary transition-colors text-left flex items-center gap-2.5 cursor-pointer"
+                >
+                  <ListTodo className="w-4 h-4 text-primary shrink-0" />
+                  <div>
+                    <div className="font-semibold text-white">Study Plan</div>
+                    <div className="text-[10px] text-white/40">Topic Checklist</div>
+                  </div>
+                </button>
 
-              <button
-                onClick={() => { navigate('/profile'); setMenuOpen(false); }}
-                className="p-3 bg-surface-container/60 hover:bg-surface-bright rounded-xs border border-white/10 hover:border-primary transition-colors text-left flex items-center gap-2.5"
-              >
-                <User className="w-4 h-4 text-primary shrink-0" />
-                <div>
-                  <div className="font-semibold text-white">Profile</div>
-                  <div className="text-[10px] text-white/40">Exam Year & Stats</div>
-                </div>
-              </button>
+                <button
+                  onClick={() => { navigate('/trends'); setMenuOpen(false); }}
+                  className="p-3 bg-surface-container/60 hover:bg-surface-bright rounded-xs border border-white/10 hover:border-primary transition-colors text-left flex items-center gap-2.5 cursor-pointer"
+                >
+                  <TrendingUp className="w-4 h-4 text-primary shrink-0" />
+                  <div>
+                    <div className="font-semibold text-white">Trends</div>
+                    <div className="text-[10px] text-white/40">Calibration Curve</div>
+                  </div>
+                </button>
 
-              <button
-                onClick={() => { handleSignOut(); setMenuOpen(false); }}
-                className="p-3 bg-error/10 hover:bg-error/20 rounded-xs border border-error/20 transition-colors text-left flex items-center gap-2.5 text-error"
-              >
-                <LogOut className="w-4 h-4 text-error shrink-0" />
-                <div>
-                  <div className="font-semibold">Sign Out</div>
-                  <div className="text-[10px] opacity-70">End Session</div>
-                </div>
-              </button>
+                <button
+                  onClick={() => { navigate('/history'); setMenuOpen(false); }}
+                  className="p-3 bg-surface-container/60 hover:bg-surface-bright rounded-xs border border-white/10 hover:border-primary transition-colors text-left flex items-center gap-2.5 cursor-pointer"
+                >
+                  <History className="w-4 h-4 text-primary shrink-0" />
+                  <div>
+                    <div className="font-semibold text-white">History</div>
+                    <div className="text-[10px] text-white/40">Past Evaluations</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => { navigate('/install'); setMenuOpen(false); }}
+                  className="p-3 bg-primary/10 hover:bg-primary/20 rounded-xs border border-primary/30 transition-colors text-left flex items-center gap-2.5 text-primary cursor-pointer"
+                >
+                  <Zap className="w-4 h-4 text-primary shrink-0" />
+                  <div>
+                    <div className="font-semibold text-white">Install App</div>
+                    <div className="text-[10px] text-primary/70">Phone & PWA Guide</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => { navigate('/profile'); setMenuOpen(false); }}
+                  className="p-3 bg-surface-container/60 hover:bg-surface-bright rounded-xs border border-white/10 hover:border-primary transition-colors text-left flex items-center gap-2.5 cursor-pointer"
+                >
+                  <User className="w-4 h-4 text-primary shrink-0" />
+                  <div>
+                    <div className="font-semibold text-white">Profile</div>
+                    <div className="text-[10px] text-white/40">Preferences</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => { handleSignOut(); setMenuOpen(false); }}
+                  className="p-3 bg-error/10 hover:bg-error/20 rounded-xs border border-error/20 transition-colors text-left flex items-center gap-2.5 text-error cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4 text-error shrink-0" />
+                  <div>
+                    <div className="font-semibold">Sign Out</div>
+                    <div className="text-[10px] opacity-70">End Session</div>
+                  </div>
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ─── Iconic Panoramic Pivot Header (Windows Phone Panorama Horizon) ─── */}
       <nav className="w-full bg-black/60 backdrop-blur-sm border-b border-white/5 px-4 md:px-8 pt-4 pb-1 overflow-x-auto no-scrollbar z-30">
@@ -315,11 +324,13 @@ export default function Layout({ children }) {
                   {item.label}
                 </span>
 
-                {/* Active Indicator Bar */}
+                {/* Active Indicator Bar with Smooth Gliding Physics */}
                 {isActive && (
-                  <span
+                  <motion.span
+                    layoutId="pivotIndicator"
                     className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-primary"
                     style={{ backgroundColor: 'var(--color-primary)' }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                   />
                 )}
               </Link>
@@ -330,9 +341,17 @@ export default function Layout({ children }) {
 
       {/* ─── Main Panoramic Content Canvas ─── */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-8 pt-6 pb-12">
-        <div key={location.pathname} className="animate-slide-up">
-          {children}
-        </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+          >
+            {children}
+          </motion.div>
+        </AnimatePresence>
       </main>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { evaluationsService } from '../services/evaluationsService';
 import { confidenceService } from '@/features/confidence/services/confidenceService';
 import { practiceService } from '@/features/practice/services/practiceService';
@@ -228,15 +229,33 @@ export default function ResultsPage() {
         </div>
       )}
 
-      {/* Score Cards */}
+      {/* Score Cards with Staggered Entrance */}
       {summary && (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-            <div className="p-4 bg-surface-container border border-white/10 rounded-sm text-center">
+          <motion.div
+            initial="hidden"
+            animate="show"
+            variants={{
+              hidden: { opacity: 0 },
+              show: {
+                opacity: 1,
+                transition: { staggerChildren: 0.06 }
+              }
+            }}
+            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3"
+          >
+            <motion.div
+              variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}
+              className="p-4 bg-surface-container border border-white/10 rounded-sm text-center"
+            >
               <div className="text-2xl md:text-3xl font-light text-primary font-mono">{summary.correct}/{summary.total_questions}</div>
               <div className="text-[11px] font-mono uppercase tracking-widest text-white/50 mt-1">Score</div>
-            </div>
-            <div className="p-4 bg-surface-container border border-white/10 rounded-sm text-center">
+            </motion.div>
+
+            <motion.div
+              variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}
+              className="p-4 bg-surface-container border border-white/10 rounded-sm text-center"
+            >
               <div className={`text-2xl md:text-3xl font-light font-mono ${
                 summary.accuracy >= 70 ? 'text-status-aligned' :
                 summary.accuracy >= 40 ? 'text-status-weak' : 'text-error'
@@ -244,18 +263,30 @@ export default function ResultsPage() {
                 {summary.accuracy}%
               </div>
               <div className="text-[11px] font-mono uppercase tracking-widest text-white/50 mt-1">Accuracy</div>
-            </div>
-            <div className="p-4 bg-surface-container border border-white/10 rounded-sm text-center">
+            </motion.div>
+
+            <motion.div
+              variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}
+              className="p-4 bg-surface-container border border-white/10 rounded-sm text-center"
+            >
               <div className="text-2xl md:text-3xl font-light text-white font-mono">{summary.attempt_rate}%</div>
               <div className="text-[11px] font-mono uppercase tracking-widest text-white/50 mt-1">Attempt Rate</div>
-            </div>
-            <div className="p-4 bg-surface-container border border-white/10 rounded-sm text-center">
+            </motion.div>
+
+            <motion.div
+              variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}
+              className="p-4 bg-surface-container border border-white/10 rounded-sm text-center"
+            >
               <div className="text-2xl md:text-3xl font-light text-white font-mono">
                 {Math.floor(summary.avg_time_seconds / 60)}:{String(summary.avg_time_seconds % 60).padStart(2, '0')}
               </div>
               <div className="text-[11px] font-mono uppercase tracking-widest text-white/50 mt-1">Avg Time/Q</div>
-            </div>
-            <div className="p-4 bg-surface-container border border-white/10 rounded-sm text-center col-span-2 sm:col-span-1">
+            </motion.div>
+
+            <motion.div
+              variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}
+              className="p-4 bg-surface-container border border-white/10 rounded-sm text-center col-span-2 sm:col-span-1"
+            >
               <div className={`text-2xl md:text-3xl font-light font-mono ${
                 summary.pyq_accuracy !== null && summary.pyq_accuracy >= 70 ? 'text-status-aligned' :
                 summary.pyq_accuracy !== null && summary.pyq_accuracy >= 40 ? 'text-status-weak' : 'text-white/50'
@@ -263,8 +294,8 @@ export default function ResultsPage() {
                 {summary.pyq_accuracy !== null ? `${summary.pyq_accuracy}%` : '—'}
               </div>
               <div className="text-[11px] font-mono uppercase tracking-widest text-white/50 mt-1">PYQ Accuracy</div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
 
           {summary.attempt_rate < 100 && (
             <div className="px-4 py-3 bg-error/10 border border-error/30 text-error text-xs font-mono rounded-sm flex items-center gap-3">
@@ -370,32 +401,38 @@ export default function ResultsPage() {
             ))}
           </div>
 
-          <button
+          <motion.button
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
             onClick={handleReDrill}
             disabled={reDrillLoading}
-            className="w-full mt-6 py-3.5 bg-error text-white text-xs font-mono font-bold uppercase tracking-widest hover:bg-error/80 transition-colors rounded-sm flex items-center justify-center gap-2"
+            className="w-full mt-6 py-3.5 bg-error text-white text-xs font-mono font-bold uppercase tracking-widest hover:bg-error/80 transition-colors rounded-sm flex items-center justify-center gap-2 cursor-pointer"
           >
             <RotateCcw className="w-4 h-4" />
             {reDrillLoading ? 'Starting Targeted Session...' : `Practice All ${mistakes.length} Mistakes Now`}
-          </button>
+          </motion.button>
         </div>
       )}
 
       {/* Bottom Actions */}
       <div className="flex flex-col sm:flex-row gap-3 pt-4">
-        <button
+        <motion.button
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.98 }}
           onClick={() => navigate('/')}
-          className="flex-1 py-3.5 border border-white/15 text-white/80 hover:text-white hover:border-white/30 text-xs font-mono uppercase tracking-widest rounded-sm transition-colors text-center"
+          className="flex-1 py-3.5 border border-white/15 text-white/80 hover:text-white hover:border-white/30 text-xs font-mono uppercase tracking-widest rounded-sm transition-colors text-center cursor-pointer"
         >
           Return to Knowledge Map
-        </button>
+        </motion.button>
         {topicId && (
-          <button
+          <motion.button
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => navigate(`/topics/${topicId}`)}
-            className="flex-1 py-3.5 bg-primary text-white text-xs font-mono uppercase tracking-widest font-semibold hover:brightness-110 transition-all rounded-sm text-center"
+            className="flex-1 py-3.5 bg-primary text-white text-xs font-mono uppercase tracking-widest font-semibold hover:brightness-110 transition-all rounded-sm text-center cursor-pointer"
           >
             View Full Topic Telemetry
-          </button>
+          </motion.button>
         )}
       </div>
     </div>

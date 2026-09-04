@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { dashboardService } from '../services/dashboardService';
 import { confidenceService } from '@/features/confidence/services/confidenceService';
 import ConfidenceSlider from '@/features/confidence/components/ConfidenceSlider';
@@ -412,42 +413,50 @@ export default function DashboardPage() {
       </div>
 
       {/* ─── Priority Overconfidence Alert Banner ─── */}
-      {biggestGapTopic && (
-        <div
-          onClick={() => navigate(`/topics/${biggestGapTopic.topic_id}`)}
-          className="relative cursor-pointer overflow-hidden px-4 py-3 rounded-sm bg-error/15 border border-error/50 hover:bg-error/25 transition-all text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 group animate-pulse-urgent press-feedback"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-error/30 border border-error/60 flex items-center justify-center text-error shrink-0 animate-pulse">
-              <AlertTriangle className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="text-[10px] font-mono uppercase tracking-widest text-error font-bold flex items-center gap-2">
-                <span>⚠️ Highest Overconfidence Risk Identified</span>
-                <span className="text-white/50 text-[9px] font-normal">({biggestGapTopic.subject_name} › {biggestGapTopic.chapter_name})</span>
+      <AnimatePresence>
+        {biggestGapTopic && (
+          <motion.div
+            initial={{ opacity: 0, y: -8, scale: 0.99 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.99 }}
+            whileHover={{ scale: 1.004 }}
+            whileTap={{ scale: 0.996 }}
+            transition={{ type: 'spring', stiffness: 450, damping: 25 }}
+            onClick={() => navigate(`/topics/${biggestGapTopic.topic_id}`)}
+            className="relative cursor-pointer overflow-hidden px-4 py-3 rounded-sm bg-error/15 border border-error/50 hover:bg-error/25 transition-colors text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 group shadow-lg"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-error/30 border border-error/60 flex items-center justify-center text-error shrink-0 animate-pulse">
+                <AlertTriangle className="w-4 h-4" />
               </div>
-              <div className="text-sm font-medium text-white flex items-baseline gap-2">
-                <span>{biggestGapTopic.topic_name}</span>
-                <span className="text-xs font-mono text-white/70">
-                  Self-Rating: <strong className="text-error">{biggestGapTopic.confidence}/10</strong> vs Mock Score: <strong className="text-white">{biggestGapTopic.evaluation_accuracy}%</strong> (Gap: <strong className="text-error">{biggestGapTopic.gap}%</strong>)
-                </span>
+              <div>
+                <div className="text-[10px] font-mono uppercase tracking-widest text-error font-bold flex items-center gap-2">
+                  <span>⚠️ Highest Overconfidence Risk Identified</span>
+                  <span className="text-white/50 text-[9px] font-normal">({biggestGapTopic.subject_name} › {biggestGapTopic.chapter_name})</span>
+                </div>
+                <div className="text-sm font-medium text-white flex items-baseline gap-2">
+                  <span>{biggestGapTopic.topic_name}</span>
+                  <span className="text-xs font-mono text-white/70">
+                    Self-Rating: <strong className="text-error">{biggestGapTopic.confidence}/10</strong> vs Mock Score: <strong className="text-white">{biggestGapTopic.evaluation_accuracy}%</strong> (Gap: <strong className="text-error">{biggestGapTopic.gap}%</strong>)
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(`/evaluate?topic=${biggestGapTopic.topic_id}`);
-              }}
-              className="px-3 py-1.5 bg-error text-white font-mono text-[11px] font-bold uppercase tracking-wider rounded-sm hover:brightness-110 flex items-center gap-1"
-            >
-              <Timer className="w-3.5 h-3.5 stroke-[2]" />
-              <span>Diagnostic Mock</span>
-            </button>
-          </div>
-        </div>
-      )}
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/evaluate?topic=${biggestGapTopic.topic_id}`);
+                }}
+                className="px-3 py-1.5 bg-error text-white font-mono text-[11px] font-bold uppercase tracking-wider rounded-sm hover:brightness-110 flex items-center gap-1 cursor-pointer"
+              >
+                <Timer className="w-3.5 h-3.5 stroke-[2]" />
+                <span>Diagnostic Mock</span>
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ═══════════════════════════════════════════════════════════════════
        * VIEW MODE 1: AUTHENTIC EXCEL SPREADSHEET (XLS SHEET MATRIX)
@@ -952,37 +961,47 @@ export default function DashboardPage() {
             </div>
 
             {/* ─── In-Cell Calibration Micro-Drawer (if active) ─── */}
-            {inCellCalibrate && (
-              <div className="p-3 bg-neutral-900 border-t-2 border-primary flex flex-wrap items-center justify-between gap-3 animate-slide-down text-xs font-mono shadow-xl">
-                <div className="flex items-center gap-2">
-                  <span className="text-primary font-bold">CALIBRATE:</span>
-                  <span className="text-white">{inCellCalibrate.topicName}</span>
-                  <span className="text-white/40">// Select Confidence (1-10):</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(val => (
+            <AnimatePresence>
+              {inCellCalibrate && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.18, ease: 'easeOut' }}
+                  className="p-3 bg-neutral-900 border-t-2 border-primary flex flex-wrap items-center justify-between gap-3 text-xs font-mono shadow-xl overflow-hidden"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-primary font-bold">CALIBRATE:</span>
+                    <span className="text-white">{inCellCalibrate.topicName}</span>
+                    <span className="text-white/40">// Select Confidence (1-10):</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(val => (
+                      <motion.button
+                        key={val}
+                        whileHover={{ scale: 1.15 }}
+                        whileTap={{ scale: 0.92 }}
+                        onClick={() => handleQuickCalibrate(inCellCalibrate.topicId, val)}
+                        disabled={savingConf}
+                        className={`w-7 h-7 rounded text-xs font-bold font-mono transition-colors cursor-pointer ${
+                          inCellCalibrate.currentVal === val
+                            ? 'bg-primary text-black ring-2 ring-white'
+                            : 'bg-neutral-800 text-white hover:bg-neutral-700'
+                        }`}
+                      >
+                        {val}
+                      </motion.button>
+                    ))}
                     <button
-                      key={val}
-                      onClick={() => handleQuickCalibrate(inCellCalibrate.topicId, val)}
-                      disabled={savingConf}
-                      className={`w-7 h-7 rounded text-xs font-bold font-mono transition-transform hover:scale-110 press-feedback ${
-                        inCellCalibrate.currentVal === val
-                          ? 'bg-primary text-black ring-2 ring-white'
-                          : 'bg-neutral-800 text-white hover:bg-neutral-700'
-                      }`}
+                      onClick={() => setInCellCalibrate(null)}
+                      className="ml-2 text-white/50 hover:text-white p-1 cursor-pointer"
                     >
-                      {val}
+                      <X className="w-3.5 h-3.5" />
                     </button>
-                  ))}
-                  <button
-                    onClick={() => setInCellCalibrate(null)}
-                    className="ml-2 text-white/50 hover:text-white p-1 press-feedback"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* ─── Excel Bottom Status Bar ─── */}
             <div className="px-3 py-2 bg-neutral-950 border-t border-neutral-800 flex flex-wrap items-center justify-between text-[11px] font-mono text-white/50">
@@ -1026,10 +1045,13 @@ export default function DashboardPage() {
 
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
                 {topics.map((topic, tileIdx) => (
-                  <div
+                  <motion.div
                     key={topic.topic_id}
+                    whileHover={{ y: -3, scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ type: 'spring', stiffness: 450, damping: 25 }}
                     onClick={() => navigate(`/topics/${topic.topic_id}`)}
-                    className={`metro-tile relative cursor-pointer p-4 flex flex-col justify-between overflow-hidden rounded-sm select-none aspect-square bg-surface-container hover:border-primary border border-white/10 animate-tile-flip hover-lift ${tileIdx < 6 ? `stagger-${tileIdx + 1}` : ''}`}
+                    className="metro-tile relative cursor-pointer p-4 flex flex-col justify-between overflow-hidden rounded-sm select-none aspect-square bg-surface-container hover:border-primary border border-white/10 shadow-sm"
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-mono uppercase tracking-wider opacity-60">
@@ -1060,7 +1082,7 @@ export default function DashboardPage() {
                         )}
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             </section>
@@ -1068,59 +1090,68 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ─── Modal Confidence Calibration (Fallback) ─── */}
-      {calibrateModal && (
-        <div
-          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
-          onClick={() => setCalibrateModal(null)}
-        >
-          <div
-            className="bg-surface-dim border border-outline-variant p-6 rounded-md max-w-md w-full shadow-2xl space-y-4"
-            onClick={e => e.stopPropagation()}
+      {/* ─── Modal Confidence Calibration (Fallback) with Spring Pop ─── */}
+      <AnimatePresence>
+        {calibrateModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setCalibrateModal(null)}
           >
-            <div className="flex justify-between items-start">
-              <div>
-                <div className="text-[10px] font-mono text-primary uppercase tracking-widest">
-                  Quick Calibration &middot; 1–10 Scale
+            <motion.div
+              initial={{ scale: 0.94, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.94, opacity: 0, y: 10 }}
+              transition={{ type: 'spring', stiffness: 450, damping: 30 }}
+              className="bg-surface-dim border border-outline-variant p-6 rounded-md max-w-md w-full shadow-2xl space-y-4"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="text-[10px] font-mono text-primary uppercase tracking-widest">
+                    Quick Calibration &middot; 1–10 Scale
+                  </div>
+                  <h3 className="text-lg font-light text-white mt-0.5">
+                    {calibrateModal.name}
+                  </h3>
                 </div>
-                <h3 className="text-lg font-light text-white mt-0.5">
-                  {calibrateModal.name}
-                </h3>
+                <button
+                  onClick={() => setCalibrateModal(null)}
+                  className="text-white/40 hover:text-white p-1 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-              <button
-                onClick={() => setCalibrateModal(null)}
-                className="text-white/40 hover:text-white p-1"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
 
-            <p className="text-xs text-white/60 font-light">
-              How confident do you feel about solving typical JEE Main / Advanced questions from this topic?
-            </p>
+              <p className="text-xs text-white/60 font-light">
+                How confident do you feel about solving typical JEE Main / Advanced questions from this topic?
+              </p>
 
-            <div className="py-2">
-              <ConfidenceSlider value={calibrateVal} onChange={setCalibrateVal} />
-            </div>
+              <div className="py-2">
+                <ConfidenceSlider value={calibrateVal} onChange={setCalibrateVal} />
+              </div>
 
-            <div className="flex items-center gap-3 pt-2">
-              <button
-                onClick={handleSaveModalConfidence}
-                disabled={calibrating}
-                className="flex-1 py-2.5 bg-primary text-black text-xs font-mono font-bold uppercase tracking-wider rounded-sm hover:brightness-110 disabled:opacity-50"
-              >
-                {calibrating ? 'Saving...' : 'Save Rating'}
-              </button>
-              <button
-                onClick={() => setCalibrateModal(null)}
-                className="px-4 py-2.5 border border-outline-variant text-white/70 text-xs font-mono uppercase tracking-wider rounded-sm hover:text-white"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  onClick={handleSaveModalConfidence}
+                  disabled={calibrating}
+                  className="flex-1 py-2.5 bg-primary text-black text-xs font-mono font-bold uppercase tracking-wider rounded-sm hover:brightness-110 disabled:opacity-50 cursor-pointer"
+                >
+                  {calibrating ? 'Saving...' : 'Save Rating'}
+                </button>
+                <button
+                  onClick={() => setCalibrateModal(null)}
+                  className="px-4 py-2.5 border border-outline-variant text-white/70 text-xs font-mono uppercase tracking-wider rounded-sm hover:text-white cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

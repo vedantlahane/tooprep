@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { evaluationsService } from '../services/evaluationsService';
 import { topicsService } from '@/features/topics/services/topicsService';
 import QuestionCard from '@/features/questions/components/QuestionCard';
@@ -298,22 +299,32 @@ export default function EvaluationPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-6 items-start">
-        {/* Main Question Display */}
-        <div key={currentIndex} className="space-y-6 min-w-0 animate-slide-up">
-          <QuestionCard
-            question={currentQuestion}
-            selectedAnswer={answers[currentQuestion?.id] || null}
-            onSelectAnswer={handleSelectAnswer}
-            questionNumber={currentIndex + 1}
-            isMarked={markedForReview.has(currentQuestion?.id)}
-          />
+        {/* Main Question Display with Directional Slide */}
+        <div className="space-y-6 min-w-0">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentQuestion?.id || currentIndex}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+            >
+              <QuestionCard
+                question={currentQuestion}
+                selectedAnswer={answers[currentQuestion?.id] || null}
+                onSelectAnswer={handleSelectAnswer}
+                questionNumber={currentIndex + 1}
+                isMarked={markedForReview.has(currentQuestion?.id)}
+              />
+            </motion.div>
+          </AnimatePresence>
 
           {/* Navigation Controls */}
           <div className="flex items-center justify-between gap-3 pt-2">
             <button
               onClick={() => handleNavigateQuestion(Math.max(0, currentIndex - 1))}
               disabled={currentIndex === 0}
-              className="px-4 py-2.5 bg-surface-container border border-outline-variant text-white/80 hover:text-white rounded-sm text-xs font-mono uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors press-feedback"
+              className="px-4 py-2.5 bg-surface-container border border-outline-variant text-white/80 hover:text-white rounded-sm text-xs font-mono uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
               <span>Previous</span>
@@ -321,7 +332,7 @@ export default function EvaluationPage() {
 
             <button
               onClick={toggleMarkForReview}
-              className={`px-4 py-2.5 border rounded-sm text-xs font-mono uppercase tracking-wider flex items-center gap-1.5 transition-colors press-feedback ${
+              className={`px-4 py-2.5 border rounded-sm text-xs font-mono uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer ${
                 markedForReview.has(currentQuestion?.id)
                   ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
                   : 'bg-surface-dim border-outline-variant text-white/60 hover:text-white'
@@ -334,7 +345,7 @@ export default function EvaluationPage() {
             <button
               onClick={() => handleNavigateQuestion(Math.min(questions.length - 1, currentIndex + 1))}
               disabled={currentIndex === questions.length - 1}
-              className="px-4 py-2.5 bg-primary text-black font-bold rounded-sm text-xs font-mono uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors press-feedback"
+              className="px-4 py-2.5 bg-primary text-black font-bold rounded-sm text-xs font-mono uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <span>Next</span>
               <ChevronRight className="w-4 h-4" />
@@ -364,13 +375,16 @@ export default function EvaluationPage() {
               }
 
               return (
-                <button
+                <motion.button
                   key={q.id}
+                  whileHover={{ scale: 1.08 }}
+                  whileTap={{ scale: 0.92 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 25 }}
                   onClick={() => handleNavigateQuestion(idx)}
-                  className={`aspect-square rounded-sm border text-xs font-mono transition-all flex items-center justify-center ${btnStyle}`}
+                  className={`aspect-square rounded-sm border text-xs font-mono transition-colors flex items-center justify-center cursor-pointer ${btnStyle}`}
                 >
                   {idx + 1}
-                </button>
+                </motion.button>
               );
             })}
           </div>
@@ -393,60 +407,69 @@ export default function EvaluationPage() {
         </div>
       </div>
 
-      {/* Confirmation Submit Dialog */}
-      {showConfirmSubmit && (
-        <div
-          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
-          onClick={() => setShowConfirmSubmit(false)}
-        >
-          <div
-            className="bg-surface-dim border border-outline-variant p-6 rounded-md max-w-md w-full shadow-2xl space-y-4"
-            onClick={e => e.stopPropagation()}
+      {/* Confirmation Submit Dialog with Spring Pop */}
+      <AnimatePresence>
+        {showConfirmSubmit && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setShowConfirmSubmit(false)}
           >
-            <div className="text-label-sm-mono text-error uppercase tracking-widest text-xs font-bold flex items-center gap-1.5">
-              <AlertTriangle className="w-4 h-4" />
-              <span>Submit Examination?</span>
-            </div>
-
-            <p className="text-sm text-white/80 font-light">
-              Are you sure you want to finish the test? Once submitted, your score will be computed and solutions will be revealed.
-            </p>
-
-            <div className="grid grid-cols-2 gap-2 text-xs font-mono p-3 bg-surface-container rounded">
-              <div>
-                <span className="text-white/40">ATTEMPTED:</span>{' '}
-                <strong className="text-status-aligned">{answeredCount}</strong>
+            <motion.div
+              initial={{ scale: 0.94, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.94, opacity: 0, y: 10 }}
+              transition={{ type: 'spring', stiffness: 450, damping: 30 }}
+              className="bg-surface-dim border border-outline-variant p-6 rounded-md max-w-md w-full shadow-2xl space-y-4"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="text-label-sm-mono text-error uppercase tracking-widest text-xs font-bold flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4" />
+                <span>Submit Examination?</span>
               </div>
-              <div>
-                <span className="text-white/40">UNATTEMPTED:</span>{' '}
-                <strong className={unansweredCount > 0 ? 'text-error' : 'text-white'}>{unansweredCount}</strong>
-              </div>
-            </div>
 
-            {unansweredCount > 0 && (
-              <p className="text-[11px] text-amber-400 font-mono">
-                ⚠️ In JEE, unanswered questions award zero marks.
+              <p className="text-sm text-white/80 font-light">
+                Are you sure you want to finish the test? Once submitted, your score will be computed and solutions will be revealed.
               </p>
-            )}
 
-            <div className="flex items-center gap-3 pt-2">
-              <button
-                onClick={handleSubmitEvaluation}
-                disabled={submitting}
-                className="flex-1 py-2.5 bg-error text-white text-xs font-mono font-bold uppercase tracking-wider rounded-sm hover:brightness-110 disabled:opacity-50"
-              >
-                {submitting ? 'Submitting...' : 'Yes, Submit Test'}
-              </button>
-              <button
-                onClick={() => setShowConfirmSubmit(false)}
-                className="px-5 py-2.5 border border-outline-variant text-white/70 text-xs font-mono uppercase tracking-wider rounded-sm hover:text-white"
-              >
-                Continue Test
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              <div className="grid grid-cols-2 gap-2 text-xs font-mono p-3 bg-surface-container rounded">
+                <div>
+                  <span className="text-white/40">ATTEMPTED:</span>{' '}
+                  <strong className="text-status-aligned">{answeredCount}</strong>
+                </div>
+                <div>
+                  <span className="text-white/40">UNATTEMPTED:</span>{' '}
+                  <strong className={unansweredCount > 0 ? 'text-error' : 'text-white'}>{unansweredCount}</strong>
+                </div>
+              </div>
+
+              {unansweredCount > 0 && (
+                <p className="text-[11px] text-amber-400 font-mono">
+                  ⚠️ In JEE, unanswered questions award zero marks.
+                </p>
+              )}
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  onClick={handleSubmitEvaluation}
+                  disabled={submitting}
+                  className="flex-1 py-2.5 bg-error text-white text-xs font-mono font-bold uppercase tracking-wider rounded-sm hover:brightness-110 disabled:opacity-50 cursor-pointer"
+                >
+                  {submitting ? 'Submitting...' : 'Yes, Submit Test'}
+                </button>
+                <button
+                  onClick={() => setShowConfirmSubmit(false)}
+                  className="px-5 py-2.5 border border-outline-variant text-white/70 text-xs font-mono uppercase tracking-wider rounded-sm hover:text-white cursor-pointer"
+                >
+                  Continue Test
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

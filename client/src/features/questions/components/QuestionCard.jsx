@@ -1,4 +1,5 @@
 import { Bookmark, Check, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import MathText from './MathText';
 
 export { MathText };
@@ -87,12 +88,16 @@ export default function QuestionCard({
       {/* Options */}
       <div className="space-y-3">
         {options.map(opt => (
-          <button
+          <motion.button
             key={opt.id}
+            type="button"
             disabled={disabled || showResult}
+            whileHover={disabled || showResult ? {} : { scale: 1.008, x: 2 }}
+            whileTap={disabled || showResult ? {} : { scale: 0.99 }}
+            transition={{ type: 'spring', stiffness: 450, damping: 25 }}
             onClick={() => onSelectAnswer && onSelectAnswer(opt.id)}
-            className={`w-full text-left p-4 transition-all duration-150 flex items-start gap-4 rounded-sm ${getOptionStyle(opt.id)} ${
-              disabled || showResult ? '' : 'cursor-pointer press-feedback hover:-translate-y-0.5'
+            className={`w-full text-left p-4 flex items-start gap-4 rounded-sm transition-colors duration-150 ${getOptionStyle(opt.id)} ${
+              disabled || showResult ? '' : 'cursor-pointer'
             }`}
           >
             <span className="inline-flex items-center justify-center w-8 h-8 bg-black/20 text-body-lg font-bold flex-shrink-0 mt-0.5 rounded-xs">
@@ -102,24 +107,44 @@ export default function QuestionCard({
               <MathText text={opt.text} />
             </span>
             {showResult && question.correct_answer === opt.id && (
-              <Check className="w-5 h-5 flex-shrink-0 text-white animate-fade-in" />
+              <motion.span
+                initial={{ scale: 0, rotate: -20 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+              >
+                <Check className="w-5 h-5 flex-shrink-0 text-white" />
+              </motion.span>
             )}
             {showResult && selectedAnswer === opt.id && selectedAnswer !== question.correct_answer && (
-              <X className="w-5 h-5 flex-shrink-0 text-white animate-fade-in" />
+              <motion.span
+                initial={{ scale: 0, rotate: 20 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+              >
+                <X className="w-5 h-5 flex-shrink-0 text-white" />
+              </motion.span>
             )}
-          </button>
+          </motion.button>
         ))}
       </div>
 
-      {/* Solution */}
-      {showSolution && question.solution_text && (
-        <div className="mt-8 p-6 bg-primary/10 border-l-4 border-primary rounded-r-sm animate-slide-down">
-          <div className="text-label-sm-mono text-primary font-bold mb-3 tracking-widest uppercase">solution</div>
-          <div className="text-body-lg text-on-surface leading-relaxed font-light">
-            <MathText text={question.solution_text} />
-          </div>
-        </div>
-      )}
+      {/* Solution with Fluid Height Transition */}
+      <AnimatePresence>
+        {showSolution && question.solution_text && (
+          <motion.div
+            initial={{ opacity: 0, height: 0, y: -8 }}
+            animate={{ opacity: 1, height: 'auto', y: 0 }}
+            exit={{ opacity: 0, height: 0, y: -8 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            className="mt-8 p-6 bg-primary/10 border-l-4 border-primary rounded-r-sm overflow-hidden"
+          >
+            <div className="text-label-sm-mono text-primary font-bold mb-3 tracking-widest uppercase">solution</div>
+            <div className="text-body-lg text-on-surface leading-relaxed font-light">
+              <MathText text={question.solution_text} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
