@@ -168,7 +168,7 @@ export default function MathText({ text, className = '' }) {
   return (
     <>
       <span
-        className={`math-rendered-content leading-relaxed ${className}`}
+        className={`math-rendered-content leading-relaxed inline-block max-w-full overflow-x-auto align-baseline break-words ${className}`}
         dangerouslySetInnerHTML={{ __html: html }}
       />
 
@@ -179,7 +179,7 @@ export default function MathText({ text, className = '' }) {
           onClick={() => setZoomImg(null)}
         >
           <div
-            className="bg-surface-dim border border-outline-variant p-4 rounded-md max-w-4xl max-h-[90vh] flex flex-col items-center"
+            className="bg-surface-dim border border-outline-variant p-4 rounded-md max-w-4xl w-[95vw] max-h-[90vh] flex flex-col items-center overflow-hidden shadow-2xl"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex justify-between items-center w-full pb-3 border-b border-outline-variant">
