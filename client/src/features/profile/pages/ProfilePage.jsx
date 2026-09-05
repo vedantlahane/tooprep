@@ -21,7 +21,7 @@ import Icon, {
 } from '@/shared/components/Icon';
 
 export default function ProfilePage() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [biggestGap, setBiggestGap] = useState(null);
@@ -55,6 +55,7 @@ export default function ProfilePage() {
     try {
       await profileService.updateProfile({ display_name: displayName, target_exam_year: targetYear });
       setEditing(false);
+      if (refreshProfile) await refreshProfile();
       loadData();
     } catch (err) {
       console.error(err);
