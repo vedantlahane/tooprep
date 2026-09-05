@@ -54,6 +54,8 @@ export default function Layout({ children }) {
   const [accentColor, setAccentColor] = useState('cyan');
   const [timeStr, setTimeStr] = useState('');
 
+  const isAdmin = isUserAdmin(user, profile);
+
   // Live system clock for status rail
   useEffect(() => {
     const updateTime = () => {
@@ -104,7 +106,7 @@ export default function Layout({ children }) {
             </span>
           </Link>
 
-          {profile?.is_admin && (
+          {isAdmin && (
             <Link
               to="/admin"
               className="flex items-center gap-1.5 px-2.5 py-0.5 bg-status-weak/20 border border-status-weak/50 text-status-weak hover:bg-status-weak hover:text-black transition-colors text-[10px] font-mono uppercase tracking-widest font-bold"
@@ -178,7 +180,7 @@ export default function Layout({ children }) {
             <div className="max-w-7xl mx-auto space-y-4">
               <div className="flex items-center justify-between border-b border-white/10 pb-2">
                 <span className="text-[10px] font-mono text-white/50 uppercase tracking-widest">
-                  {profile?.is_admin ? 'Administrative & Student Systems' : 'Student Navigation & System Tools'}
+                  {isAdmin ? 'Administrative & Student Systems' : 'Student Navigation & System Tools'}
                 </span>
                 <button
                   onClick={() => setMenuOpen(false)}
@@ -189,7 +191,7 @@ export default function Layout({ children }) {
               </div>
 
               {/* If Admin: Staff Operations */}
-              {profile?.is_admin && (
+              {isAdmin && (
                 <div className="space-y-2">
                   <div className="text-[10px] font-mono text-status-weak uppercase tracking-widest flex items-center gap-1.5">
                     <Shield className="w-3.5 h-3.5" />

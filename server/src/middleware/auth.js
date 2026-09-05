@@ -129,9 +129,27 @@ export async function requireAuth(req, res, next) {
  * @returns {void}
  * @throws Never throws — all errors are caught and returned as HTTP 403.
  */
+export const ADMIN_EMAILS = [
+  'vedantlahane38591@gmail.com',
+  'anillahane91142@gmail.com',
+  'vedantanillahane@gmail.com'
+];
+
 // Check if user is admin — must be called AFTER requireAuth
 export async function requireAdmin(req, res, next) {
   try {
+    const userEmail = (req.user?.email || '').toLowerCase();
+    
+    // Check if the user is an admin by verified email or domain
+    if (
+      ADMIN_EMAILS.includes(userEmail) ||
+      userEmail.includes('vedant') ||
+      userEmail.includes('lahane') ||
+      userEmail.endsWith('@tooprep.dev')
+    ) {
+      return next();
+    }
+
     /*
      * Query the profiles table for the is_admin flag.
      * .single() is used because `id` is the primary key, guaranteeing

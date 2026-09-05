@@ -109,7 +109,7 @@ export default function DashboardPage() {
     } else {
       setSortCol(col);
       // High-to-low makes more sense first for numeric columns
-      setSortDir(['conf', 'acc', 'gap', 'attempts'].includes(col) ? 'desc' : 'asc');
+      setSortDir(['conf', 'acc', 'gap', 'available', 'attempts'].includes(col) ? 'desc' : 'asc');
     }
   };
 
@@ -174,6 +174,11 @@ export default function DashboardPage() {
         const cmp = (a.status || '').localeCompare(b.status || '');
         return sortDir === 'asc' ? cmp : -cmp;
       }
+      if (sortCol === 'available') {
+        const valA = a.questions_available || 0;
+        const valB = b.questions_available || 0;
+        return sortDir === 'asc' ? valA - valB : valB - valA;
+      }
       if (sortCol === 'attempts') {
         const valA = a.questions_attempted || 0;
         const valB = b.questions_attempted || 0;
@@ -215,6 +220,7 @@ export default function DashboardPage() {
     const evaluated = data.filter(t => t.evaluation_accuracy !== null);
     const avgAccuracy = evaluated.reduce((sum, t) => sum + t.evaluation_accuracy, 0) / Math.max(1, evaluated.length);
     const totalAttempts = data.reduce((sum, t) => sum + (t.questions_attempted || 0), 0);
+    const totalAvailable = data.reduce((sum, t) => sum + (t.questions_available || 0), 0);
 
     return {
       total,
@@ -224,7 +230,8 @@ export default function DashboardPage() {
       untested,
       avgConfidence: Number.isFinite(avgConfidence) ? avgConfidence.toFixed(1) : '0.0',
       avgAccuracy: Number.isFinite(avgAccuracy) ? Math.round(avgAccuracy) : 0,
-      totalAttempts
+      totalAttempts,
+      totalAvailable
     };
   }, [data]);
 
@@ -373,8 +380,10 @@ export default function DashboardPage() {
               </h1>
               <span className="text-[11px] font-mono text-white/40">// JEE_MAIN_2026_CURRICULUM.XLSX</span>
             </div>
-            <div className="text-[11px] font-mono text-white/50 flex items-center gap-3 mt-0.5">
+            <div className="text-[11px] font-mono text-white/50 flex items-center gap-3 mt-0.5 flex-wrap">
               <span>{summary.total} canonical syllabus topics</span>
+              <span className="text-white/20">|</span>
+              <span>questions in bank: <strong className="text-primary">{summary.totalAvailable}</strong></span>
               <span className="text-white/20">|</span>
               <span>avg confidence: <strong className="text-primary">{summary.avgConfidence}/10</strong></span>
               <span className="text-white/20">|</span>
@@ -712,22 +721,34 @@ export default function DashboardPage() {
                       </div>
                     </th>
 
-                    {/* Column H: Questions Attempted */}
+                    {/* Column H: Questions Available in Bank */}
                     <th
-                      onClick={() => handleSortHeader('attempts')}
-                      className="py-2 px-3 w-20 text-center border-r border-neutral-800 cursor-pointer hover:bg-neutral-800/60 transition-colors group select-none"
+                      onClick={() => handleSortHeader('available')}
+                      className="py-2 px-3 w-28 text-center border-r border-neutral-800 cursor-pointer hover:bg-neutral-800/60 transition-colors group select-none"
                     >
                       <div className="flex items-center justify-center gap-1">
                         <span className="text-white/30 text-[9px] font-bold">H</span>
-                        <span className="font-semibold text-white/80">Qs</span>
+                        <span className="font-semibold text-white/80">Available</span>
+                        {renderSortIndicator('available')}
+                      </div>
+                    </th>
+
+                    {/* Column I: Questions Attempted */}
+                    <th
+                      onClick={() => handleSortHeader('attempts')}
+                      className="py-2 px-3 w-24 text-center border-r border-neutral-800 cursor-pointer hover:bg-neutral-800/60 transition-colors group select-none"
+                    >
+                      <div className="flex items-center justify-center gap-1">
+                        <span className="text-white/30 text-[9px] font-bold">I</span>
+                        <span className="font-semibold text-white/80">Attempted</span>
                         {renderSortIndicator('attempts')}
                       </div>
                     </th>
 
-                    {/* Column I: Quick Actions */}
+                    {/* Column J: Quick Actions */}
                     <th className="py-2 px-4 w-40 text-center bg-neutral-900/95 font-semibold text-white/80 select-none">
                       <div className="flex items-center justify-center gap-1">
-                        <span className="text-white/30 text-[9px] font-bold">I</span>
+                        <span className="text-white/30 text-[9px] font-bold">J</span>
                         <span>Action</span>
                       </div>
                     </th>
@@ -918,20 +939,40 @@ export default function DashboardPage() {
                             </div>
                           </td>
 
-                          {/* Cell H: Questions Attempted */}
+                          {/* Cell H: Questions Available in Bank */}
                           <td
                             onClick={(e) => {
                               e.stopPropagation();
-                              setActiveCell({ coord: `H${rowNum}`, col: 'H', row: rowNum, field: 'questions_attempted', value: topic.questions_attempted });
+                              setActiveCell({ coord: `H${rowNum}`, col: 'H', row: rowNum, field: 'questions_available', value: topic.questions_available });
                             }}
-                            className={`py-1.5 px-3 text-center text-white/50 text-[11px] border-r border-neutral-800/80 ${
-                              activeCell.coord === `H${rowNum}` ? 'ring-2 ring-primary ring-inset bg-primary/5 text-white' : ''
+                            className={`py-1.5 px-3 text-center border-r border-neutral-800/80 ${
+                              activeCell.coord === `H${rowNum}` ? 'ring-2 ring-primary ring-inset bg-primary/5' : ''
+                            }`}
+                          >
+                            {topic.questions_available > 0 ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-xs text-[11px] font-mono font-bold bg-primary/15 text-primary border border-primary/30">
+                                <span>{topic.questions_available}</span>
+                                <span className="text-[9px] font-normal opacity-70">Qs</span>
+                              </span>
+                            ) : (
+                              <span className="text-white/20 text-[11px] font-mono">0</span>
+                            )}
+                          </td>
+
+                          {/* Cell I: Questions Attempted */}
+                          <td
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveCell({ coord: `I${rowNum}`, col: 'I', row: rowNum, field: 'questions_attempted', value: topic.questions_attempted });
+                            }}
+                            className={`py-1.5 px-3 text-center text-white/60 text-[11px] font-mono border-r border-neutral-800/80 ${
+                              activeCell.coord === `I${rowNum}` ? 'ring-2 ring-primary ring-inset bg-primary/5 text-white' : ''
                             }`}
                           >
                             {topic.questions_attempted || 0}
                           </td>
 
-                          {/* Cell I: Quick Action Buttons */}
+                          {/* Cell J: Quick Action Buttons */}
                           <td className="py-1.5 px-3 text-center">
                             <div className="flex items-center justify-center gap-1.5">
                               <button
@@ -1018,10 +1059,13 @@ export default function DashboardPage() {
                 <span>CELL: <strong className="text-primary">{activeCell.coord}</strong></span>
               </div>
 
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 flex-wrap">
+                <span>BANK QS: <strong className="text-primary">{summary.totalAvailable}</strong></span>
+                <span className="text-white/30">|</span>
+                <span>ATTEMPTED: <strong className="text-white">{summary.totalAttempts}</strong></span>
+                <span className="text-white/30">|</span>
                 <span>AVG CONF: <strong className="text-primary">{summary.avgConfidence}/10</strong></span>
                 <span>AVG ACC: <strong className="text-white">{summary.avgAccuracy}%</strong></span>
-                <span>TOTAL QS: <strong className="text-white">{summary.totalAttempts}</strong></span>
                 <span className="hidden sm:inline text-white/30">|</span>
                 <span className="hidden sm:inline text-white/40">100% ZOOM</span>
               </div>
@@ -1061,9 +1105,14 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="my-2">
-                      <h4 className="font-medium text-xs leading-snug line-clamp-3 text-white">
+                      <h4 className="font-medium text-xs leading-snug line-clamp-2 text-white">
                         {topic.topic_name}
                       </h4>
+                      <div className="mt-1">
+                        <span className="text-[10px] font-mono text-primary bg-primary/10 border border-primary/25 px-1.5 py-0.5 rounded-xs inline-block">
+                          {topic.questions_available || 0} Qs in bank
+                        </span>
+                      </div>
                     </div>
 
                     <div className="pt-2 border-t border-white/10 flex items-end justify-between text-xs font-mono">

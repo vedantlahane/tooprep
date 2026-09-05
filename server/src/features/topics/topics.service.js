@@ -147,6 +147,24 @@ export const topicsService = {
       }
     }
 
+    /* ── Step 4b: Fetch available question count per topic ── */
+    let availableQuestionsMap = {};
+    try {
+      const { data: qList } = await supabaseAdmin
+        .from('questions')
+        .select('topic_id');
+
+      if (qList) {
+        for (const q of qList) {
+          if (q.topic_id) {
+            availableQuestionsMap[q.topic_id] = (availableQuestionsMap[q.topic_id] || 0) + 1;
+          }
+        }
+      }
+    } catch (qErr) {
+      console.warn('Could not fetch questions count for hierarchy:', qErr.message);
+    }
+
     /* ── Step 5: Annotate the hierarchy tree ──
      * Triple-nested loop walks subject → chapter → topic and mutates each
      * topic node in-place with user-specific data.
@@ -170,6 +188,8 @@ export const topicsService = {
 
           topic.confidence = conf ? conf.confidence : null;
           topic.last_practiced_at = lastPracticedMap[topic.id] || null;
+          topic.questions_available = availableQuestionsMap[topic.id] || 0;
+          topic.question_count = availableQuestionsMap[topic.id] || 0;
 
           if (latestEval) {
             const { data: evalAttempts } = await supabaseAdmin
@@ -347,6 +367,12 @@ export const topicsService = {
       .order('started_at', { ascending: false })
       .limit(1);
 
+    /* ── Fetch available questions count for this topic ── */
+    const { count: availableCount } = await supabaseAdmin
+      .from('questions')
+      .select('*', { count: 'exact', head: true })
+      .eq('topic_id', topicId);
+
     /* ── Assemble and return the response ──
      * Merges topic metadata, computed gap data, aggregate counts,
      * and historical data into a single cohesive response object. */
@@ -354,6 +380,8 @@ export const topicsService = {
       topic: {
         ...topic,
         confidence: latestConfidence?.confidence || null,
+        question_count: availableCount || 0,
+        questions_available: availableCount || 0,
         questions_attempted: (practiceCount || 0) + (evalAttemptCount || 0),
         last_practiced_at: lastPractice?.[0]?.started_at || null,
         ...gapData

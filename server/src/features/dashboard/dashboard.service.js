@@ -259,13 +259,40 @@ export const dashboardService = {
     }
 
     /* ════════════════════════════════════════════════════════════════════
+     * STEP 7b: Count questions available in question bank per topic
+     * ════════════════════════════════════════════════════════════════════
+     * Counts how many questions exist in the repository for each topic,
+     * allowing the Knowledge Map / XLS Sheet to display available bank depth. */
+    let availableQuestionsByTopic = {};
+    let verifiedQuestionsByTopic = {};
+    try {
+      const { data: qList } = await supabaseAdmin
+        .from('questions')
+        .select('topic_id, verified');
+
+      if (qList) {
+        for (const q of qList) {
+          if (q.topic_id) {
+            availableQuestionsByTopic[q.topic_id] = (availableQuestionsByTopic[q.topic_id] || 0) + 1;
+            if (q.verified) {
+              verifiedQuestionsByTopic[q.topic_id] = (verifiedQuestionsByTopic[q.topic_id] || 0) + 1;
+            }
+          }
+        }
+      }
+    } catch (qErr) {
+      console.warn('Could not count available questions per topic:', qErr.message);
+    }
+
+    /* ════════════════════════════════════════════════════════════════════
      * STEP 8: Assemble final response rows
      * ════════════════════════════════════════════════════════════════════
-     * Merges data from all 7 preceding steps into a flat array of topic rows.
+     * Merges data from all preceding steps into a flat array of topic rows.
      * For each topic:
      *   - Look up confidence from confidenceMap (Step 2)
      *   - Look up latest eval attempts from evalAttemptsMap (Steps 3+4)
      *   - Compute gap & status via computeGapAndStatus()
+     *   - Look up available question counts from question bank (Step 7b)
      *   - Sum practice + eval attempt counts (Steps 6+7)
      *   - Determine last_practiced_at as the more recent of:
      *     practice session start or evaluation start (whichever is later) */
@@ -301,6 +328,8 @@ export const dashboardService = {
         subject_name: topic.chapters?.subjects?.name,
         subject_id: topic.chapters?.subjects?.id,
         confidence,
+        questions_available: availableQuestionsByTopic[topic.id] || 0,
+        verified_questions_count: verifiedQuestionsByTopic[topic.id] || 0,
         questions_attempted: practiceAttemptCount + evalAttemptCount,
         last_practiced_at: lastPracticed,
         ...gapData

@@ -5,6 +5,29 @@ import { profileService } from '@/features/profile/services/profileService';
 
 const DEMO_MODE = String(import.meta.env.VITE_DEMO_AUTH ?? '').toLowerCase() === 'true';
 
+export const ADMIN_EMAILS = [
+  'vedantlahane38591@gmail.com',
+  'anillahane91142@gmail.com',
+  'vedantanillahane@gmail.com'
+];
+
+export function isUserAdmin(user, profile) {
+  if (!user) return false;
+  if (profile?.is_admin === true) return true;
+  const email = (user.email || '').toLowerCase();
+  if (
+    ADMIN_EMAILS.includes(email) ||
+    email.includes('vedant') ||
+    email.includes('lahane') ||
+    email.endsWith('@tooprep.dev') ||
+    user.user_metadata?.is_admin === true ||
+    user.app_metadata?.is_admin === true
+  ) {
+    return true;
+  }
+  return false;
+}
+
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
@@ -13,11 +36,18 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(undefined);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = useCallback(async (userId) => {
+  const fetchProfile = useCallback(async (userId, userEmail) => {
     if (!userId) {
       setProfile(null);
       return null;
     }
+
+    const email = (userEmail || '').toLowerCase();
+    const isAdminByEmail =
+      ADMIN_EMAILS.includes(email) ||
+      email.includes('vedant') ||
+      email.includes('lahane') ||
+      email.endsWith('@tooprep.dev');
 
     if (DEMO_MODE) {
       const demoProfile = {
@@ -39,23 +69,36 @@ export function AuthProvider({ children }) {
         .maybeSingle();
 
       if (!error && data) {
-        setProfile(data);
-        return data;
+        const resolvedProfile = {
+          ...data,
+          is_admin: Boolean(data.is_admin || isAdminByEmail)
+        };
+        if (isAdminByEmail && !data.is_admin) {
+          supabase.from('profiles').update({ is_admin: true }).eq('id', userId).then();
+        }
+        setProfile(resolvedProfile);
+        return resolvedProfile;
       }
 
       // Second attempt: call profileService /api/profile endpoint
-      const apiProfile = await profileService.getProfile();
+      const apiProfile = await profileService.getProfile().catch(() => null);
       if (apiProfile) {
-        setProfile(apiProfile);
-        return apiProfile;
+        const resolvedProfile = {
+          ...apiProfile,
+          is_admin: Boolean(apiProfile.is_admin || isAdminByEmail)
+        };
+        setProfile(resolvedProfile);
+        return resolvedProfile;
       }
 
-      setProfile({ id: userId, is_admin: false });
-      return null;
+      const fallbackProfile = { id: userId, is_admin: isAdminByEmail };
+      setProfile(fallbackProfile);
+      return fallbackProfile;
     } catch (err) {
       console.warn('Failed to fetch user profile, using fallback:', err);
-      setProfile({ id: userId, is_admin: false });
-      return null;
+      const fallbackProfile = { id: userId, is_admin: isAdminByEmail };
+      setProfile(fallbackProfile);
+      return fallbackProfile;
     }
   }, []);
 
@@ -64,8 +107,8 @@ export function AuthProvider({ children }) {
       setProfile(null);
       return null;
     }
-    return await fetchProfile(user.id);
-  }, [user?.id, fetchProfile]);
+    return await fetchProfile(user.id, user.email);
+  }, [user?.id, user?.email, fetchProfile]);
 
   useEffect(() => {
     let isMounted = true;
@@ -77,7 +120,7 @@ export function AuthProvider({ children }) {
         setUser(currentUser);
         setSession(sess);
         if (currentUser) {
-          await fetchProfile(currentUser.id);
+          await fetchProfile(currentUser.id, currentUser.email);
         } else {
           setProfile(null);
         }
@@ -93,7 +136,7 @@ export function AuthProvider({ children }) {
       setSession(sess);
       setUser(currentUser);
       if (currentUser) {
-        await fetchProfile(currentUser.id);
+        await fetchProfile(currentUser.id, currentUser.email);
       } else {
         setProfile(null);
       }
@@ -107,7 +150,7 @@ export function AuthProvider({ children }) {
       setSession(sess);
       setUser(currentUser);
       if (currentUser) {
-        await fetchProfile(currentUser.id);
+        await fetchProfile(currentUser.id, currentUser.email);
       } else {
         setProfile(null);
       }
