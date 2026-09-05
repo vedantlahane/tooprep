@@ -195,12 +195,15 @@ export function AuthProvider({ children }) {
     setProfile(null);
   };
 
+  const isAdmin = isUserAdmin(user, profile);
+
   return (
     <AuthContext.Provider
       value={{
         user,
         session,
         profile,
+        isAdmin,
         loading,
         refreshProfile,
         signUp,

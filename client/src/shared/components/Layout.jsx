@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '@/features/auth/context/AuthContext';
+import { useAuth, isUserAdmin } from '@/features/auth/context/AuthContext';
 import Icon, {
   LayoutGrid,
   Play,
@@ -49,12 +49,12 @@ const ACCENT_COLORS = [
 export default function Layout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, isAdmin: authIsAdmin, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [accentColor, setAccentColor] = useState('cyan');
   const [timeStr, setTimeStr] = useState('');
 
-  const isAdmin = isUserAdmin(user, profile);
+  const isAdmin = Boolean(authIsAdmin ?? isUserAdmin(user, profile));
 
   // Live system clock for status rail
   useEffect(() => {
