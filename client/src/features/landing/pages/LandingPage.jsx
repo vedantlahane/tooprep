@@ -126,7 +126,7 @@ export default function LandingPage() {
       </div>
 
       {/* ─── Panoramic Horizon Header ─── */}
-      <header className="px-3 sm:px-4 md:px-8 pt-6 sm:pt-10 pb-4 max-w-7xl mx-auto w-full select-none">
+      <header className="px-3 sm:px-4 md:px-8 pt-6 sm:pt-10 pb-4 max-w-7xl mr-auto w-full select-none">
         {/* Panoramic Horizontal Pivot Titles */}
         <div className="flex items-baseline gap-5 sm:gap-6 md:gap-10 overflow-x-auto no-scrollbar pt-2 border-b border-neutral-900 pb-3 max-w-full">
           <button
@@ -168,7 +168,7 @@ export default function LandingPage() {
       </header>
 
       {/* ─── Main Panoramic Content ─── */}
-      <main className="flex-1 px-3 sm:px-4 md:px-8 max-w-7xl mx-auto w-full min-w-0 overflow-x-hidden sm:overflow-x-visible">
+      <main className="flex-1 px-3 sm:px-4 md:px-8 max-w-7xl mr-auto w-full min-w-0 overflow-x-hidden sm:overflow-x-visible">
         <AnimatePresence mode="wait">
           {/* ═══════════════════════════════════════════════════════════════════
            * PIVOT 1: START (ICONIC WINDOWS PHONE LIVE TILES START SCREEN)
@@ -632,7 +632,7 @@ export default function LandingPage() {
 
       {/* ─── Iconic Windows Phone Bottom Application Bar ─── */}
       <footer className="fixed bottom-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-md border-t border-neutral-800 px-4 md:px-8 py-2.5">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="max-w-7xl mr-auto flex items-center justify-between">
           <div className="flex items-center gap-6 sm:gap-8">
             {/* Action 1: Launch Knowledge Map */}
             <button
@@ -713,7 +713,7 @@ export default function LandingPage() {
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.18 }}
-              className="max-w-7xl mx-auto pt-3 border-t border-neutral-900 mt-2 font-mono text-xs space-y-2 overflow-hidden"
+              className="max-w-7xl mr-auto pt-3 border-t border-neutral-900 mt-2 font-mono text-xs space-y-2 overflow-hidden"
             >
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-white/80">
                 <button

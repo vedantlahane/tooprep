@@ -123,7 +123,7 @@ export default function SubjectMasteryPage() {
 
   if (error) {
     return (
-      <div className="max-w-4xl mx-auto py-10">
+      <div className="w-full max-w-4xl mr-auto py-10 text-left">
         <div className="p-4 bg-error/10 border-l-4 border-error text-error rounded-r-md">
           {error}
         </div>
@@ -132,7 +132,7 @@ export default function SubjectMasteryPage() {
   }
 
   return (
-    <div className="w-full max-w-5xl min-w-0 mx-auto animate-fade-in space-y-8 pb-16">
+    <div className="w-full max-w-5xl min-w-0 mr-auto animate-fade-in space-y-8 pb-16 text-left">
       {/* Header */}
       <div className="border-b border-white/10 pb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>

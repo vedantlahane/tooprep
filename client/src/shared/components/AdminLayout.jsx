@@ -104,7 +104,7 @@ export default function AdminLayout({ children }) {
 
       {/* ─── Panoramic Pivot Bar for Admin ─── */}
       <nav className="sticky top-[45px] w-full bg-black/95 backdrop-blur-md border-b border-white/10 z-40 overflow-x-auto no-scrollbar max-w-full">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-8 flex items-center gap-5 sm:gap-8 h-12 min-w-max">
+        <div className="w-full max-w-7xl mr-auto px-3 sm:px-4 md:px-8 flex items-center gap-5 sm:gap-8 h-12 min-w-max">
           {ADMIN_PIVOT_ITEMS.map((item) => {
             const active = isActive(item.path);
             const IconComponent = item.icon;
@@ -133,7 +133,7 @@ export default function AdminLayout({ children }) {
       </nav>
 
       {/* ─── Main Content Canvas ─── */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-8 pt-4 sm:pt-6 pb-20 min-w-0 overflow-x-hidden sm:overflow-x-visible">
+      <main className="flex-1 w-full max-w-7xl mr-auto px-3 sm:px-4 md:px-8 pt-4 sm:pt-6 pb-20 min-w-0 overflow-x-hidden sm:overflow-x-visible">
         {children}
       </main>
     </div>

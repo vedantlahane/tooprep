@@ -34,8 +34,9 @@ import Icon, {
 } from '@/shared/components/Icon';
 
 export default function DashboardPage() {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(() => dashboardService.getCachedDashboard() || []);
+  const [loading, setLoading] = useState(() => !dashboardService.getCachedDashboard());
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('tooprep_map_view') || 'sheet');
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,11 +47,8 @@ export default function DashboardPage() {
   const [sortCol, setSortCol] = useState('default'); // 'default', 'subject', 'chapter', 'topic', 'conf', 'acc', 'gap', 'status', 'attempts'
   const [sortDir, setSortDir] = useState('asc'); // 'asc', 'desc'
 
-  // Excel-style active cell selection
+  // Active cell selection
   const [activeCell, setActiveCell] = useState({ coord: 'C1', col: 'C', row: 1, field: 'topic_name', value: '' });
-
-  // In-cell confidence calibration popover
-  const [inCellCalibrate, setInCellCalibrate] = useState(null); // { topicId, currentVal, topicName, x, y }
   const [savingConf, setSavingConf] = useState(false);
 
   // Full calibration modal (optional deep calibration)
@@ -65,17 +63,23 @@ export default function DashboardPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    loadDashboard();
+    loadDashboard(false);
   }, []);
 
-  const loadDashboard = async () => {
+  const loadDashboard = async (force = false) => {
+    if (force) {
+      setIsRefreshing(true);
+    } else if (!dashboardService.getCachedDashboard()) {
+      setLoading(true);
+    }
     try {
-      const result = await dashboardService.getDashboard();
+      const result = await dashboardService.getDashboard(force);
       setData(result || []);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -235,19 +239,40 @@ export default function DashboardPage() {
     };
   }, [data]);
 
+  // Recompute status helper
+  const classifyStatus = (accuracy, gap, attempts) => {
+    if (!attempts && accuracy === null) return 'INSUFFICIENT_DATA';
+    if (attempts < 3 && attempts > 0) return 'PRELIMINARY';
+    if (gap === null) return 'INSUFFICIENT_DATA';
+    if (gap <= -20) return 'OVERCONFIDENT';
+    if (gap >= 20) return 'UNDERCONFIDENT';
+    if (Math.abs(gap) <= 15 && accuracy >= 60) return 'ALIGNED';
+    if (Math.abs(gap) <= 15) return 'WEAK_ALIGNED';
+    return 'PRELIMINARY';
+  };
+
   // Quick In-Cell Confidence Calibration
   const handleQuickCalibrate = async (topicId, score) => {
     setSavingConf(true);
     try {
       await confidenceService.setConfidence(topicId, score, 'INITIAL');
+      let updatedObj = null;
       setData(prev => prev.map(t => {
         if (t.topic_id === topicId) {
           const newGap = t.evaluation_accuracy !== null ? Math.round(t.evaluation_accuracy - (score * 10)) : null;
-          return { ...t, confidence: score, gap: newGap };
+          const newStatus = classifyStatus(t.evaluation_accuracy, newGap, t.eval_attempts || 0);
+          updatedObj = { ...t, confidence: score, gap: newGap, status: newStatus };
+          return updatedObj;
         }
         return t;
       }));
-      setInCellCalibrate(null);
+      if (updatedObj) {
+        dashboardService.updateTopicInCache(topicId, {
+          confidence: score,
+          gap: updatedObj.gap,
+          status: updatedObj.status
+        });
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -261,13 +286,23 @@ export default function DashboardPage() {
     setCalibrating(true);
     try {
       await confidenceService.setConfidence(calibrateModal.topicId, calibrateVal, 'INITIAL');
+      let updatedObj = null;
       setData(prev => prev.map(t => {
         if (t.topic_id === calibrateModal.topicId) {
           const newGap = t.evaluation_accuracy !== null ? Math.round(t.evaluation_accuracy - (calibrateVal * 10)) : null;
-          return { ...t, confidence: calibrateVal, gap: newGap };
+          const newStatus = classifyStatus(t.evaluation_accuracy, newGap, t.eval_attempts || 0);
+          updatedObj = { ...t, confidence: calibrateVal, gap: newGap, status: newStatus };
+          return updatedObj;
         }
         return t;
       }));
+      if (updatedObj) {
+        dashboardService.updateTopicInCache(calibrateModal.topicId, {
+          confidence: calibrateVal,
+          gap: updatedObj.gap,
+          status: updatedObj.status
+        });
+      }
       setCalibrateModal(null);
     } catch (e) {
       console.error(e);
@@ -384,8 +419,20 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* View Switcher: Spreadsheet vs Metro Live Tiles */}
+        {/* View Switcher: Spreadsheet vs Metro Live Tiles & Manual Refresh */}
         <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => loadDashboard(true)}
+            disabled={isRefreshing}
+            className="px-2.5 py-1.5 bg-surface-container hover:bg-surface-bright rounded-sm border border-outline-variant hover:border-primary/50 text-white/70 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-mono disabled:opacity-50"
+            title="Force refresh knowledge map telemetry from server"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-primary' : ''}`} />
+            <span className="hidden sm:inline text-[11px] font-sans uppercase tracking-wider">
+              {isRefreshing ? 'Syncing...' : 'Sync'}
+            </span>
+          </button>
+
           <div className="bg-surface-container p-1 rounded-sm border border-outline-variant flex items-center gap-1 text-xs">
             <button
               onClick={() => handleSwitchView('sheet')}
@@ -624,7 +671,6 @@ export default function DashboardPage() {
             ) : (
               filteredAndSorted.map((topic, idx) => {
                 const gap = topic.gap;
-                const isCalibratingThis = inCellCalibrate?.topicId === topic.topic_id;
 
                 return (
                   <div
@@ -665,11 +711,17 @@ export default function DashboardPage() {
                       <div>
                         <div className="text-[10px] text-white/50 uppercase">Confidence</div>
                         <button
-                          onClick={() => setInCellCalibrate(isCalibratingThis ? null : {
-                            topicId: topic.topic_id,
-                            currentVal: topic.confidence || 5,
-                            topicName: topic.topic_name
-                          })}
+                          type="button"
+                          onClick={() => {
+                            setCalibrateModal({
+                              topicId: topic.topic_id,
+                              name: topic.topic_name,
+                              currentVal: topic.confidence || 5,
+                              subject: topic.subject_name,
+                              chapter: topic.chapter_name
+                            });
+                            setCalibrateVal(topic.confidence || 5);
+                          }}
                           className="font-bold text-primary hover:underline cursor-pointer inline-flex items-center gap-1 mt-0.5"
                         >
                           <span>{topic.confidence !== null ? `${topic.confidence}/10` : 'Rate'}</span>
@@ -693,33 +745,6 @@ export default function DashboardPage() {
                         </div>
                       </div>
                     </div>
-
-                    {/* Mobile In-Card Calibration Slider (when open) */}
-                    {isCalibratingThis && (
-                      <div className="p-2.5 bg-black/70 border border-primary/40 rounded-xs space-y-2 animate-fade-in">
-                        <div className="text-[11px] text-white/70 flex justify-between items-center">
-                          <span>Set Confidence (1–10):</span>
-                          <button onClick={() => setInCellCalibrate(null)} className="text-white/40 hover:text-white">
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                        <div className="flex items-center justify-between gap-1">
-                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(val => (
-                            <button
-                              key={val}
-                              onClick={() => handleQuickCalibrate(topic.topic_id, val)}
-                              className={`flex-1 py-1 text-xs font-bold rounded-xs transition-colors ${
-                                inCellCalibrate.currentVal === val
-                                  ? 'bg-primary text-black'
-                                  : 'bg-neutral-800 text-white hover:bg-neutral-700'
-                              }`}
-                            >
-                              {val}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
 
                     {/* Action buttons */}
                     <div className="flex items-center gap-2 pt-1">
@@ -974,16 +999,19 @@ export default function DashboardPage() {
                             </div>
                           </td>
 
-                          {/* Cell D: Confidence (with in-cell calibration) */}
+                          {/* Cell D: Confidence (with Quick Calibration modal) */}
                           <td
                             onClick={(e) => {
                               e.stopPropagation();
                               setActiveCell({ coord: `D${rowNum}`, col: 'D', row: rowNum, field: 'confidence', value: topic.confidence });
-                              setInCellCalibrate(inCellCalibrate?.topicId === topic.topic_id ? null : {
+                              setCalibrateModal({
                                 topicId: topic.topic_id,
+                                name: topic.topic_name,
                                 currentVal: topic.confidence || 5,
-                                topicName: topic.topic_name
+                                subject: topic.subject_name,
+                                chapter: topic.chapter_name
                               });
+                              setCalibrateVal(topic.confidence || 5);
                             }}
                             className={`py-1.5 px-2.5 text-center border-r border-neutral-800/80 cursor-pointer ${
                               activeCell.coord === `D${rowNum}` ? 'ring-2 ring-primary ring-inset bg-primary/5' : ''
@@ -1126,49 +1154,6 @@ export default function DashboardPage() {
               </table>
             </div>
 
-            {/* ─── In-Cell Calibration Micro-Drawer (if active) ─── */}
-            <AnimatePresence>
-              {inCellCalibrate && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.18, ease: 'easeOut' }}
-                  className="p-3 bg-neutral-900 border-t-2 border-primary flex flex-wrap items-center justify-between gap-3 text-xs font-mono shadow-xl overflow-hidden"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-primary font-bold">Calibrate:</span>
-                    <span className="text-white">{inCellCalibrate.topicName}</span>
-                    <span className="text-white/40">Select Confidence (1–10):</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(val => (
-                      <motion.button
-                        key={val}
-                        whileHover={{ scale: 1.15 }}
-                        whileTap={{ scale: 0.92 }}
-                        onClick={() => handleQuickCalibrate(inCellCalibrate.topicId, val)}
-                        disabled={savingConf}
-                        className={`w-7 h-7 rounded text-xs font-bold font-mono transition-colors cursor-pointer ${
-                          inCellCalibrate.currentVal === val
-                            ? 'bg-primary text-black ring-2 ring-white'
-                            : 'bg-neutral-800 text-white hover:bg-neutral-700'
-                        }`}
-                      >
-                        {val}
-                      </motion.button>
-                    ))}
-                    <button
-                      onClick={() => setInCellCalibrate(null)}
-                      className="ml-2 text-white/50 hover:text-white p-1 cursor-pointer"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
             {/* ─── Bottom Status Bar ─── */}
             <div className="px-4 py-2.5 bg-neutral-950 border-t border-neutral-800 flex flex-wrap items-center justify-between text-xs text-white/60 gap-3">
               <div className="flex items-center gap-3 flex-wrap">
@@ -1232,13 +1217,29 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="pt-2 border-t border-white/10 flex items-end justify-between text-xs font-mono">
-                      <div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCalibrateModal({
+                            topicId: topic.topic_id,
+                            name: topic.topic_name,
+                            currentVal: topic.confidence || 5,
+                            subject: topic.subject_name,
+                            chapter: topic.chapter_name
+                          });
+                          setCalibrateVal(topic.confidence || 5);
+                        }}
+                        className="hover:text-primary transition-colors cursor-pointer group/conf flex items-center gap-1 text-left"
+                        title="Click to calibrate confidence"
+                      >
                         {topic.confidence !== null ? (
                           <span>{topic.confidence}<span className="text-[10px] opacity-50">/10</span></span>
                         ) : (
-                          <span className="text-[10px] opacity-40">UNRATED</span>
+                          <span className="text-[10px] text-primary underline">RATE</span>
                         )}
-                      </div>
+                        <Sliders className="w-2.5 h-2.5 opacity-40 group-hover/conf:opacity-100 group-hover/conf:text-primary transition-opacity" />
+                      </button>
                       <div>
                         {topic.evaluation_accuracy !== null ? (
                           <span className="font-bold">{topic.evaluation_accuracy}%</span>
@@ -1275,9 +1276,16 @@ export default function DashboardPage() {
             >
               <div className="flex justify-between items-start">
                 <div>
-                  <div className="text-[10px] font-mono text-primary uppercase tracking-widest">
-                    Quick Calibration &middot; 1–10 Scale
-                  </div>
+                  {calibrateModal.subject && (
+                    <div className="text-[10px] font-mono text-primary uppercase tracking-widest">
+                      {calibrateModal.subject} &rsaquo; {calibrateModal.chapter} &middot; 1–10 Scale
+                    </div>
+                  )}
+                  {!calibrateModal.subject && (
+                    <div className="text-[10px] font-mono text-primary uppercase tracking-widest">
+                      Quick Calibration &middot; 1–10 Scale
+                    </div>
+                  )}
                   <h3 className="text-lg font-light text-white mt-0.5">
                     {calibrateModal.name}
                   </h3>
@@ -1296,6 +1304,30 @@ export default function DashboardPage() {
 
               <div className="py-2">
                 <ConfidenceSlider value={calibrateVal} onChange={setCalibrateVal} />
+              </div>
+
+              {/* Quick Number Selector (1–10) Buttons */}
+              <div className="space-y-1.5 pt-1">
+                <div className="text-[10px] font-mono text-white/40 uppercase tracking-wider flex justify-between">
+                  <span>Quick Select</span>
+                  <span className="text-primary font-bold">{calibrateVal} / 10</span>
+                </div>
+                <div className="grid grid-cols-10 gap-1">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(val => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setCalibrateVal(val)}
+                      className={`py-1.5 text-xs font-mono font-bold rounded-xs transition-colors cursor-pointer ${
+                        calibrateVal === val
+                          ? 'bg-primary text-black ring-1 ring-white'
+                          : 'bg-neutral-800 text-white/80 hover:bg-neutral-700'
+                      }`}
+                    >
+                      {val}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="flex items-center gap-3 pt-2">

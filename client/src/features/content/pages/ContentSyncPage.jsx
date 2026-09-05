@@ -37,7 +37,7 @@ export default function ContentSyncPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto animate-fade-in space-y-8">
+    <div className="w-full max-w-5xl mr-auto animate-fade-in space-y-8 text-left">
       <div>
         <h2 className="text-display text-on-surface font-light">sync ops</h2>
         <p className="text-on-surface-variant text-body-lg font-light">monitor and recover failed projection syncs to Qdrant and Supabase.</p>

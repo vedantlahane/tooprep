@@ -298,7 +298,7 @@ export default function AdminQuestionsPage() {
   const pyqCount = questions.filter((q) => q.source_type === 'PYQ').length;
 
   return (
-    <div className="w-full max-w-6xl min-w-0 mx-auto animate-fade-in space-y-6 pb-16">
+    <div className="w-full max-w-6xl min-w-0 mr-auto animate-fade-in space-y-6 pb-16 text-left">
       {/* Header and Create Button */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/10 pb-5">
         <div>

@@ -172,7 +172,7 @@ export default function Layout({ children }) {
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
             className="sticky top-[45px] z-40 bg-neutral-950/95 backdrop-blur-xl border-b border-white/15 px-4 md:px-8 py-4 shadow-2xl overflow-hidden"
           >
-            <div className="max-w-7xl mx-auto space-y-4">
+            <div className="w-full max-w-7xl mr-auto space-y-4">
               <div className="flex items-center justify-between border-b border-white/10 pb-2">
                 <span className="text-[10px] text-white/50 uppercase tracking-widest">
                   {isAdmin ? 'Administration' : 'Menu'}
@@ -373,7 +373,7 @@ export default function Layout({ children }) {
       </nav>
 
       {/* ─── Main Panoramic Content Canvas ─── */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-8 pt-4 sm:pt-6 pb-12 min-w-0 overflow-x-hidden sm:overflow-x-visible">
+      <main className="flex-1 w-full max-w-7xl mr-auto px-3 sm:px-4 md:px-8 pt-4 sm:pt-6 pb-12 min-w-0 overflow-x-hidden sm:overflow-x-visible">
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}

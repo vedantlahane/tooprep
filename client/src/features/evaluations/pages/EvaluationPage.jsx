@@ -154,7 +154,7 @@ export default function EvaluationPage() {
   // ─── Screen 1: Evaluation Setup Screen ───
   if (!evaluation) {
     return (
-      <div className="max-w-2xl mx-auto animate-fade-in space-y-8">
+      <div className="w-full max-w-3xl mr-auto animate-fade-in space-y-8 text-left">
         <div>
           <div className="text-label-sm-mono uppercase tracking-[0.25em] text-primary text-xs">
             Exam Simulation &middot; Timed Calibration
@@ -269,7 +269,7 @@ export default function EvaluationPage() {
   const unansweredCount = questions.length - answeredCount;
 
   return (
-    <div className="max-w-5xl mx-auto animate-fade-in pb-20 space-y-6">
+    <div className="w-full max-w-5xl mr-auto animate-fade-in pb-20 space-y-6 text-left">
       {/* Sticky Exam Telemetry Bar */}
       <div className="sticky top-0 z-30 bg-black/90 backdrop-blur-md py-3 border-b border-white/10 flex items-center justify-between">
         <div className="flex items-center gap-3">

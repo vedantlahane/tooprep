@@ -191,7 +191,7 @@ export default function PracticePage() {
   // ─── Screen 1: Setup & Configuration Screen ───
   if (!session) {
     return (
-      <div className="max-w-2xl mx-auto animate-fade-in space-y-8">
+      <div className="w-full max-w-3xl mr-auto animate-fade-in space-y-8 text-left">
         <div>
           <div className="text-label-sm-mono uppercase tracking-[0.25em] text-primary text-xs">
             Training Facility &middot; Problem Drill
@@ -284,7 +284,7 @@ export default function PracticePage() {
   // ─── Screen 2: Session Completed Summary ───
   if (completed && summary) {
     return (
-      <div className="max-w-2xl mx-auto animate-fade-in space-y-6">
+      <div className="w-full max-w-3xl mr-auto animate-fade-in space-y-6 text-left">
         <div>
           <div className="text-label-sm-mono uppercase tracking-[0.25em] text-primary text-xs">
             Drill Complete &middot; Performance Debrief
@@ -377,7 +377,7 @@ export default function PracticePage() {
   const currentQuestion = questions[currentIndex];
 
   return (
-    <div className="max-w-3xl mx-auto animate-fade-in space-y-6">
+    <div className="w-full max-w-4xl mr-auto animate-fade-in space-y-6 text-left">
       {/* Telemetry status bar */}
       <div className="flex items-center justify-between border-b border-white/10 pb-3">
         <div className="text-xs font-mono uppercase tracking-widest text-white/60">

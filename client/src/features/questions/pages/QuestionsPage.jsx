@@ -277,7 +277,7 @@ export default function QuestionsPage() {
   }, [questions, searchFilter]);
 
   return (
-    <div className="space-y-6 pb-20 animate-fade-in">
+    <div className="w-full max-w-6xl min-w-0 mr-auto space-y-6 pb-20 animate-fade-in text-left">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-white/10 pb-5">
         <div>

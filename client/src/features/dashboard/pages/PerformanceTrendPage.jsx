@@ -114,7 +114,7 @@ export default function PerformanceTrendPage() {
 
   if (error) {
     return (
-      <div className="max-w-4xl mx-auto py-10">
+      <div className="w-full max-w-4xl mr-auto py-10 text-left">
         <div className="p-4 bg-error/10 border-l-4 border-error text-error text-xs font-mono rounded-r-sm">
           {error}
         </div>
@@ -123,7 +123,7 @@ export default function PerformanceTrendPage() {
   }
 
   return (
-    <div className="w-full max-w-6xl min-w-0 mx-auto animate-fade-in space-y-8 pb-16">
+    <div className="w-full max-w-6xl min-w-0 mr-auto animate-fade-in space-y-8 pb-16 text-left">
       {/* Header */}
       <div className="border-b border-white/10 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
