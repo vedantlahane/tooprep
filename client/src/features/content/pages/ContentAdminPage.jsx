@@ -231,7 +231,7 @@ function CandidateCard({ candidate, jobId, groupedTopics, onReviewed, onViewPdfP
 
   return (
     <article
-      className={`w-full max-w-full min-w-0 overflow-hidden border rounded-md transition-all ${
+      className={`w-full max-w-full min-w-0 overflow-hidden border rounded-sm transition-all ${
         candidate.status === 'PUBLISHED'
           ? 'border-status-aligned/50 bg-status-aligned/5'
           : candidate.status === 'REJECTED'
@@ -270,10 +270,10 @@ function CandidateCard({ candidate, jobId, groupedTopics, onReviewed, onViewPdfP
             <span
               className={`px-2 py-0.5 rounded-sm text-[11px] font-mono uppercase tracking-wider font-semibold ${
                 candidate.subject === 'Physics'
-                  ? 'bg-blue-500/15 text-blue-400 border border-blue-500/40'
+                  ? 'bg-primary/15 text-primary border border-primary/40'
                   : candidate.subject === 'Chemistry'
-                  ? 'bg-amber-500/15 text-amber-400 border border-amber-500/40'
-                  : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/40'
+                  ? 'bg-status-weak/15 text-status-weak border border-status-weak/40'
+                  : 'bg-status-aligned/15 text-status-aligned border border-status-aligned/40'
               }`}
             >
               {candidate.subject}
@@ -287,7 +287,7 @@ function CandidateCard({ candidate, jobId, groupedTopics, onReviewed, onViewPdfP
           )}
 
           {candidate.has_diagram && (
-            <span className="px-1.5 py-0.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[11px] rounded-sm flex items-center gap-1 font-mono">
+            <span className="px-1.5 py-0.5 bg-status-weak/10 border border-status-weak/30 text-status-weak text-[11px] rounded-sm flex items-center gap-1 font-mono">
               <ImageIcon className="w-3 h-3" />
               <span>Diagram</span>
             </span>
@@ -901,9 +901,9 @@ export default function ContentAdminPage() {
           <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest text-[10px]">Extracted In Job</div>
           <div className="text-xl sm:text-2xl font-light text-on-surface mt-0.5">{kpis.totalCandidates}</div>
         </div>
-        <div className="bg-surface-container border border-amber-500/30 p-3 rounded-sm bg-amber-500/5">
-          <div className="text-label-sm-mono text-amber-400 uppercase tracking-widest text-[10px] font-bold">Awaiting Review</div>
-          <div className="text-xl sm:text-2xl font-light text-amber-300 mt-0.5">{kpis.pending}</div>
+        <div className="bg-surface-container border border-status-weak/30 p-3 rounded-sm bg-status-weak/5">
+          <div className="text-label-sm-mono text-status-weak uppercase tracking-widest text-[10px] font-bold">Awaiting Review</div>
+          <div className="text-xl sm:text-2xl font-light text-status-weak mt-0.5">{kpis.pending}</div>
         </div>
         <div className="bg-surface-container border border-status-aligned/30 p-3 rounded-sm bg-status-aligned/5">
           <div className="text-label-sm-mono text-status-aligned uppercase tracking-widest text-[10px] font-bold">Published To Bank</div>
@@ -916,7 +916,7 @@ export default function ContentAdminPage() {
       </div>
 
       {/* Exam Ingestion Dropzone */}
-      <form onSubmit={upload} className="acrylic border border-outline-variant rounded-md p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end max-w-full overflow-hidden">
+      <form onSubmit={upload} className="acrylic border border-outline-variant rounded-sm p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end max-w-full overflow-hidden">
         <div className="sm:col-span-2 space-y-1.5 min-w-0">
           <label className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest text-[11px] font-bold">
             Source Exam Paper (PDF)
@@ -1220,14 +1220,14 @@ export default function ContentAdminPage() {
           {/* Candidates List (Rendered in paginated chunk of 10-20 to ensure instant sub-50ms performance) */}
           <div className="space-y-5 min-w-0 max-w-full">
             {!selectedJob && (
-              <div className="border border-outline-variant border-dashed p-12 flex flex-col items-center justify-center text-on-surface-variant rounded-md">
+              <div className="border border-outline-variant border-dashed p-12 flex flex-col items-center justify-center text-on-surface-variant rounded-sm">
                 <ListFilter className="w-10 h-10 mb-3 opacity-40 text-primary" />
                 <p className="text-sm font-light">Select an exam paper from the queue to verify questions.</p>
               </div>
             )}
 
             {selectedJob && filteredCandidates.length === 0 && (
-              <div className="border border-outline-variant/60 bg-surface-dim p-8 flex flex-col items-center justify-center text-on-surface-variant rounded-md">
+              <div className="border border-outline-variant/60 bg-surface-dim p-8 flex flex-col items-center justify-center text-on-surface-variant rounded-sm">
                 <CheckCircle2 className="w-8 h-8 mb-2 text-status-aligned opacity-80" />
                 <p className="font-semibold text-on-surface text-sm">No candidate questions matching current filters.</p>
                 <p className="text-xs text-on-surface-variant mt-1">
@@ -1287,7 +1287,7 @@ export default function ContentAdminPage() {
           onClick={() => setPdfModal(null)}
         >
           <div
-            className="bg-surface-dim border border-outline-variant rounded-md w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl"
+            className="bg-surface-dim border border-outline-variant rounded-sm w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex justify-between items-center px-4 sm:px-6 py-3 border-b border-outline-variant bg-surface-container">

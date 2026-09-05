@@ -86,7 +86,7 @@ export default function InsightsPage() {
   if (!insights || data.length === 0) {
     return (
       <div className="max-w-4xl mx-auto animate-fade-in py-12">
-        <div className="acrylic-glass border border-white/10 p-12 text-center rounded-md">
+        <div className="acrylic-glass border border-white/10 p-12 text-center rounded-sm">
           <BarChart3 className="w-16 h-16 text-primary mx-auto mb-6 opacity-60" />
           <h3 className="text-2xl font-light text-white mb-2 lowercase">no calibration telemetry yet</h3>
           <p className="text-sm text-white/50 mb-8 max-w-md mx-auto font-mono">
@@ -140,7 +140,7 @@ export default function InsightsPage() {
 
       {/* Educational Guide Card (Toggleable) */}
       {showLegend && (
-        <div className="acrylic-glass border border-primary/30 p-6 rounded-md animate-fade-in">
+        <div className="acrylic-glass border border-primary/30 p-6 rounded-sm animate-fade-in">
           <h3 className="text-xs font-mono text-primary uppercase tracking-widest mb-3 flex items-center gap-2">
             <Info className="w-4 h-4" />
             Metacognitive Calibration Framework
@@ -194,7 +194,7 @@ export default function InsightsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
         {/* Subject Mastery Progress */}
-        <div className="acrylic-glass border border-white/10 p-6 md:p-8 rounded-md">
+        <div className="acrylic-glass border border-white/10 p-6 md:p-8 rounded-sm">
           <h3 className="text-xs font-mono text-white/60 uppercase tracking-widest mb-6 flex items-center gap-2">
             <BarChart3 className="w-4 h-4 text-primary" />
             SUBJECT-LEVEL MASTERY AGGREGATE
@@ -211,7 +211,7 @@ export default function InsightsPage() {
                   </div>
                   
                   {/* Progress Bar */}
-                  <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                  <div className="w-full h-1.5 bg-white/10 rounded-none overflow-hidden">
                     <div className={`h-full ${barColor} transition-all duration-1000`} style={{ width: `${acc}%` }}></div>
                   </div>
                   
@@ -240,7 +240,7 @@ export default function InsightsPage() {
         <div className="space-y-8">
           {/* Priority Critical Topics */}
           {insights.overconfident.length > 0 && (
-            <div className="border border-error/40 bg-error/5 p-6 md:p-8 rounded-md relative overflow-hidden">
+            <div className="border border-error/40 bg-error/5 p-6 md:p-8 rounded-sm relative overflow-hidden">
               <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
                 <Flame className="w-36 h-36 text-error" />
               </div>
@@ -304,7 +304,7 @@ export default function InsightsPage() {
 
           {/* Untested topics */}
           {insights.noData.length > 0 && (
-            <div className="acrylic-glass border border-white/10 p-6 md:p-8 rounded-md">
+            <div className="acrylic-glass border border-white/10 p-6 md:p-8 rounded-sm">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xs font-mono text-white/60 uppercase tracking-widest flex items-center gap-2">
                   <ListCheck className="w-4 h-4 text-primary" />

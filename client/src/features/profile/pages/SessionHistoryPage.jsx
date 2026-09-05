@@ -158,13 +158,13 @@ export default function SessionHistoryPage() {
       </div>
 
       {error && (
-        <div className="p-4 bg-error/10 border-l-4 border-error text-error text-xs font-mono rounded-r-md">
+        <div className="p-4 bg-error/10 border-l-4 border-error text-error text-xs font-mono rounded-r-sm">
           {error}
         </div>
       )}
 
       {allSessions.length === 0 ? (
-        <div className="text-center py-16 acrylic-glass border border-white/10 rounded-md">
+        <div className="text-center py-16 acrylic-glass border border-white/10 rounded-sm">
           <History className="w-14 h-14 text-primary block opacity-60 mb-4 mx-auto" />
           <h3 className="text-xl font-light text-white mb-2 lowercase">no sessions recorded yet</h3>
           <p className="text-sm text-white/50 max-w-md mx-auto mb-6 font-mono">
@@ -223,7 +223,7 @@ export default function SessionHistoryPage() {
           )}
 
           {/* Filters & Sort Controls */}
-          <div className="acrylic-glass border border-white/10 p-4 rounded-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="acrylic-glass border border-white/10 p-4 rounded-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest mr-1">Filter:</span>
               {['ALL', 'PRACTICE', 'EVALUATION'].map(type => (

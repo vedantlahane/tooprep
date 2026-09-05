@@ -156,7 +156,7 @@ export default function EvaluationPage() {
     return (
       <div className="max-w-2xl mx-auto animate-fade-in space-y-8">
         <div>
-          <div className="text-label-sm-mono uppercase tracking-[0.25em] text-error text-xs">
+          <div className="text-label-sm-mono uppercase tracking-[0.25em] text-primary text-xs">
             Exam Simulation &middot; Timed Calibration
           </div>
           <h1 className="text-4xl md:text-5xl font-extralight text-white tracking-tight lowercase mt-1">
@@ -334,7 +334,7 @@ export default function EvaluationPage() {
               onClick={toggleMarkForReview}
               className={`px-4 py-2.5 border rounded-sm text-xs font-mono uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer ${
                 markedForReview.has(currentQuestion?.id)
-                  ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                  ? 'bg-status-weak/20 text-status-weak border-status-weak/40'
                   : 'bg-surface-dim border-outline-variant text-white/60 hover:text-white'
               }`}
             >
@@ -369,7 +369,7 @@ export default function EvaluationPage() {
               if (isCurrent) {
                 btnStyle = 'ring-2 ring-primary text-white font-bold bg-primary/20 border-primary';
               } else if (isMarked) {
-                btnStyle = 'bg-amber-500/20 border-amber-500/50 text-amber-300 font-bold';
+                btnStyle = 'bg-status-weak/20 border-status-weak/50 text-status-weak font-bold';
               } else if (isAnswered) {
                 btnStyle = 'bg-status-aligned/20 border-status-aligned/50 text-status-aligned font-bold';
               }
@@ -396,7 +396,7 @@ export default function EvaluationPage() {
               <span>Attempted ({answeredCount})</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-sm bg-amber-500/40 border border-amber-500"></span>
+              <span className="w-2.5 h-2.5 rounded-sm bg-status-weak/40 border border-status-weak"></span>
               <span>Marked for Review ({markedForReview.size})</span>
             </div>
             <div className="flex items-center gap-2">
@@ -422,7 +422,7 @@ export default function EvaluationPage() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.94, opacity: 0, y: 10 }}
               transition={{ type: 'spring', stiffness: 450, damping: 30 }}
-              className="bg-surface-dim border border-outline-variant p-6 rounded-md max-w-md w-full shadow-2xl space-y-4"
+              className="bg-surface-dim border border-outline-variant p-6 rounded-sm max-w-md w-full shadow-2xl space-y-4"
               onClick={e => e.stopPropagation()}
             >
               <div className="text-label-sm-mono text-error uppercase tracking-widest text-xs font-bold flex items-center gap-1.5">
@@ -434,7 +434,7 @@ export default function EvaluationPage() {
                 Are you sure you want to finish the test? Once submitted, your score will be computed and solutions will be revealed.
               </p>
 
-              <div className="grid grid-cols-2 gap-2 text-xs font-mono p-3 bg-surface-container rounded">
+              <div className="grid grid-cols-2 gap-2 text-xs font-mono p-3 bg-surface-container rounded-sm">
                 <div>
                   <span className="text-white/40">ATTEMPTED:</span>{' '}
                   <strong className="text-status-aligned">{answeredCount}</strong>
@@ -446,7 +446,7 @@ export default function EvaluationPage() {
               </div>
 
               {unansweredCount > 0 && (
-                <p className="text-[11px] text-amber-400 font-mono">
+                <p className="text-[11px] text-status-weak font-mono">
                   ⚠️ In JEE, unanswered questions award zero marks.
                 </p>
               )}

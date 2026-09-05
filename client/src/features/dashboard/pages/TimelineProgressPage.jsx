@@ -139,7 +139,7 @@ export default function TimelineProgressPage() {
     return (
       <div className="max-w-4xl mx-auto py-10 text-center">
         <p className="text-body-lg text-on-surface-variant">Set your exam year in your profile to see the timeline.</p>
-        <button onClick={() => navigate('/profile')} className="mt-4 px-6 py-2 bg-primary text-on-primary rounded-lg">
+        <button onClick={() => navigate('/profile')} className="mt-4 px-6 py-2 bg-primary text-white font-mono uppercase text-xs tracking-wider font-semibold rounded-sm">
           Go to Profile
         </button>
       </div>
@@ -149,122 +149,153 @@ export default function TimelineProgressPage() {
   const { daysLeft, weeksLeft, examYear, stats, weeklyPlan, urgency } = timeline;
 
   return (
-    <div className="max-w-5xl mx-auto animate-fade-in space-y-8 pb-12">
-      {/* Exam Countdown */}
-      <div className={`rounded-xl p-8 text-white relative overflow-hidden ${
+    <div className="w-full max-w-5xl min-w-0 mx-auto animate-fade-in space-y-8 pb-16">
+      {/* Header */}
+      <div className="border-b border-white/10 pb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <div className="text-label-sm-mono text-primary uppercase tracking-[0.25em] mb-1.5 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+            Exam Readiness &middot; Countdown Timeline
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-extralight text-white tracking-tight lowercase">
+            prep timeline
+          </h1>
+          <p className="text-sm text-white/50 font-mono mt-1">
+            Weekly milestones and urgent calibration deadlines targeted for JEE {examYear}.
+          </p>
+        </div>
+
+        <button
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2 px-4 py-2 bg-surface-container border border-white/10 hover:border-primary text-white/80 hover:text-white text-xs font-mono uppercase tracking-wider rounded-sm transition-colors shrink-0"
+        >
+          open knowledge map
+        </button>
+      </div>
+
+      {/* Exam Countdown Hero Tile */}
+      <div className={`rounded-sm p-6 sm:p-8 text-white relative overflow-hidden bg-surface-container border border-white/10 border-l-4 ${
         urgency === 'critical'
-          ? 'bg-gradient-to-r from-error to-error-container'
+          ? 'border-l-error'
           : urgency === 'high'
-            ? 'bg-gradient-to-r from-status-overconfident to-error/70'
-            : 'bg-gradient-to-r from-primary to-primary-container'
+            ? 'border-l-status-weak'
+            : 'border-l-primary'
       }`}>
-        <div className="absolute top-0 right-0 opacity-10 pointer-events-none p-4">
+        <div className="absolute top-0 right-0 opacity-5 pointer-events-none p-4">
           {urgency === 'critical' ? (
-            <AlertTriangle size={180} />
+            <AlertTriangle size={180} className="text-error" />
           ) : (
-            <Clock size={180} />
+            <Clock size={180} className="text-primary" />
           )}
         </div>
 
         <div className="relative z-10">
-          <div className="text-label-sm-mono uppercase tracking-widest opacity-90 mb-2">JEE {examYear}</div>
+          <div className="text-label-sm-mono uppercase tracking-widest text-primary text-xs mb-2">JEE {examYear} &middot; Exam Countdown</div>
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
             <div>
-              <div className="text-display font-light">{daysLeft}</div>
-              <div className="text-headline-md font-light opacity-90">days left</div>
-              <div className="text-body-md font-light opacity-80 mt-2">~{weeksLeft} weeks</div>
+              <div className="text-5xl sm:text-6xl font-extralight font-mono text-white tracking-tight">{daysLeft}</div>
+              <div className="text-sm font-mono text-white/60 uppercase tracking-widest mt-1">days left</div>
+              <div className="text-xs text-white/40 font-mono mt-1.5">~{weeksLeft} calendar weeks remaining</div>
             </div>
 
             {urgency === 'critical' && (
-              <div className="p-4 bg-white/20 backdrop-blur-sm rounded-lg border border-white/30">
-                <div className="text-headline-md font-bold flex items-center gap-2">
-                  <Zap className="w-5 h-5 text-amber-300 fill-current" />
-                  <span>CRITICAL TIMELINE</span>
+              <div className="p-4 bg-error/10 rounded-sm border border-error/30 max-w-md">
+                <div className="text-xs font-mono font-bold uppercase tracking-wider text-error flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-error fill-current" />
+                  <span>Critical Target Horizon</span>
                 </div>
-                <div className="text-body-md mt-2">You need to reset your study plan immediately. Focus on the highest-priority gaps first.</div>
+                <div className="text-xs font-mono text-white/80 mt-1.5 leading-relaxed">Focus exclusively on high-impact overconfidence gaps to recover wasted marks immediately.</div>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Readiness Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-surface-container border border-outline-variant rounded-xl p-6">
-          <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-2">Overall Readiness</div>
-          <div className="flex items-baseline gap-2">
-            <div className="text-display font-light text-primary">{stats.readiness}%</div>
-            <div className="text-body-lg text-on-surface-variant">{stats.aligned}/{stats.total} topics</div>
+      {/* Readiness KPI Tiles */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="bg-surface-container border border-white/10 rounded-sm p-5 flex flex-col justify-between">
+          <div>
+            <div className="text-[11px] font-mono text-white/50 uppercase tracking-widest mb-1.5">Overall Readiness</div>
+            <div className="flex items-baseline gap-2">
+              <div className="text-3xl font-light font-mono text-primary">{stats.readiness}%</div>
+              <div className="text-xs font-mono text-white/50">{stats.aligned}/{stats.total} topics</div>
+            </div>
+            <div className="mt-3 h-1.5 bg-surface-dim rounded-none overflow-hidden">
+              <div
+                className="h-full bg-primary transition-all duration-700"
+                style={{ width: `${stats.readiness}%` }}
+              />
+            </div>
           </div>
-          <div className="mt-4 h-2 bg-surface-dim rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-status-overconfident to-primary transition-all duration-1000"
-              style={{ width: `${stats.readiness}%` }}
-            />
-          </div>
-          {stats.readiness < 50 ? (
-            <p className="mt-3 text-body-sm text-error font-semibold">Below critical threshold for exam prep</p>
-          ) : stats.readiness < 80 ? (
-            <p className="mt-3 text-body-sm text-status-weak font-semibold">On track, but needs focus</p>
-          ) : (
-            <p className="mt-3 text-body-sm text-status-aligned font-semibold">Strong foundation</p>
-          )}
-        </div>
-
-        <div className="bg-surface-container border border-outline-variant rounded-xl p-6">
-          <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-2">At Risk</div>
-          <div className="text-display font-light text-status-overconfident">{stats.atRisk}</div>
-          <div className="text-body-md text-on-surface-variant mt-1">{stats.overconfident} overconfident</div>
-          <div className="text-body-md text-on-surface-variant">{stats.weak} weak/aligned</div>
-          <div className="mt-4 p-3 bg-error/10 border border-error/30 rounded-lg">
-            <p className="text-body-sm text-error font-semibold">Urgent: Fix these first</p>
+          <div className="mt-3 pt-3 border-t border-white/10">
+            {stats.readiness < 50 ? (
+              <p className="text-[11px] font-mono text-error font-semibold">Below critical threshold</p>
+            ) : stats.readiness < 80 ? (
+              <p className="text-[11px] font-mono text-status-weak font-semibold">On track, but needs focus</p>
+            ) : (
+              <p className="text-[11px] font-mono text-status-aligned font-semibold">Strong foundation</p>
+            )}
           </div>
         </div>
 
-        <div className="bg-surface-container border border-outline-variant rounded-xl p-6">
-          <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-2">Need Testing</div>
-          <div className="text-display font-light text-primary">{stats.needWork}</div>
-          <div className="text-body-md text-on-surface-variant mt-1">{stats.preliminary} preliminary</div>
-          <div className="text-body-md text-on-surface-variant">{stats.insufficient} untested</div>
-          <div className="mt-4 p-3 bg-primary/10 border border-primary/30 rounded-lg">
-            <p className="text-body-sm text-primary font-semibold">Secondary: Test these</p>
+        <div className="bg-surface-container border border-white/10 rounded-sm p-5 flex flex-col justify-between">
+          <div>
+            <div className="text-[11px] font-mono text-white/50 uppercase tracking-widest mb-1.5">At Risk Gaps</div>
+            <div className="text-3xl font-light font-mono text-status-overconfident">{stats.atRisk}</div>
+            <div className="text-xs font-mono text-white/50 mt-1">{stats.overconfident} overconfident &middot; {stats.weak} weak</div>
+          </div>
+          <div className="mt-3 pt-3 border-t border-white/10">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-status-overconfident bg-status-overconfident/10 border border-status-overconfident/25 px-2 py-0.5 rounded-xs">
+              Priority: Fix First
+            </span>
+          </div>
+        </div>
+
+        <div className="bg-surface-container border border-white/10 rounded-sm p-5 flex flex-col justify-between">
+          <div>
+            <div className="text-[11px] font-mono text-white/50 uppercase tracking-widest mb-1.5">Awaiting Test Evidence</div>
+            <div className="text-3xl font-light font-mono text-primary">{stats.needWork}</div>
+            <div className="text-xs font-mono text-white/50 mt-1">{stats.preliminary} preliminary &middot; {stats.insufficient} unrated</div>
+          </div>
+          <div className="mt-3 pt-3 border-t border-white/10">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-primary bg-primary/10 border border-primary/25 px-2 py-0.5 rounded-xs">
+              Secondary: Take Mocks
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Weekly Study Plan */}
+      {/* Suggested Study Timeline */}
       {weeklyPlan.length > 0 && (
         <div className="space-y-4">
           <div>
-            <h3 className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-2">
+            <h3 className="text-xs font-mono text-primary uppercase tracking-widest font-bold">
               Suggested Study Timeline
             </h3>
-            <p className="text-body-lg text-on-surface">Break down your {weeksLeft} weeks into focused phases</p>
+            <p className="text-xs font-mono text-white/50 mt-0.5">Break down your {weeksLeft} weeks into targeted revision blocks</p>
           </div>
 
           {weeklyPlan.map((phase, idx) => (
-            <div key={idx} className="border border-outline-variant bg-surface-container rounded-xl p-6">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-                <div className="flex items-center gap-4">
-                  <Icon
-                    name={phase.icon}
-                    size={36}
-                    className={
-                      phase.color === 'error' ? 'text-status-overconfident' :
-                      phase.color === 'primary' ? 'text-primary' :
-                      'text-status-aligned'
-                    }
-                  />
+            <div key={idx} className="border border-white/10 bg-surface-container rounded-sm p-5 space-y-4">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-sm ${
+                    phase.color === 'error' ? 'bg-status-overconfident/15 text-status-overconfident' :
+                    phase.color === 'primary' ? 'bg-primary/15 text-primary' :
+                    'bg-status-aligned/15 text-status-aligned'
+                  }`}>
+                    <Icon name={phase.icon} size={20} />
+                  </div>
                   <div>
-                    <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest">
+                    <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest">
                       Week {phase.week}
                     </div>
-                    <h4 className="text-headline-md text-on-surface font-light">{phase.focus}</h4>
+                    <h4 className="text-lg font-light text-white">{phase.focus}</h4>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-display font-light">{phase.target}</div>
-                  <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest">Topics</div>
+                  <div className="text-2xl font-light font-mono text-white">{phase.target}</div>
+                  <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest">Target Topics</div>
                 </div>
               </div>
 
@@ -273,19 +304,19 @@ export default function TimelineProgressPage() {
                   <button
                     key={topic.topic_id}
                     onClick={() => navigate(`/topics/${topic.topic_id}`)}
-                    className="px-3 py-1 bg-surface-dim border border-outline-variant hover:border-primary text-body-sm rounded-full transition-colors text-on-surface-variant hover:text-on-surface"
+                    className="px-2.5 py-1 bg-surface-dim border border-white/10 hover:border-primary text-xs font-mono rounded-xs transition-colors text-white/70 hover:text-white"
                   >
                     {topic.topic_name}
                   </button>
                 ))}
                 {phase.topics.length > 8 && (
-                  <span className="px-3 py-1 text-body-sm text-on-surface-variant">
+                  <span className="px-2.5 py-1 text-xs font-mono text-white/40">
                     +{phase.topics.length - 8} more
                   </span>
                 )}
               </div>
 
-              <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-lg text-body-sm text-on-surface">
+              <div className="p-3 bg-white/5 border border-white/10 rounded-sm text-xs font-mono text-white/70">
                 {idx === 0 && `Spend roughly ${Math.ceil(weeksLeft / weeklyPlan.length)} days on ${phase.focus.toLowerCase()}.`}
                 {idx === 1 && `Once critical gaps are fixed, expand coverage to untested topics.`}
                 {idx === 2 && `Use final weeks to polish what you know and build exam-day speed.`}
@@ -296,79 +327,69 @@ export default function TimelineProgressPage() {
       )}
 
       {/* Actionable Next Steps */}
-      <div className="bg-surface-container border border-outline-variant rounded-xl p-6">
-        <h3 className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-4">Next Steps</h3>
-        <div className="space-y-3">
+      <div className="bg-surface-container border border-white/10 rounded-sm p-6 space-y-4">
+        <h3 className="text-xs font-mono text-primary uppercase tracking-widest font-bold">Recommended Immediate Actions</h3>
+        <div className="space-y-2.5">
           {stats.overconfident > 0 && (
             <button
               onClick={() => navigate('/insights')}
-              className="w-full p-4 text-left bg-error/10 border border-error/30 hover:border-error transition-colors rounded-lg group"
+              className="w-full p-4 text-left bg-surface-dim border border-white/10 hover:border-status-overconfident transition-colors rounded-sm group flex items-center justify-between"
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-body-lg font-semibold text-on-surface">Address {stats.overconfident} overconfident topics</div>
-                  <p className="text-body-sm text-on-surface-variant mt-1">Start with quick drills to recalibrate</p>
-                </div>
-                <ArrowRight className="w-5 h-5 text-on-surface-variant group-hover:text-error transition-colors flex-shrink-0" />
+              <div>
+                <div className="text-sm font-medium text-white group-hover:text-status-overconfident transition-colors">Address {stats.overconfident} overconfident topics</div>
+                <p className="text-xs font-mono text-white/50 mt-0.5">Start with quick drills to recalibrate perceived confidence</p>
               </div>
+              <ArrowRight className="w-4 h-4 text-white/40 group-hover:text-status-overconfident transition-colors flex-shrink-0" />
             </button>
           )}
 
           {stats.needWork > 0 && (
             <button
               onClick={() => navigate('/plan')}
-              className="w-full p-4 text-left bg-primary/10 border border-primary/30 hover:border-primary transition-colors rounded-lg group"
+              className="w-full p-4 text-left bg-surface-dim border border-white/10 hover:border-primary transition-colors rounded-sm group flex items-center justify-between"
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-body-lg font-semibold text-on-surface">Evaluate {stats.needWork} untested topics</div>
-                  <p className="text-body-sm text-on-surface-variant mt-1">Take short evaluations to build baseline confidence</p>
-                </div>
-                <ArrowRight className="w-5 h-5 text-on-surface-variant group-hover:text-primary transition-colors flex-shrink-0" />
+              <div>
+                <div className="text-sm font-medium text-white group-hover:text-primary transition-colors">Evaluate {stats.needWork} untested topics</div>
+                <p className="text-xs font-mono text-white/50 mt-0.5">Take short evaluations to benchmark true performance</p>
               </div>
+              <ArrowRight className="w-4 h-4 text-white/40 group-hover:text-primary transition-colors flex-shrink-0" />
             </button>
           )}
 
           <button
             onClick={() => navigate('/')}
-            className="w-full p-4 text-left bg-surface-container-high border border-outline-variant hover:border-outline transition-colors rounded-lg group"
+            className="w-full p-4 text-left bg-surface-dim border border-white/10 hover:border-white/30 transition-colors rounded-sm group flex items-center justify-between"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-body-lg font-semibold text-on-surface">View your knowledge map</div>
-                <p className="text-body-sm text-on-surface-variant mt-1">See all topics and their current status</p>
-              </div>
-              <ArrowRight className="w-5 h-5 text-on-surface-variant group-hover:text-on-surface transition-colors flex-shrink-0" />
+            <div>
+              <div className="text-sm font-medium text-white group-hover:text-white transition-colors">View full knowledge map spreadsheet</div>
+              <p className="text-xs font-mono text-white/50 mt-0.5">Inspect all 30+ topics, confidence levels, and gap metrics</p>
             </div>
+            <ArrowRight className="w-4 h-4 text-white/40 group-hover:text-white transition-colors flex-shrink-0" />
           </button>
         </div>
       </div>
 
-      {/* Progress Insights */}
+      {/* Progress Insights Alert */}
       {stats.readiness >= 80 && (
-        <div className="bg-status-aligned/10 border border-status-aligned rounded-xl p-6">
-          <div className="flex gap-3">
-            <PartyPopper className="w-8 h-8 text-status-aligned flex-shrink-0" />
-            <div>
-              <div className="text-headline-md text-on-surface font-light">You're in strong shape!</div>
-              <p className="text-body-md text-on-surface-variant mt-2">
-                With {stats.readiness}% of topics aligned, focus on speed and accuracy in your final weeks. Take timed evaluations and drill missed concepts.
-              </p>
-            </div>
+        <div className="bg-status-aligned/10 border border-status-aligned/40 border-l-4 border-l-status-aligned rounded-sm p-5 flex items-start gap-3">
+          <PartyPopper className="w-5 h-5 text-status-aligned flex-shrink-0 mt-0.5" />
+          <div>
+            <div className="text-sm font-medium text-white">Strong Exam Alignment</div>
+            <p className="text-xs font-mono text-white/70 mt-1 leading-relaxed">
+              With {stats.readiness}% of topics aligned, focus on speed and accuracy in your final weeks. Maintain periodic re-tests to prevent confidence decay.
+            </p>
           </div>
         </div>
       )}
 
       {stats.readiness < 50 && (
-        <div className="bg-error/10 border border-error rounded-xl p-6">
-          <div className="flex gap-3">
-            <AlertTriangle className="w-8 h-8 text-error flex-shrink-0" />
-            <div>
-              <div className="text-headline-md text-on-surface font-light">Intensive prep required</div>
-              <p className="text-body-md text-on-surface-variant mt-2">
-                You're below 50% readiness with {daysLeft} days left. Prioritize the {stats.atRisk} at-risk topics immediately. Consider increasing study frequency to 4-5 hours daily.
-              </p>
-            </div>
+        <div className="bg-error/10 border border-error/40 border-l-4 border-l-error rounded-sm p-5 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-error flex-shrink-0 mt-0.5" />
+          <div>
+            <div className="text-sm font-medium text-white">Intensive Recalibration Needed</div>
+            <p className="text-xs font-mono text-white/70 mt-1 leading-relaxed">
+              Readiness is below 50% with {daysLeft} days left. Prioritize the {stats.atRisk} at-risk topics immediately to prevent negative marking penalties on exam day.
+            </p>
           </div>
         </div>
       )}

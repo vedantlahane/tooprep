@@ -115,7 +115,7 @@ export default function PerformanceTrendPage() {
   if (error) {
     return (
       <div className="max-w-4xl mx-auto py-10">
-        <div className="p-4 bg-error/10 border-l-4 border-error text-error text-xs font-mono rounded-r-md">
+        <div className="p-4 bg-error/10 border-l-4 border-error text-error text-xs font-mono rounded-r-sm">
           {error}
         </div>
       </div>
@@ -149,7 +149,7 @@ export default function PerformanceTrendPage() {
       </div>
 
       {topicsWithTrends.length === 0 ? (
-        <div className="text-center py-16 acrylic-glass border border-white/10 rounded-md">
+        <div className="text-center py-16 acrylic-glass border border-white/10 rounded-sm">
           <TrendingUp className="w-14 h-14 text-primary block opacity-60 mb-4 mx-auto" />
           <h3 className="text-xl font-light text-white mb-2 lowercase">no retest trends yet</h3>
           <p className="text-sm text-white/50 max-w-md mx-auto mb-6 font-mono">
@@ -205,7 +205,7 @@ export default function PerformanceTrendPage() {
           {selectedTopicData && (
             <div className="lg:col-span-3 space-y-6">
               {/* Topic Header */}
-              <div className="acrylic-glass border border-white/10 rounded-md p-6">
+              <div className="acrylic-glass border border-white/10 rounded-sm p-6">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-5">
                   <div>
                     <h3 className="text-2xl font-light text-white">{selectedTopicData.topicName}</h3>
@@ -275,7 +275,7 @@ export default function PerformanceTrendPage() {
               </div>
 
               {/* Trajectory Bar Chart */}
-              <div className="acrylic-glass border border-white/10 rounded-md p-6">
+              <div className="acrylic-glass border border-white/10 rounded-sm p-6">
                 <h3 className="text-xs font-mono text-white/60 uppercase tracking-widest mb-6 flex items-center gap-2">
                   <Activity className="w-4 h-4 text-primary" />
                   ACCURACY PROGRESSION ACROSS ATTEMPTS
@@ -382,7 +382,7 @@ export default function PerformanceTrendPage() {
 
       {/* Overall Trends Summary */}
       {topicsWithTrends.length > 0 && (
-        <div className="acrylic-glass border border-white/10 rounded-md p-6">
+        <div className="acrylic-glass border border-white/10 rounded-sm p-6">
           <h3 className="text-xs font-mono text-white/60 uppercase tracking-widest mb-4">PLATFORM-WIDE RETEST SUMMARY</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="p-4 bg-surface-container/60 rounded-sm text-center border border-white/5">

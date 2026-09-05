@@ -99,10 +99,10 @@ export default function ProfilePage() {
       </div>
 
       {/* Profile Header Card */}
-      <div className="acrylic-glass border border-white/10 rounded-md overflow-hidden">
+      <div className="acrylic-glass border border-white/10 rounded-sm overflow-hidden">
         <div className="h-24 bg-gradient-to-r from-primary/30 via-primary/10 to-transparent border-b border-white/5"></div>
         <div className="p-6 md:p-8 relative">
-          <div className="absolute -top-10 left-6 md:left-8 w-20 h-20 bg-black border-2 border-primary rounded-md flex items-center justify-center shadow-xl">
+          <div className="absolute -top-10 left-6 md:left-8 w-20 h-20 bg-black border-2 border-primary rounded-sm flex items-center justify-center shadow-xl">
             <User className="w-10 h-10 text-primary" />
           </div>
 
@@ -175,7 +175,7 @@ export default function ProfilePage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div
           onClick={() => navigate('/history')}
-          className="cursor-pointer bg-surface-container/60 border border-white/10 hover:border-primary p-6 rounded-md flex flex-col justify-between transition-all group"
+          className="cursor-pointer bg-surface-container/60 border border-white/10 hover:border-primary p-6 rounded-sm flex flex-col justify-between transition-all group"
         >
           <History className="w-8 h-8 text-primary mb-6 group-hover:scale-110 transition-transform" />
           <div>
@@ -187,7 +187,7 @@ export default function ProfilePage() {
 
         <div
           onClick={() => navigate('/practice')}
-          className="cursor-pointer bg-surface-container/60 border border-white/10 hover:border-primary p-6 rounded-md flex flex-col justify-between transition-all group"
+          className="cursor-pointer bg-surface-container/60 border border-white/10 hover:border-primary p-6 rounded-sm flex flex-col justify-between transition-all group"
         >
           <Play className="w-8 h-8 text-primary mb-6 group-hover:scale-110 transition-transform" />
           <div>
@@ -199,7 +199,7 @@ export default function ProfilePage() {
 
         <div
           onClick={() => navigate('/evaluate')}
-          className="cursor-pointer bg-primary/20 border border-primary/40 hover:border-primary p-6 rounded-md flex flex-col justify-between transition-all group"
+          className="cursor-pointer bg-primary/20 border border-primary/40 hover:border-primary p-6 rounded-sm flex flex-col justify-between transition-all group"
         >
           <Timer className="w-8 h-8 text-primary mb-6 group-hover:scale-110 transition-transform" />
           <div>
@@ -212,7 +212,7 @@ export default function ProfilePage() {
 
       {/* Admin Section */}
       {profile?.is_admin && (
-        <div className="acrylic-glass border border-primary/30 p-6 md:p-8 rounded-md space-y-4">
+        <div className="acrylic-glass border border-primary/30 p-6 md:p-8 rounded-sm space-y-4">
           <div className="flex justify-between items-center flex-wrap gap-2">
             <h3 className="text-xs font-mono text-primary uppercase tracking-widest flex items-center gap-2 font-bold">
               <Shield className="w-4 h-4" />

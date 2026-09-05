@@ -145,43 +145,55 @@ export default function TopicDetailPage() {
         </div>
       )}
 
-      <div>
-        <p className="text-body-md text-on-surface-variant uppercase tracking-widest mb-1">
-          {topic.chapters?.subjects?.name} &rsaquo; {topic.chapters?.name}
-        </p>
-        <h2 className="text-display text-on-surface font-light">{topic.name}</h2>
+      {/* Header */}
+      <div className="border-b border-white/10 pb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <div className="text-label-sm-mono text-primary uppercase tracking-[0.25em] mb-1.5 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+            {topic.chapters?.subjects?.name} &middot; {topic.chapters?.name}
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-extralight text-white tracking-tight lowercase">
+            {topic.name}
+          </h1>
+          <p className="text-sm text-white/50 font-mono mt-1">
+            Diagnostic alignment, empirical calibration history, and targeted drills.
+          </p>
+        </div>
       </div>
 
       {/* KPI Tiles */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="p-6 bg-primary text-white rounded-md flex flex-col justify-between">
-          <div className="text-display font-light mb-1">
-            {topic.confidence ? `${topic.confidence}` : '—'}
+        <div className="p-5 sm:p-6 bg-surface-container border border-white/10 rounded-sm flex flex-col justify-between">
+          <div className="text-3xl sm:text-4xl font-light text-primary font-mono mb-1">
+            {topic.confidence ? `${topic.confidence}/10` : '—'}
           </div>
-          <div className="text-label-sm-mono uppercase tracking-widest text-white/80">CONFIDENCE</div>
+          <div className="text-[11px] font-mono uppercase tracking-widest text-white/50">CONFIDENCE</div>
         </div>
-        <div className="p-6 bg-surface-container text-on-surface rounded-md border border-outline-variant flex flex-col justify-between">
-          <div className="text-display font-light mb-1">
+
+        <div className="p-5 sm:p-6 bg-surface-container border border-white/10 rounded-sm flex flex-col justify-between">
+          <div className="text-3xl sm:text-4xl font-light text-white font-mono mb-1">
             {topic.evaluation_accuracy !== null ? `${topic.evaluation_accuracy}%` : '—'}
           </div>
-          <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest">EVAL ACCURACY</div>
+          <div className="text-[11px] font-mono uppercase tracking-widest text-white/50">EVAL ACCURACY</div>
         </div>
-        <div className="p-6 bg-surface-container text-on-surface rounded-md border border-outline-variant flex flex-col justify-between">
-          <div className={`text-display font-light ${getStatusColor(topic.status)}`}>
-            {topic.gap !== null ? (topic.gap >= 0 ? `+${topic.gap}` : topic.gap) : '—'}
+
+        <div className="p-5 sm:p-6 bg-surface-container border border-white/10 rounded-sm flex flex-col justify-between">
+          <div className={`text-3xl sm:text-4xl font-light font-mono mb-1 ${getStatusColor(topic.status)}`}>
+            {topic.gap !== null ? (topic.gap >= 0 ? `+${topic.gap}%` : `${topic.gap}%`) : '—'}
           </div>
-          <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest">PERFORMANCE GAP</div>
+          <div className="text-[11px] font-mono uppercase tracking-widest text-white/50">PERFORMANCE GAP</div>
         </div>
-        <div className="p-6 bg-surface-container text-on-surface rounded-md border border-outline-variant flex flex-col justify-between">
-          <div className={`text-headline-md mt-2 font-semibold uppercase tracking-wider ${getStatusColor(topic.status)}`}>
+
+        <div className="p-5 sm:p-6 bg-surface-container border border-white/10 rounded-sm flex flex-col justify-between">
+          <div className={`text-xl sm:text-2xl font-light font-mono uppercase tracking-wider mb-1 ${getStatusColor(topic.status)}`}>
             {topic.status?.replace('_', ' ')}
           </div>
-          <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mt-2">STATUS</div>
+          <div className="text-[11px] font-mono uppercase tracking-widest text-white/50">STATUS</div>
         </div>
       </div>
 
       {showConfidenceInput && (
-        <div className="bg-primary/20 border-l-4 border-primary p-6 rounded-r-md">
+        <div className="bg-primary/20 border-l-4 border-primary p-6 rounded-r-sm">
           <h3 className="text-headline-md text-on-surface mb-2 font-light">Rate Your Baseline Confidence</h3>
           <p className="text-body-md text-on-surface-variant mb-6">
             Set your initial self-assessment before starting practice.
@@ -198,7 +210,7 @@ export default function TopicDetailPage() {
       )}
 
       {/* Recommendation Card */}
-      <div className="rounded-md border border-outline-variant bg-surface-container p-6">
+      <div className="rounded-sm border border-white/10 bg-surface-container p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-label-sm-mono uppercase tracking-[0.18em] text-on-surface-variant">Study Recommendation</h3>
           <span className={`text-label-sm-mono uppercase tracking-[0.18em] font-bold ${getStatusColor(topic.status)}`}>
@@ -243,7 +255,7 @@ export default function TopicDetailPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Confidence Trend */}
-        <div className="border border-outline-variant bg-surface-container rounded-md p-6">
+        <div className="border border-white/10 bg-surface-container rounded-sm p-6">
           <h3 className="text-headline-md font-light mb-4 text-on-surface">Confidence Trend</h3>
           {confidenceTrend.length > 0 ? (
             <div className="flex h-36 items-end gap-2 pt-4">
@@ -267,7 +279,7 @@ export default function TopicDetailPage() {
         </div>
 
         {/* Metrics Grid */}
-        <div className="border border-outline-variant bg-surface-container rounded-md p-6">
+        <div className="border border-white/10 bg-surface-container rounded-sm p-6">
           <h3 className="text-headline-md font-light mb-4 text-on-surface">Engagement Metrics</h3>
           <div className="grid grid-cols-2 gap-3">
             <div className="p-4 bg-surface-dim rounded-sm">
@@ -289,12 +301,12 @@ export default function TopicDetailPage() {
       </div>
 
       {/* Evaluation History Chart & List */}
-      <div className="border border-outline-variant bg-surface-container rounded-md p-6">
+      <div className="border border-white/10 bg-surface-container rounded-sm p-6">
         <h3 className="text-headline-md font-light mb-4 text-on-surface">Evaluation Accuracy Progression</h3>
         
         {/* SVG Sparkline Chart */}
         {chronEvals.length >= 2 && (
-          <div className="mb-6 bg-surface-dim p-4 rounded-sm border border-outline-variant">
+          <div className="mb-6 bg-surface-dim p-4 rounded-sm border border-white/10">
             <svg viewBox="0 0 400 90" className="w-full h-24 overflow-visible">
               {[0, 25, 50, 75, 100].map(y => (
                 <line
@@ -309,8 +321,8 @@ export default function TopicDetailPage() {
               ))}
               <defs>
                 <linearGradient id="evalChartGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#4A90E2" stopOpacity="0.4" />
-                  <stop offset="100%" stopColor="#4A90E2" stopOpacity="0" />
+                  <stop offset="0%" stopColor="#00BFFF" stopOpacity="0.4" />
+                  <stop offset="100%" stopColor="#00BFFF" stopOpacity="0" />
                 </linearGradient>
               </defs>
               {(() => {
@@ -324,10 +336,10 @@ export default function TopicDetailPage() {
                 return (
                   <>
                     <path d={areaPath} fill="url(#evalChartGrad)" />
-                    <path d={linePath} stroke="#4A90E2" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d={linePath} stroke="#00BFFF" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                     {pts.map((p, i) => (
                       <g key={i}>
-                        <circle cx={p.x} cy={p.y} r="4.5" fill="#4A90E2" stroke="#121212" strokeWidth="1.5" />
+                        <circle cx={p.x} cy={p.y} r="4.5" fill="#00BFFF" stroke="#121212" strokeWidth="1.5" />
                         <text x={p.x} y={Math.max(12, p.y - 8)} textAnchor="middle" fill="#A0A0A0" fontSize="9" fontFamily="'Segoe UI', sans-serif">
                           {p.accuracy}%
                         </text>
@@ -347,7 +359,7 @@ export default function TopicDetailPage() {
               <div
                 key={ev.id || i}
                 onClick={() => navigate(`/results/${ev.id}`)}
-                className="flex items-center justify-between p-4 bg-surface-dim hover:bg-surface-bright cursor-pointer transition-colors rounded-sm border border-outline-variant group"
+                className="flex items-center justify-between p-4 bg-surface-dim hover:bg-surface-bright cursor-pointer transition-colors rounded-sm border border-white/10 group"
               >
                 <div className="flex items-center gap-4">
                   <div className={`text-headline-md font-light w-16 ${

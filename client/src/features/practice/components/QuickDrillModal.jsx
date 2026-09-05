@@ -92,7 +92,7 @@ export default function QuickDrillModal({ topicId, topicName, isOpen, onClose, o
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center animate-fade-in">
-      <div className="bg-surface-container rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col">
+      <div className="bg-surface-container rounded-sm shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col">
         {/* Header */}
         <div className="sticky top-0 bg-surface-container-high border-b border-outline-variant px-6 py-4 flex items-center justify-between">
           <div>
@@ -131,14 +131,14 @@ export default function QuickDrillModal({ topicId, topicName, isOpen, onClose, o
                 </div>
               </div>
               {error && (
-                <div className="p-3 bg-error/10 border border-error text-error rounded-lg text-body-sm">
+                <div className="p-3 bg-error/10 border border-error text-error rounded-sm text-body-sm">
                   {error}
                 </div>
               )}
               <button
                 onClick={startDrill}
                 disabled={loading}
-                className="w-full py-3 bg-primary text-on-primary text-body-md font-semibold uppercase tracking-widest rounded-lg hover:brightness-110 transition-all disabled:opacity-50"
+                className="w-full py-3 bg-primary text-on-primary text-body-md font-semibold uppercase tracking-widest rounded-sm hover:brightness-110 transition-all disabled:opacity-50"
               >
                 {loading ? 'Starting...' : 'Start Drill'}
               </button>
@@ -152,7 +152,7 @@ export default function QuickDrillModal({ topicId, topicName, isOpen, onClose, o
                 <span className="text-primary font-bold">{Math.round((currentIndex + 1) / questions.length * 100)}%</span>
               </div>
 
-              <div className="w-full h-1.5 bg-surface-dim rounded-full overflow-hidden">
+              <div className="w-full h-1.5 bg-surface-dim rounded-none overflow-hidden">
                 <div
                   className="h-full bg-primary transition-all duration-500"
                   style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
@@ -167,7 +167,7 @@ export default function QuickDrillModal({ topicId, topicName, isOpen, onClose, o
               />
 
               {submitted && questions[currentIndex]?.correct_answer && (
-                <div className="p-4 bg-status-aligned/10 border-l-4 border-status-aligned rounded-r-lg">
+                <div className="p-4 bg-status-aligned/10 border-l-4 border-status-aligned rounded-r-sm">
                   <div className="text-label-sm-mono text-status-aligned uppercase tracking-widest mb-2">Correct Answer</div>
                   <div className="text-body-md text-on-surface font-mono">
                     {questions[currentIndex].correct_answer}
@@ -180,14 +180,14 @@ export default function QuickDrillModal({ topicId, topicName, isOpen, onClose, o
                   <button
                     onClick={handleSubmit}
                     disabled={!answers[questions[currentIndex]?.id] || loading}
-                    className="flex-1 py-3 bg-primary text-on-primary text-body-md font-semibold uppercase tracking-widest rounded-lg hover:brightness-110 transition-all disabled:opacity-50"
+                    className="flex-1 py-3 bg-primary text-on-primary text-body-md font-semibold uppercase tracking-widest rounded-sm hover:brightness-110 transition-all disabled:opacity-50"
                   >
                     {loading ? 'Checking...' : 'Check Answer'}
                   </button>
                 ) : (
                   <button
                     onClick={handleNext}
-                    className="flex-1 py-3 bg-primary text-on-primary text-body-md font-semibold uppercase tracking-widest rounded-lg hover:brightness-110 transition-all flex items-center justify-center gap-2"
+                    className="flex-1 py-3 bg-primary text-on-primary text-body-md font-semibold uppercase tracking-widest rounded-sm hover:brightness-110 transition-all flex items-center justify-center gap-2"
                   >
                     {currentIndex < questions.length - 1 ? 'Next Question' : 'Finish Drill'}
                     <ArrowRight className="w-4 h-4" />
@@ -202,11 +202,11 @@ export default function QuickDrillModal({ topicId, topicName, isOpen, onClose, o
               <Award className="w-14 h-14 text-status-aligned mx-auto mb-2 opacity-80" />
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-surface-dim rounded-lg border border-outline-variant">
+                <div className="p-4 bg-surface-dim rounded-sm border border-outline-variant">
                   <div className="text-headline-lg text-primary font-bold">{summary.correct}/{summary.total_questions}</div>
                   <div className="text-label-sm-mono text-on-surface-variant mt-1 uppercase tracking-widest">Correct</div>
                 </div>
-                <div className="p-4 bg-surface-dim rounded-lg border border-outline-variant">
+                <div className="p-4 bg-surface-dim rounded-sm border border-outline-variant">
                   <div className={`text-headline-lg font-bold ${summary.accuracy >= 70 ? 'text-status-aligned' : summary.accuracy >= 40 ? 'text-status-weak' : 'text-error'}`}>
                     {summary.accuracy}%
                   </div>
@@ -214,7 +214,7 @@ export default function QuickDrillModal({ topicId, topicName, isOpen, onClose, o
                 </div>
               </div>
 
-              <div className="p-4 bg-primary/10 border-l-4 border-primary rounded-r-lg text-left">
+              <div className="p-4 bg-primary/10 border-l-4 border-primary rounded-r-sm text-left">
                 <div className="text-label-sm-mono text-primary uppercase tracking-widest mb-2">Next Step</div>
                 {summary.accuracy >= 70 ? (
                   <p className="text-body-md text-on-surface">
@@ -235,7 +235,7 @@ export default function QuickDrillModal({ topicId, topicName, isOpen, onClose, o
           <div className="border-t border-outline-variant bg-surface-container-high px-6 py-4 flex gap-3">
             <button
               onClick={handleFinish}
-              className="flex-1 py-3 bg-primary text-on-primary text-body-md font-semibold uppercase tracking-widest rounded-lg hover:brightness-110 transition-all"
+              className="flex-1 py-3 bg-primary text-on-primary text-body-md font-semibold uppercase tracking-widest rounded-sm hover:brightness-110 transition-all"
             >
               Done
             </button>
@@ -247,7 +247,7 @@ export default function QuickDrillModal({ topicId, topicName, isOpen, onClose, o
                   setQuestions([]);
                   setAnswers({});
                 }}
-                className="flex-1 py-3 border border-primary text-primary text-body-md font-semibold uppercase tracking-widest rounded-lg hover:bg-primary/10 transition-all"
+                className="flex-1 py-3 border border-primary text-primary text-body-md font-semibold uppercase tracking-widest rounded-sm hover:bg-primary/10 transition-all"
               >
                 Try Again
               </button>

@@ -183,7 +183,7 @@ export default function StudyPlanPage() {
           return (
             <div
               key={task.title}
-              className={`p-6 rounded-md border transition-all ${
+              className={`p-6 rounded-sm border transition-all ${
                 task.tone === 'error' ? 'border-status-overconfident/40 bg-status-overconfident/5' :
                 task.tone === 'primary' ? 'border-primary/40 bg-primary/5' :
                 task.tone === 'tertiary' ? 'border-status-aligned/40 bg-status-aligned/5' :
@@ -228,7 +228,7 @@ export default function StudyPlanPage() {
 
       {/* Priority Queues Detail */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="acrylic-glass border border-white/10 rounded-md p-6">
+        <div className="acrylic-glass border border-white/10 rounded-sm p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs font-mono text-white/60 uppercase tracking-widest flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-status-overconfident" />
@@ -274,7 +274,7 @@ export default function StudyPlanPage() {
           </div>
         </div>
 
-        <div className="acrylic-glass border border-white/10 rounded-md p-6">
+        <div className="acrylic-glass border border-white/10 rounded-sm p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs font-mono text-white/60 uppercase tracking-widest flex items-center gap-2">
               <HelpCircle className="w-4 h-4 text-primary" />

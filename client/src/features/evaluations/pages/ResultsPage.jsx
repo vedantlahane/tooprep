@@ -86,7 +86,7 @@ export default function ResultsPage() {
   if (error && !result) {
     return (
       <div className="max-w-2xl mx-auto py-10">
-        <div className="p-4 rounded-lg bg-error-container/20 border border-error/30 text-error text-body-md">{error}</div>
+        <div className="p-4 rounded-sm bg-error-container/20 border border-error/30 text-error text-body-md">{error}</div>
         <button onClick={() => navigate('/')} className="mt-4 text-primary hover:underline">
           Back to Dashboard
         </button>
@@ -168,7 +168,7 @@ export default function ResultsPage() {
 
       {/* POST_EVALUATION Confidence Re-Rating Prompt */}
       {showConfidencePrompt && !confidenceSubmitted && topicId && (
-        <div className="acrylic-glass border border-primary/40 rounded-md p-6 animate-fade-in relative overflow-hidden">
+        <div className="acrylic-glass border border-primary/40 rounded-sm p-6 animate-fade-in relative overflow-hidden">
           <div className="flex items-start gap-4 mb-4">
             <Sparkles className="w-7 h-7 text-primary flex-shrink-0 mt-0.5" />
             <div>
@@ -206,7 +206,7 @@ export default function ResultsPage() {
       )}
 
       {recommendation && (
-        <div className={`mb-6 rounded-xl border p-6 ${
+        <div className={`mb-6 rounded-sm border border-white/10 p-6 ${
           recommendation.tone === 'error'
             ? 'border-error bg-error/10 text-error'
             : recommendation.tone === 'primary'
@@ -221,7 +221,7 @@ export default function ResultsPage() {
             </div>
             <button
               onClick={() => navigate(recommendation.target, { state: topicId ? { topic: topicId } : undefined })}
-              className="px-4 py-3 rounded-lg border border-current bg-white/10 text-body-md font-semibold hover:opacity-90 transition-colors"
+              className="px-4 py-3 rounded-sm border border-current bg-white/10 text-body-md font-semibold hover:opacity-90 transition-colors"
             >
               {recommendation.cta}
             </button>
@@ -308,7 +308,7 @@ export default function ResultsPage() {
 
       {/* Difficulty Breakdown */}
       {diffBreakdown && (
-        <div className="acrylic-glass border border-white/10 rounded-md p-6">
+        <div className="acrylic-glass border border-white/10 rounded-sm p-6">
           <h3 className="text-xs font-mono uppercase tracking-widest text-white/60 mb-6 flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
             DIFFICULTY ACCURACY BREAKDOWN
@@ -328,7 +328,7 @@ export default function ResultsPage() {
                   <div className="text-xs font-mono uppercase tracking-wider text-white mt-1 capitalize">{diff}</div>
                   <div className="text-[11px] font-mono text-white/40 mt-0.5">{d.correct}/{d.total} correct</div>
                   {/* Mini progress bar */}
-                  <div className="w-full h-1 bg-white/10 rounded-full mt-3 overflow-hidden">
+                  <div className="w-full h-1 bg-white/10 rounded-none mt-3 overflow-hidden">
                     <div
                       className={`h-full ${barClass} transition-all duration-500`}
                       style={{ width: `${d.accuracy || 0}%` }}
@@ -343,7 +343,7 @@ export default function ResultsPage() {
 
       {/* Mistakes List */}
       {mistakes.length > 0 && (
-        <div className="acrylic-glass border border-white/10 rounded-md p-6">
+        <div className="acrylic-glass border border-white/10 rounded-sm p-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
             <div>
               <h3 className="text-xs font-mono uppercase tracking-widest text-error flex items-center gap-2">

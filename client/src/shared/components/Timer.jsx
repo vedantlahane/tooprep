@@ -28,7 +28,7 @@ export default function Timer({ durationSeconds, onExpire, running = true }) {
   const isWarning = remaining <= 300 && !isUrgent;
 
   return (
-    <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border font-mono ${
+    <div className={`flex items-center gap-2 px-4 py-2 rounded-sm border font-mono ${
       isUrgent
         ? 'bg-error-container/20 border-error text-error timer-urgent'
         : isWarning

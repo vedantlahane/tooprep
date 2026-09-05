@@ -224,8 +224,8 @@ function renderImageTag(src, alt) {
   // Guard 1: Hallucinated imgur links
   if (/https?:\/\/(?:i\.)?imgur\.com\//i.test(src)) {
     return `
-      <div class="my-2.5 p-3 border border-amber-500/40 bg-amber-500/10 rounded text-amber-300 flex items-center gap-2 text-xs font-mono">
-        <span class="px-1.5 py-0.5 bg-amber-500/20 rounded font-bold uppercase tracking-wider text-[10px]">Diagram Required</span>
+      <div class="my-2.5 p-3 border border-status-weak/40 bg-status-weak/10 rounded-sm text-status-weak flex items-center gap-2 text-xs font-mono">
+        <span class="px-1.5 py-0.5 bg-status-weak/20 rounded-xs font-bold uppercase tracking-wider text-[10px]">Diagram Required</span>
         <span>${alt ? `[${alt}]` : 'Visual structure from original paper'}</span>
       </div>
     `;
@@ -235,8 +235,8 @@ function renderImageTag(src, alt) {
   if (!/^(https?:\/\/|\/|data:image\/)/i.test(src)) {
     const desc = alt || src;
     return `
-      <div class="my-2.5 p-2.5 border border-primary/40 bg-primary/10 rounded flex items-center gap-2 text-xs font-mono text-on-surface">
-        <span class="px-1.5 py-0.5 bg-primary/20 text-primary rounded font-bold uppercase tracking-wider text-[10px]">Structure</span>
+      <div class="my-2.5 p-2.5 border border-primary/40 bg-primary/10 rounded-sm flex items-center gap-2 text-xs font-mono text-on-surface">
+        <span class="px-1.5 py-0.5 bg-primary/20 text-primary rounded-xs font-bold uppercase tracking-wider text-[10px]">Structure</span>
         <span class="text-on-surface font-medium">${desc}</span>
       </div>
     `;
@@ -415,7 +415,7 @@ export default function MathText({ text, className = '' }) {
           onClick={() => setZoomImg(null)}
         >
           <div
-            className="bg-surface-dim border border-outline-variant p-4 rounded-md max-w-4xl w-[95vw] max-h-[90vh] flex flex-col items-center overflow-hidden shadow-2xl"
+            className="bg-surface-dim border border-outline-variant p-4 rounded-sm max-w-4xl w-[95vw] max-h-[90vh] flex flex-col items-center overflow-hidden shadow-2xl"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex justify-between items-center w-full pb-3 border-b border-outline-variant">

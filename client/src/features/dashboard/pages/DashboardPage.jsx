@@ -334,9 +334,9 @@ export default function DashboardPage() {
 
   const getSubjectColor = (subject) => {
     const s = (subject || '').toUpperCase();
-    if (s.includes('PHYSIC')) return 'text-primary border-primary/40 bg-primary/10';
-    if (s.includes('CHEMIS')) return 'text-amber-400 border-amber-400/40 bg-amber-400/10';
-    if (s.includes('MATH')) return 'text-emerald-400 border-emerald-400/40 bg-emerald-400/10';
+    if (s.includes('PHYSIC')) return 'text-primary border-primary/30 bg-primary/10';
+    if (s.includes('CHEMIS')) return 'text-status-weak border-status-weak/30 bg-status-weak/10';
+    if (s.includes('MATH')) return 'text-status-aligned border-status-aligned/30 bg-status-aligned/10';
     return 'text-white/60 border-white/20 bg-white/5';
   };
 
@@ -533,7 +533,9 @@ export default function DashboardPage() {
               >
                 <Layers className="w-3.5 h-3.5" />
                 <span>All Topics</span>
-                <span className="px-1.5 py-0.2 bg-white/10 rounded-full text-[10px] font-normal">
+                <span className={`px-1.5 py-0.2 rounded-xs text-[10px] font-mono ${
+                  subjectFilter === 'ALL' ? 'bg-primary/20 text-primary font-semibold' : 'bg-white/10 text-white/50'
+                }`}>
                   {subjectCounts.ALL}
                 </span>
               </button>
@@ -543,13 +545,15 @@ export default function DashboardPage() {
                 onClick={() => setSubjectFilter('Physics')}
                 className={`px-3.5 py-1.5 text-xs font-mono rounded-t border-t border-x transition-all flex items-center gap-2 ${
                   subjectFilter === 'Physics'
-                    ? 'bg-surface-container border-primary/30 text-primary font-bold border-b-2 border-b-primary shadow-sm'
+                    ? 'bg-surface-container border-white/20 text-white font-bold border-b-2 border-b-primary shadow-sm'
                     : 'bg-black/40 border-transparent text-white/50 hover:text-white/80 hover:bg-surface-container/40'
                 }`}
               >
-                <Zap className="w-3.5 h-3.5" />
+                <Zap className="w-3.5 h-3.5 text-primary" />
                 <span>Physics</span>
-                <span className="px-1.5 py-0.2 bg-primary/20 text-primary rounded-full text-[10px] font-normal">
+                <span className={`px-1.5 py-0.2 rounded-xs text-[10px] font-mono ${
+                  subjectFilter === 'Physics' ? 'bg-primary/20 text-primary font-semibold' : 'bg-white/10 text-white/50'
+                }`}>
                   {subjectCounts.Physics}
                 </span>
               </button>
@@ -559,13 +563,15 @@ export default function DashboardPage() {
                 onClick={() => setSubjectFilter('Chemistry')}
                 className={`px-3.5 py-1.5 text-xs font-mono rounded-t border-t border-x transition-all flex items-center gap-2 ${
                   subjectFilter === 'Chemistry'
-                    ? 'bg-surface-container border-amber-500/30 text-amber-400 font-bold border-b-2 border-b-amber-400 shadow-sm'
+                    ? 'bg-surface-container border-white/20 text-white font-bold border-b-2 border-b-primary shadow-sm'
                     : 'bg-black/40 border-transparent text-white/50 hover:text-white/80 hover:bg-surface-container/40'
                 }`}
               >
-                <Flame className="w-3.5 h-3.5" />
+                <Flame className="w-3.5 h-3.5 text-status-weak" />
                 <span>Chemistry</span>
-                <span className="px-1.5 py-0.2 bg-amber-400/20 text-amber-400 rounded-full text-[10px] font-normal">
+                <span className={`px-1.5 py-0.2 rounded-xs text-[10px] font-mono ${
+                  subjectFilter === 'Chemistry' ? 'bg-status-weak/20 text-status-weak font-semibold' : 'bg-white/10 text-white/50'
+                }`}>
                   {subjectCounts.Chemistry}
                 </span>
               </button>
@@ -575,13 +581,15 @@ export default function DashboardPage() {
                 onClick={() => setSubjectFilter('Mathematics')}
                 className={`px-3.5 py-1.5 text-xs font-mono rounded-t border-t border-x transition-all flex items-center gap-2 ${
                   subjectFilter === 'Mathematics'
-                    ? 'bg-surface-container border-emerald-500/30 text-emerald-400 font-bold border-b-2 border-b-emerald-400 shadow-sm'
+                    ? 'bg-surface-container border-white/20 text-white font-bold border-b-2 border-b-primary shadow-sm'
                     : 'bg-black/40 border-transparent text-white/50 hover:text-white/80 hover:bg-surface-container/40'
                 }`}
               >
-                <Calculator className="w-3.5 h-3.5" />
+                <Calculator className="w-3.5 h-3.5 text-status-aligned" />
                 <span>Mathematics</span>
-                <span className="px-1.5 py-0.2 bg-emerald-400/20 text-emerald-400 rounded-full text-[10px] font-normal">
+                <span className={`px-1.5 py-0.2 rounded-xs text-[10px] font-mono ${
+                  subjectFilter === 'Mathematics' ? 'bg-status-aligned/20 text-status-aligned font-semibold' : 'bg-white/10 text-white/50'
+                }`}>
                   {subjectCounts.Mathematics}
                 </span>
               </button>
@@ -614,14 +622,15 @@ export default function DashboardPage() {
                 No topics matching your filter criteria.
               </div>
             ) : (
-              filteredAndSorted.map((topic) => {
+              filteredAndSorted.map((topic, idx) => {
                 const gap = topic.gap;
                 const isCalibratingThis = inCellCalibrate?.topicId === topic.topic_id;
 
                 return (
                   <div
                     key={topic.topic_id}
-                    className="p-3.5 bg-surface-container border border-white/10 rounded-sm space-y-2.5 hover:border-primary/50 transition-colors"
+                    style={{ animationDelay: `${Math.min(idx * 25, 600)}ms` }}
+                    className="animate-slide-up p-3.5 bg-surface-container border border-white/10 rounded-sm space-y-2.5 hover:border-primary/50 transition-colors"
                   >
                     {/* Top row: Subject, Chapter & Status */}
                     <div className="flex items-center justify-between gap-2">
@@ -893,11 +902,11 @@ export default function DashboardPage() {
                       const rowNum = idx + 1;
                       const isSelectedRow = activeCell.row === rowNum;
                       const gap = topic.gap;
-                      const staggerClass = idx < 8 ? `animate-slide-up stagger-${idx + 1}` : '';
 
                       return (
                         <tr
                           key={topic.topic_id}
+                          style={{ animationDelay: `${Math.min(idx * 20, 600)}ms` }}
                           onClick={() => setActiveCell({
                             coord: `C${rowNum}`,
                             col: 'C',
@@ -905,7 +914,7 @@ export default function DashboardPage() {
                             field: 'topic_name',
                             value: topic.topic_name
                           })}
-                          className={`transition-all duration-150 group hover:bg-neutral-900/80 ${staggerClass} ${
+                          className={`animate-slide-up transition-all duration-150 group hover:bg-neutral-900/80 ${
                             isSelectedRow ? 'bg-neutral-900/60' : ''
                           }`}
                         >
@@ -1001,7 +1010,7 @@ export default function DashboardPage() {
                             {topic.evaluation_accuracy !== null ? (
                               <div className="flex flex-col items-center">
                                 <span className="font-bold text-[11px] text-white">{topic.evaluation_accuracy}%</span>
-                                <div className="w-14 h-1 bg-white/10 rounded-full overflow-hidden mt-0.5">
+                                <div className="w-14 h-1 bg-white/10 rounded-none overflow-hidden mt-0.5">
                                   <div
                                     className={`h-full ${
                                       topic.evaluation_accuracy >= 70
@@ -1197,11 +1206,12 @@ export default function DashboardPage() {
                 {topics.map((topic, tileIdx) => (
                   <motion.div
                     key={topic.topic_id}
+                    style={{ animationDelay: `${Math.min(tileIdx * 30, 600)}ms` }}
                     whileHover={{ y: -3, scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     transition={{ type: 'spring', stiffness: 450, damping: 25 }}
                     onClick={() => navigate(`/topics/${topic.topic_id}`)}
-                    className="metro-tile relative cursor-pointer p-4 flex flex-col justify-between overflow-hidden rounded-sm select-none aspect-square bg-surface-container hover:border-primary border border-white/10 shadow-sm"
+                    className="animate-slide-up metro-tile relative cursor-pointer p-4 flex flex-col justify-between overflow-hidden rounded-sm select-none aspect-square bg-surface-container hover:border-primary border border-white/10 shadow-sm"
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-mono uppercase tracking-wider opacity-60">
@@ -1260,7 +1270,7 @@ export default function DashboardPage() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.94, opacity: 0, y: 10 }}
               transition={{ type: 'spring', stiffness: 450, damping: 30 }}
-              className="bg-surface-dim border border-outline-variant p-6 rounded-md max-w-md w-full shadow-2xl space-y-4"
+              className="bg-surface-dim border border-outline-variant p-6 rounded-sm max-w-md w-full shadow-2xl space-y-4"
               onClick={e => e.stopPropagation()}
             >
               <div className="flex justify-between items-start">
