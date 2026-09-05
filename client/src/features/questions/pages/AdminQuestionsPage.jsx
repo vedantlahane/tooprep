@@ -298,12 +298,12 @@ export default function AdminQuestionsPage() {
   const pyqCount = questions.filter((q) => q.source_type === 'PYQ').length;
 
   return (
-    <div className="max-w-6xl mx-auto animate-fade-in space-y-6 pb-16">
+    <div className="w-full max-w-6xl min-w-0 mx-auto animate-fade-in space-y-6 pb-16">
       {/* Header and Create Button */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/10 pb-5">
         <div>
           <p className="text-label-sm-mono uppercase tracking-[0.2em] text-primary text-xs">
-            ADMINISTRATION // QUESTION OPERATIONS
+            Question Operations
           </p>
           <h2 className="text-display text-on-surface mt-1 font-light lowercase">
             Question Bank Manager

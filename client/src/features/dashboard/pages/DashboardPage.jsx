@@ -367,34 +367,26 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-4 pb-20 select-none">
-      {/* ─── Excel Application Title & Telemetry Header ─── */}
+      {/* ─── Application Title & Summary Header ─── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-white/10 pb-3">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded bg-emerald-600/30 border border-emerald-500/50 flex items-center justify-center text-emerald-400 font-bold font-mono text-sm shadow-sm">
-            XLS
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl md:text-2xl font-light text-white tracking-tight lowercase">
-                knowledge map
-              </h1>
-              <span className="text-[11px] font-mono text-white/40">// JEE_MAIN_2026_CURRICULUM.XLSX</span>
-            </div>
-            <div className="text-[11px] font-mono text-white/50 flex items-center gap-3 mt-0.5 flex-wrap">
-              <span>{summary.total} canonical syllabus topics</span>
-              <span className="text-white/20">|</span>
-              <span>questions in bank: <strong className="text-primary">{summary.totalAvailable}</strong></span>
-              <span className="text-white/20">|</span>
-              <span>avg confidence: <strong className="text-primary">{summary.avgConfidence}/10</strong></span>
-              <span className="text-white/20">|</span>
-              <span>avg accuracy: <strong className="text-white">{summary.avgAccuracy}%</strong></span>
-            </div>
+        <div>
+          <h1 className="text-2xl md:text-3xl font-light text-white tracking-tight lowercase">
+            knowledge map
+          </h1>
+          <div className="text-xs text-white/60 flex items-center gap-2 sm:gap-3 mt-1 flex-wrap">
+            <span>{summary.total} topics</span>
+            <span className="text-white/20">&middot;</span>
+            <span>questions in bank: <strong className="text-primary font-semibold">{summary.totalAvailable}</strong></span>
+            <span className="text-white/20">&middot;</span>
+            <span>avg confidence: <strong className="text-primary font-semibold">{summary.avgConfidence}/10</strong></span>
+            <span className="text-white/20">&middot;</span>
+            <span>avg accuracy: <strong className="text-white font-semibold">{summary.avgAccuracy}%</strong></span>
           </div>
         </div>
 
-        {/* View Switcher: Excel Spreadsheet vs Metro Live Tiles */}
-        <div className="flex items-center gap-2">
-          <div className="bg-surface-container p-1 rounded-sm border border-outline-variant flex items-center gap-1 text-xs font-mono">
+        {/* View Switcher: Spreadsheet vs Metro Live Tiles */}
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="bg-surface-container p-1 rounded-sm border border-outline-variant flex items-center gap-1 text-xs">
             <button
               onClick={() => handleSwitchView('sheet')}
               className={`px-3 py-1 rounded-sm transition-colors flex items-center gap-1.5 press-feedback ${
@@ -404,7 +396,7 @@ export default function DashboardPage() {
               }`}
             >
               <Grid className="w-3.5 h-3.5" />
-              <span>XLS Sheet</span>
+              <span>Spreadsheet</span>
             </button>
             <button
               onClick={() => handleSwitchView('tiles')}
@@ -439,14 +431,14 @@ export default function DashboardPage() {
                 <AlertTriangle className="w-4 h-4" />
               </div>
               <div>
-                <div className="text-[10px] font-mono uppercase tracking-widest text-error font-bold flex items-center gap-2">
-                  <span>⚠️ Highest Overconfidence Risk Identified</span>
-                  <span className="text-white/50 text-[9px] font-normal">({biggestGapTopic.subject_name} › {biggestGapTopic.chapter_name})</span>
+                <div className="text-[10px] uppercase tracking-wider text-error font-semibold flex items-center gap-2">
+                  <span>Priority Overconfidence Alert</span>
+                  <span className="text-white/50 text-[9px]">({biggestGapTopic.subject_name} &rsaquo; {biggestGapTopic.chapter_name})</span>
                 </div>
                 <div className="text-sm font-medium text-white flex items-baseline gap-2">
                   <span>{biggestGapTopic.topic_name}</span>
-                  <span className="text-xs font-mono text-white/70">
-                    Self-Rating: <strong className="text-error">{biggestGapTopic.confidence}/10</strong> vs Mock Score: <strong className="text-white">{biggestGapTopic.evaluation_accuracy}%</strong> (Gap: <strong className="text-error">{biggestGapTopic.gap}%</strong>)
+                  <span className="text-xs text-white/70">
+                    Confidence: <strong className="text-error">{biggestGapTopic.confidence}/10</strong> vs Accuracy: <strong className="text-white">{biggestGapTopic.evaluation_accuracy}%</strong> (Gap: <strong className="text-error">{biggestGapTopic.gap}%</strong>)
                   </span>
                 </div>
               </div>
@@ -457,7 +449,7 @@ export default function DashboardPage() {
                   e.stopPropagation();
                   navigate(`/evaluate?topic=${biggestGapTopic.topic_id}`);
                 }}
-                className="px-3 py-1.5 bg-error text-white font-mono text-[11px] font-bold uppercase tracking-wider rounded-sm hover:brightness-110 flex items-center gap-1 cursor-pointer"
+                className="px-3 py-1.5 bg-error text-white text-[11px] font-semibold uppercase tracking-wider rounded-sm hover:brightness-110 flex items-center gap-1 cursor-pointer"
               >
                 <Timer className="w-3.5 h-3.5 stroke-[2]" />
                 <span>Diagnostic Mock</span>
@@ -468,34 +460,30 @@ export default function DashboardPage() {
       </AnimatePresence>
 
       {/* ═══════════════════════════════════════════════════════════════════
-       * VIEW MODE 1: AUTHENTIC EXCEL SPREADSHEET (XLS SHEET MATRIX)
+       * VIEW MODE 1: SPREADSHEET & TOPIC CURRICULUM
        * ═══════════════════════════════════════════════════════════════════ */}
       {viewMode === 'sheet' && (
-        <div className="space-y-2">
-          {/* ─── Excel Formula & Name Box Bar ─── */}
+        <div className="space-y-3">
+          {/* ─── Search & Quick Status Filter Bar ─── */}
           <div className="acrylic-glass border border-white/10 rounded-sm p-1.5 flex items-center gap-2 bg-surface-container/90">
             {/* Name Box (Active Cell Coordinate) */}
             <div
-              className="px-2.5 py-1 bg-black/60 border border-white/15 rounded text-primary font-mono text-xs font-bold min-w-[64px] text-center shrink-0 tracking-wider"
-              title="Active Cell Coordinate"
+              className="hidden sm:block px-2.5 py-1 bg-black/60 border border-white/15 rounded text-primary text-xs font-semibold min-w-[56px] text-center shrink-0 tracking-wider"
+              title="Selected Cell"
             >
               {activeCell.coord}
             </div>
 
-            {/* Excel Formula fx Button */}
-            <div className="w-6 h-6 flex items-center justify-center font-serif italic text-white/50 text-sm border-r border-white/10 pr-2 shrink-0 select-none">
-              fx
-            </div>
-
             {/* Formula / Search Input Box */}
             <div className="flex-1 relative flex items-center">
+              <Search className="w-3.5 h-3.5 text-white/40 ml-1.5 shrink-0" />
               <input
                 ref={formulaInputRef}
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                placeholder='=FILTER(Syllabus, "search topic, chapter, or subject...")'
-                className="w-full bg-transparent text-xs font-mono text-white placeholder:text-white/30 outline-none px-2 py-1"
+                placeholder="Search topic, chapter, or subject..."
+                className="w-full bg-transparent text-xs text-white placeholder:text-white/30 outline-none px-2.5 py-1"
               />
               {searchQuery && (
                 <button
@@ -613,14 +601,142 @@ export default function DashboardPage() {
                   className="text-primary hover:underline flex items-center gap-1"
                 >
                   <RotateCcw className="w-3 h-3" />
-                  <span>Reset Sheet</span>
+                  <span>Reset Filters</span>
                 </button>
               )}
             </div>
           </div>
 
-          {/* ─── The Master Excel Spreadsheet Grid ─── */}
-          <div className="border border-neutral-800 rounded-sm bg-black overflow-hidden shadow-2xl">
+          {/* ─── Mobile Topic Cards View (< md screens) ─── */}
+          <div className="block md:hidden space-y-2.5">
+            {filteredAndSorted.length === 0 ? (
+              <div className="p-8 text-center bg-surface-container border border-outline-variant rounded-sm text-white/50 text-xs">
+                No topics matching your filter criteria.
+              </div>
+            ) : (
+              filteredAndSorted.map((topic) => {
+                const gap = topic.gap;
+                const isCalibratingThis = inCellCalibrate?.topicId === topic.topic_id;
+
+                return (
+                  <div
+                    key={topic.topic_id}
+                    className="p-3.5 bg-surface-container border border-white/10 rounded-sm space-y-2.5 hover:border-primary/50 transition-colors"
+                  >
+                    {/* Top row: Subject, Chapter & Status */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 ${getSubjectColor(topic.subject_name)}`}>
+                          {topic.subject_name}
+                        </span>
+                        <span className="text-[11px] text-white/50 truncate">
+                          {topic.chapter_name}
+                        </span>
+                      </div>
+                      <div className="shrink-0">
+                        {getStatusBadge(topic.status)}
+                      </div>
+                    </div>
+
+                    {/* Topic Title */}
+                    <div className="flex items-start justify-between gap-2">
+                      <button
+                        onClick={() => navigate(`/topics/${topic.topic_id}`)}
+                        className="text-left font-medium text-sm text-white hover:text-primary transition-colors leading-snug"
+                      >
+                        {topic.topic_name}
+                      </button>
+                      <span className="text-[10px] text-primary bg-primary/10 border border-primary/25 px-1.5 py-0.5 rounded-xs shrink-0 font-semibold">
+                        {topic.questions_available || 0} Qs
+                      </span>
+                    </div>
+
+                    {/* Metrics Row: Confidence, Accuracy, Gap */}
+                    <div className="grid grid-cols-3 gap-2 py-2 px-2.5 bg-black/40 border border-white/5 rounded-xs text-center text-xs">
+                      <div>
+                        <div className="text-[10px] text-white/50 uppercase">Confidence</div>
+                        <button
+                          onClick={() => setInCellCalibrate(isCalibratingThis ? null : {
+                            topicId: topic.topic_id,
+                            currentVal: topic.confidence || 5,
+                            topicName: topic.topic_name
+                          })}
+                          className="font-bold text-primary hover:underline cursor-pointer inline-flex items-center gap-1 mt-0.5"
+                        >
+                          <span>{topic.confidence !== null ? `${topic.confidence}/10` : 'Rate'}</span>
+                          <Sliders className="w-2.5 h-2.5 opacity-60" />
+                        </button>
+                      </div>
+
+                      <div>
+                        <div className="text-[10px] text-white/50 uppercase">Accuracy</div>
+                        <div className="font-bold text-white mt-0.5">
+                          {topic.evaluation_accuracy !== null ? `${topic.evaluation_accuracy}%` : '--'}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="text-[10px] text-white/50 uppercase">Gap</div>
+                        <div className={`font-bold mt-0.5 ${
+                          gap === null ? 'text-white/40' : gap < 0 ? 'text-error' : gap > 0 ? 'text-primary' : 'text-status-aligned'
+                        }`}>
+                          {gap !== null ? (gap > 0 ? `+${gap}%` : `${gap}%`) : '--'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Mobile In-Card Calibration Slider (when open) */}
+                    {isCalibratingThis && (
+                      <div className="p-2.5 bg-black/70 border border-primary/40 rounded-xs space-y-2 animate-fade-in">
+                        <div className="text-[11px] text-white/70 flex justify-between items-center">
+                          <span>Set Confidence (1–10):</span>
+                          <button onClick={() => setInCellCalibrate(null)} className="text-white/40 hover:text-white">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between gap-1">
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(val => (
+                            <button
+                              key={val}
+                              onClick={() => handleQuickCalibrate(topic.topic_id, val)}
+                              className={`flex-1 py-1 text-xs font-bold rounded-xs transition-colors ${
+                                inCellCalibrate.currentVal === val
+                                  ? 'bg-primary text-black'
+                                  : 'bg-neutral-800 text-white hover:bg-neutral-700'
+                              }`}
+                            >
+                              {val}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        onClick={() => navigate(`/practice?topic=${topic.topic_id}`)}
+                        className="flex-1 py-1.5 bg-surface border border-outline-variant hover:border-primary text-white/90 hover:text-white rounded-xs text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                      >
+                        <Play className="w-3 h-3 fill-current text-primary" />
+                        <span>Practice</span>
+                      </button>
+                      <button
+                        onClick={() => navigate(`/evaluate?topic=${topic.topic_id}`)}
+                        className="flex-1 py-1.5 bg-primary/15 border border-primary/40 hover:bg-primary hover:text-black text-primary rounded-xs text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                      >
+                        <Timer className="w-3 h-3 stroke-[2]" />
+                        <span>Mock Test</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* ─── The Master Spreadsheet Grid (Desktop Screens) ─── */}
+          <div className="hidden md:block border border-neutral-800 rounded-sm bg-black overflow-hidden shadow-2xl">
             <div className="overflow-x-auto max-h-[640px] overflow-y-auto no-scrollbar relative">
               <table className="w-full border-collapse text-left font-mono text-xs">
                 {/* ─── Excel Column Header Row ─── */}
@@ -1012,9 +1128,9 @@ export default function DashboardPage() {
                   className="p-3 bg-neutral-900 border-t-2 border-primary flex flex-wrap items-center justify-between gap-3 text-xs font-mono shadow-xl overflow-hidden"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-primary font-bold">CALIBRATE:</span>
+                    <span className="text-primary font-bold">Calibrate:</span>
                     <span className="text-white">{inCellCalibrate.topicName}</span>
-                    <span className="text-white/40">// Select Confidence (1-10):</span>
+                    <span className="text-white/40">Select Confidence (1–10):</span>
                   </div>
                   <div className="flex items-center gap-1">
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(val => (
@@ -1044,30 +1160,20 @@ export default function DashboardPage() {
               )}
             </AnimatePresence>
 
-            {/* ─── Excel Bottom Status Bar ─── */}
-            <div className="px-3 py-2 bg-neutral-950 border-t border-neutral-800 flex flex-wrap items-center justify-between text-[11px] font-mono text-white/50">
-              <div className="flex items-center gap-3">
-                <span className="flex items-center gap-1.5 text-emerald-400">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  READY
-                </span>
-                <span className="text-white/30">|</span>
-                <span>SHEET: <strong className="text-white">{subjectFilter}</strong></span>
-                <span className="text-white/30">|</span>
-                <span>ROWS: <strong className="text-white">{filteredAndSorted.length}</strong> of {data.length}</span>
-                <span className="text-white/30">|</span>
-                <span>CELL: <strong className="text-primary">{activeCell.coord}</strong></span>
+            {/* ─── Bottom Status Bar ─── */}
+            <div className="px-4 py-2.5 bg-neutral-950 border-t border-neutral-800 flex flex-wrap items-center justify-between text-xs text-white/60 gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
+                <span>Showing <strong className="text-white">{filteredAndSorted.length}</strong> topics</span>
+                <span className="text-white/20">&middot;</span>
+                <span>Bank Questions: <strong className="text-primary">{summary.totalAvailable}</strong></span>
               </div>
 
-              <div className="flex items-center gap-4 flex-wrap">
-                <span>BANK QS: <strong className="text-primary">{summary.totalAvailable}</strong></span>
-                <span className="text-white/30">|</span>
-                <span>ATTEMPTED: <strong className="text-white">{summary.totalAttempts}</strong></span>
-                <span className="text-white/30">|</span>
-                <span>AVG CONF: <strong className="text-primary">{summary.avgConfidence}/10</strong></span>
-                <span>AVG ACC: <strong className="text-white">{summary.avgAccuracy}%</strong></span>
-                <span className="hidden sm:inline text-white/30">|</span>
-                <span className="hidden sm:inline text-white/40">100% ZOOM</span>
+              <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+                <span>Attempted: <strong className="text-white">{summary.totalAttempts}</strong></span>
+                <span className="text-white/20">&middot;</span>
+                <span>Avg Confidence: <strong className="text-primary">{summary.avgConfidence}/10</strong></span>
+                <span className="text-white/20">&middot;</span>
+                <span>Avg Accuracy: <strong className="text-white">{summary.avgAccuracy}%</strong></span>
               </div>
             </div>
           </div>
@@ -1087,7 +1193,7 @@ export default function DashboardPage() {
                 <span className="text-white/30 font-normal">({topics.length} topics)</span>
               </h3>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3">
                 {topics.map((topic, tileIdx) => (
                   <motion.div
                     key={topic.topic_id}

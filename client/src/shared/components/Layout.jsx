@@ -91,16 +91,16 @@ export default function Layout({ children }) {
   };
 
   return (
-    <div className="min-h-screen bg-black text-on-surface flex flex-col selection:bg-primary selection:text-black">
-      {/* ─── PWA Offline Telemetry & Install Banner ─── */}
+    <div className="min-h-screen bg-black text-on-surface flex flex-col selection:bg-primary selection:text-black w-full max-w-[100vw] overflow-x-hidden">
+      {/* ─── PWA Install Banner ─── */}
       <PWAInstallBanner />
 
-      {/* ─── Top Ambient OS Telemetry Rail (Windows Phone Status Bar) ─── */}
-      <header className="sticky top-0 w-full bg-black/95 backdrop-blur-md border-b border-white/10 px-4 md:px-8 py-2.5 flex items-center justify-between text-label-sm-mono text-xs tracking-wider z-50">
-        <div className="flex items-center gap-3">
-          <Link to="/" className="flex items-center gap-2 group">
+      {/* ─── Top Ambient Bar ─── */}
+      <header className="sticky top-0 w-full bg-black/95 backdrop-blur-md border-b border-white/10 px-3 sm:px-4 md:px-8 py-2.5 flex items-center justify-between text-xs tracking-wider z-50">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Link to="/" className="flex items-center gap-1.5 sm:gap-2 group">
             <span className="text-primary font-bold tracking-widest text-[11px] uppercase">TOOPREP</span>
-            <span className="text-white/30 font-light">//</span>
+            <span className="text-white/30 font-light">&middot;</span>
             <span className="text-white/70 uppercase text-[11px] tracking-widest group-hover:text-white transition-colors">
               JEE 2026
             </span>
@@ -109,21 +109,16 @@ export default function Layout({ children }) {
           {isAdmin && (
             <Link
               to="/admin"
-              className="flex items-center gap-1.5 px-2.5 py-0.5 bg-status-weak/20 border border-status-weak/50 text-status-weak hover:bg-status-weak hover:text-black transition-colors text-[10px] font-mono uppercase tracking-widest font-bold"
+              className="flex items-center gap-1 px-2 py-0.5 bg-status-weak/20 border border-status-weak/50 text-status-weak hover:bg-status-weak hover:text-black transition-colors text-[10px] uppercase tracking-wider font-bold"
               title="Open Admin Command Center"
             >
-              <Shield className="w-3 h-3" />
-              <span>ADMIN CONSOLE</span>
+              <Shield className="w-3 h-3 shrink-0" />
+              <span>ADMIN</span>
             </Link>
           )}
-
-          <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-white/15">
-            <span className="w-1.5 h-1.5 rounded-full bg-status-aligned animate-pulse"></span>
-            <span className="text-white/50 text-[10px]">110 VERIFIED PYQS</span>
-          </div>
         </div>
 
-        <div className="flex items-center gap-3 text-white/60">
+        <div className="flex items-center gap-2 sm:gap-3 text-white/60">
           <span className="font-mono text-[11px] hidden sm:inline">{timeStr}</span>
 
           {/* Accent Color Palette Quick Switcher */}
@@ -179,8 +174,8 @@ export default function Layout({ children }) {
           >
             <div className="max-w-7xl mx-auto space-y-4">
               <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                <span className="text-[10px] font-mono text-white/50 uppercase tracking-widest">
-                  {isAdmin ? 'Administrative & Student Systems' : 'Student Navigation & System Tools'}
+                <span className="text-[10px] text-white/50 uppercase tracking-widest">
+                  {isAdmin ? 'Administration' : 'Menu'}
                 </span>
                 <button
                   onClick={() => setMenuOpen(false)}
@@ -193,9 +188,9 @@ export default function Layout({ children }) {
               {/* If Admin: Staff Operations */}
               {isAdmin && (
                 <div className="space-y-2">
-                  <div className="text-[10px] font-mono text-status-weak uppercase tracking-widest flex items-center gap-1.5">
+                  <div className="text-[10px] text-status-weak uppercase tracking-widest flex items-center gap-1.5 font-semibold">
                     <Shield className="w-3.5 h-3.5" />
-                    <span>Administrative Access // Staff Command Center</span>
+                    <span>Administrative Command Center</span>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 text-xs font-mono">
                     <button
@@ -330,8 +325,8 @@ export default function Layout({ children }) {
       </AnimatePresence>
 
       {/* ─── Iconic Panoramic Pivot Header (Windows Phone Panorama Horizon) ─── */}
-      <nav className="w-full bg-black/60 backdrop-blur-sm border-b border-white/5 px-4 md:px-8 pt-4 pb-1 overflow-x-auto no-scrollbar z-30">
-        <div className="flex items-center gap-6 md:gap-9 min-w-max">
+      <nav className="w-full bg-black/60 backdrop-blur-sm border-b border-white/5 px-3 sm:px-4 md:px-8 pt-3 sm:pt-4 pb-1 overflow-x-auto no-scrollbar z-30 max-w-full">
+        <div className="flex items-center gap-5 sm:gap-6 md:gap-9 min-w-max">
           {PIVOT_ITEMS.map((item) => {
             const isActive = location.pathname === item.path ||
               (item.path !== '/' && location.pathname.startsWith(item.path));
@@ -378,7 +373,7 @@ export default function Layout({ children }) {
       </nav>
 
       {/* ─── Main Panoramic Content Canvas ─── */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-8 pt-6 pb-12">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-8 pt-4 sm:pt-6 pb-12 min-w-0 overflow-x-hidden sm:overflow-x-visible">
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}

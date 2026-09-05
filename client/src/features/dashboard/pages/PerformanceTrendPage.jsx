@@ -123,13 +123,13 @@ export default function PerformanceTrendPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto animate-fade-in space-y-8 pb-16">
-      {/* Telemetry Header */}
+    <div className="w-full max-w-6xl min-w-0 mx-auto animate-fade-in space-y-8 pb-16">
+      {/* Header */}
       <div className="border-b border-white/10 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <div className="text-label-sm-mono text-primary uppercase tracking-[0.25em] mb-1.5 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-            TRENDS // ACCURACY & SCORE TRAJECTORY
+            Trends &middot; Accuracy &amp; Score Trajectory
           </div>
           <h1 className="text-3xl md:text-4xl font-extralight text-white tracking-tight lowercase">
             performance trends

@@ -328,7 +328,7 @@ export default function TopicDetailPage() {
                     {pts.map((p, i) => (
                       <g key={i}>
                         <circle cx={p.x} cy={p.y} r="4.5" fill="#4A90E2" stroke="#121212" strokeWidth="1.5" />
-                        <text x={p.x} y={Math.max(12, p.y - 8)} textAnchor="middle" fill="#A0A0A0" fontSize="9" fontFamily="monospace">
+                        <text x={p.x} y={Math.max(12, p.y - 8)} textAnchor="middle" fill="#A0A0A0" fontSize="9" fontFamily="'Segoe UI', sans-serif">
                           {p.accuracy}%
                         </text>
                       </g>

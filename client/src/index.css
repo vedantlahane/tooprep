@@ -4,6 +4,47 @@
    Design System Tokens — Modern Windows Phone UI (Fluent DNA)
    ============================================================ */
 
+/* ============================================================
+   Segoe UI Webfont Definitions (Official Microsoft Office CDN)
+   Guarantees true Segoe UI on all platforms (Android, iOS, macOS, Windows)
+   ============================================================ */
+
+@font-face {
+  font-family: 'Segoe UI';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: local('Segoe UI Light'), local('Segoe UI Variable Light'),
+       url('https://res-1.cdn.office.net/files/fabric/assets/fonts/segoeui-westeuropean/segoeui-light.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Segoe UI';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Segoe UI'), local('Segoe UI Variable Text'),
+       url('https://res-1.cdn.office.net/files/fabric/assets/fonts/segoeui-westeuropean/segoeui-regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Segoe UI';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Segoe UI Semibold'), local('Segoe UI Variable Display Semibold'),
+       url('https://res-1.cdn.office.net/files/fabric/assets/fonts/segoeui-westeuropean/segoeui-semibold.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Segoe UI';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Segoe UI Bold'), local('Segoe UI Variable Display Bold'),
+       url('https://res-1.cdn.office.net/files/fabric/assets/fonts/segoeui-westeuropean/segoeui-bold.woff2') format('woff2');
+}
+
 @theme {
   /* Accent Color (Cyan) - More vibrant for modern displays */
   --color-primary: #00BFFF;
@@ -56,9 +97,9 @@
   --color-status-weak: #FF9500;
   --color-status-insufficient: #4D4D4D;
 
-  /* Font families */
-  --font-sans: 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  --font-mono: 'Cascadia Code', 'Consolas', monospace;
+  /* Font families — Unified Segoe UI */
+  --font-sans: 'Segoe UI', 'Segoe UI Variable', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'Segoe UI', 'Segoe UI Variable', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
 
   /* Modern rounding (Fluent Design) rather than strict 0px Metro */
   --radius-xs: 2px;
@@ -72,8 +113,18 @@
 }
 
 /* ============================================================
-   Base Styles & Modern Window Phone DNA
+   Base Styles & Mobile Containment
    ============================================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
 
 body {
   font-family: var(--font-sans);
@@ -81,11 +132,19 @@ body {
   color: var(--color-on-surface);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Subtle mesh gradient background for modern feel */
+  /* Subtle mesh gradient background */
   background-image: 
     radial-gradient(at 0% 0%, rgba(0, 191, 255, 0.05) 0px, transparent 50%),
     radial-gradient(at 100% 100%, rgba(146, 195, 0, 0.05) 0px, transparent 50%);
   background-attachment: fixed;
+}
+
+body, button, input, select, textarea, table, th, td {
+  font-family: var(--font-sans);
+}
+
+.font-mono {
+  font-family: var(--font-sans) !important;
 }
 
 

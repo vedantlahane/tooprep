@@ -279,7 +279,7 @@ export default function QuestionEditModal({
           <div className="bg-black px-6 py-4 border-b border-white/10 flex items-center justify-between flex-wrap gap-3">
             <div>
               <div className="text-label-sm-mono uppercase tracking-[0.2em] text-primary text-xs flex items-center gap-2">
-                <span>{isEditMode ? 'ADMIN // EDIT QUESTION' : 'ADMIN // NEW QUESTION COMPOSER'}</span>
+                <span>{isEditMode ? 'Edit Question' : 'New Question Composer'}</span>
                 {question?.canonical_question_id && (
                   <span className="text-white/40">[{question.canonical_question_id}]</span>
                 )}

@@ -104,13 +104,13 @@ export default function InsightsPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto animate-fade-in pb-20 space-y-8">
-      {/* Telemetry Header */}
+    <div className="w-full max-w-6xl min-w-0 mx-auto animate-fade-in pb-20 space-y-8">
+      {/* Header */}
       <div className="border-b border-white/10 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <div className="text-label-sm-mono text-primary uppercase tracking-[0.25em] mb-1.5 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-            INSIGHTS // METACOGNITIVE CALIBRATION & GAP TELEMETRY
+            Metacognitive Calibration &middot; Analysis
           </div>
           <h1 className="text-3xl md:text-4xl font-extralight text-white tracking-tight lowercase">
             metacognitive insights
@@ -248,7 +248,7 @@ export default function InsightsPage() {
               <div className="flex items-center justify-between mb-6 relative z-10">
                 <h3 className="text-xs font-mono text-error uppercase tracking-widest font-bold flex items-center gap-2">
                   <Flame className="w-4 h-4" />
-                  HIGH REVISION PRIORITY // OVERCONFIDENCE GAPS
+                  High Priority &middot; Overconfidence Gaps
                 </h3>
                 <span className="text-[10px] font-mono text-error/80 px-2 py-0.5 bg-error/10 border border-error/20 rounded-xs">
                   {insights.overconfident.length} topics

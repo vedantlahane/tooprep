@@ -105,11 +105,11 @@ export default function AdminCurriculumPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/10 pb-5">
         <div>
-          <p className="text-label-sm-mono uppercase tracking-[0.2em] text-primary text-xs">
-            SYLLABUS & CONTENT AUDIT // COVERAGE MATRIX
+          <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+            Curriculum Coverage
           </p>
           <h1 className="text-display text-on-surface mt-1 font-light lowercase">
-            Curriculum Question Coverage
+            Question Coverage Matrix
           </h1>
           <p className="text-body-md text-on-surface-variant font-light mt-1">
             Detect preparation blind spots and ensure complete question depth across all JEE topics.

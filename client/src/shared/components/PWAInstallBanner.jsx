@@ -51,7 +51,7 @@ export default function PWAInstallBanner() {
     return (
       <div className="bg-amber-500/15 border-b border-amber-500/30 px-4 py-2 text-center text-xs font-mono text-amber-300 flex items-center justify-center gap-2 animate-fade-in z-50">
         <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
-        <span>Offline Mode: Using cached syllabus & offline question telemetry</span>
+        <span>Offline Mode: Studying cached syllabus offline</span>
       </div>
     );
   }

@@ -108,33 +108,27 @@ export default function LandingPage() {
   const DemoStatusIcon = demoStatus.icon;
 
   return (
-    <div className="min-h-screen bg-black text-white selection:bg-primary selection:text-black font-sans flex flex-col pb-24">
-      {/* ─── Windows Phone Top Telemetry Bar ─── */}
-      <div className="w-full bg-black/90 backdrop-blur border-b border-neutral-900 px-4 md:px-8 py-2 flex items-center justify-between text-[11px] font-mono tracking-widest text-white/50 select-none">
+    <div className="min-h-screen bg-black text-white selection:bg-primary selection:text-black font-sans flex flex-col pb-24 w-full max-w-[100vw] overflow-x-hidden">
+      {/* ─── Top Bar ─── */}
+      <div className="w-full bg-black/90 backdrop-blur border-b border-neutral-900 px-3 sm:px-4 md:px-8 py-2 flex items-center justify-between text-xs text-white/60 select-none">
         <div className="flex items-center gap-2">
-          <span className="text-primary font-bold">TOOPREP</span>
-          <span>//</span>
-          <span className="text-white/80">JEE MAIN 2026</span>
-          <span className="hidden sm:inline text-white/30">|</span>
-          <span className="hidden sm:inline text-emerald-400">100% PWA OFFLINE</span>
+          <span className="text-primary font-bold tracking-wider text-xs uppercase">TOOPREP</span>
+          <span className="text-white/30">&middot;</span>
+          <span className="text-white/80 uppercase text-xs tracking-wider">JEE MAIN 2026</span>
         </div>
         <div className="flex items-center gap-3">
           {user ? (
-            <span className="text-white/70 truncate max-w-[120px]">{user.email?.split('@')[0]}</span>
+            <span className="text-white/70 truncate max-w-[120px] text-xs">{user.email?.split('@')[0]}</span>
           ) : (
-            <Link to="/auth" className="text-primary hover:underline uppercase">Sign In</Link>
+            <Link to="/auth" className="text-primary hover:underline uppercase text-xs tracking-wider">Sign In</Link>
           )}
         </div>
       </div>
 
-      {/* ─── Iconic Windows Phone Panoramic Horizon Header ─── */}
-      <header className="px-4 md:px-8 pt-8 md:pt-12 pb-6 max-w-7xl mx-auto w-full select-none">
-        <div className="text-[11px] font-mono text-primary uppercase tracking-[0.35em] mb-1">
-          // scientific jee calibration system
-        </div>
-
+      {/* ─── Panoramic Horizon Header ─── */}
+      <header className="px-3 sm:px-4 md:px-8 pt-6 sm:pt-10 pb-4 max-w-7xl mx-auto w-full select-none">
         {/* Panoramic Horizontal Pivot Titles */}
-        <div className="flex items-baseline gap-6 md:gap-10 overflow-x-auto no-scrollbar pt-2 border-b border-neutral-900 pb-4">
+        <div className="flex items-baseline gap-5 sm:gap-6 md:gap-10 overflow-x-auto no-scrollbar pt-2 border-b border-neutral-900 pb-3 max-w-full">
           <button
             onClick={() => setActivePivot('start')}
             className={`text-4xl sm:text-5xl md:text-6xl font-extralight tracking-tight lowercase transition-colors cursor-pointer shrink-0 ${
@@ -174,7 +168,7 @@ export default function LandingPage() {
       </header>
 
       {/* ─── Main Panoramic Content ─── */}
-      <main className="flex-1 px-4 md:px-8 max-w-7xl mx-auto w-full">
+      <main className="flex-1 px-3 sm:px-4 md:px-8 max-w-7xl mx-auto w-full min-w-0 overflow-x-hidden sm:overflow-x-visible">
         <AnimatePresence mode="wait">
           {/* ═══════════════════════════════════════════════════════════════════
            * PIVOT 1: START (ICONIC WINDOWS PHONE LIVE TILES START SCREEN)
@@ -197,12 +191,9 @@ export default function LandingPage() {
                   whileTap={{ scale: 0.98 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 25 }}
                   onClick={() => navigate(user ? '/' : '/auth')}
-                  className="sm:col-span-2 bg-[#00BFFF] text-black p-6 sm:p-7 flex flex-col justify-between rounded-none shadow-xl cursor-pointer metro-tile"
+                  className="sm:col-span-2 bg-[#00BFFF] text-black p-5 sm:p-7 flex flex-col justify-between rounded-none shadow-xl cursor-pointer metro-tile"
                 >
                   <div className="space-y-2">
-                    <div className="text-[11px] font-mono font-bold uppercase tracking-widest bg-black/15 inline-block px-2 py-0.5">
-                      fx = accuracy - (confidence * 10)
-                    </div>
                     <h2 className="text-3xl sm:text-4xl font-light tracking-tight leading-tight lowercase">
                       stop losing marks to overconfidence.
                     </h2>
@@ -212,7 +203,7 @@ export default function LandingPage() {
                   </div>
 
                   <div className="pt-6 flex items-center justify-between border-t border-black/15">
-                    <span className="text-xs font-mono font-bold uppercase tracking-widest">
+                    <span className="text-xs uppercase tracking-wider font-bold">
                       {user ? 'Open Knowledge Map' : 'Start Calibrating Free'}
                     </span>
                     <ArrowRight className="w-5 h-5 stroke-[2.5]" />
@@ -229,14 +220,11 @@ export default function LandingPage() {
                 >
                   <div className="flex items-center justify-between">
                     <Grid className="w-5 h-5" />
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest bg-black/15 px-1.5 py-0.5">
-                      MATRIX
-                    </span>
                   </div>
                   <div>
                     <div className="text-5xl font-extralight tracking-tighter">130</div>
-                    <div className="text-xs font-mono uppercase tracking-widest font-bold mt-1">
-                      Canonical Topics
+                    <div className="text-xs uppercase tracking-wider font-bold mt-1">
+                      Syllabus Topics
                     </div>
                     <div className="text-[11px] text-black/70 font-sans">
                       Physics, Chemistry, Math
@@ -260,7 +248,7 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <div className="text-5xl font-extralight tracking-tighter">110</div>
-                    <div className="text-xs font-mono uppercase tracking-widest font-bold mt-1">
+                    <div className="text-xs uppercase tracking-wider font-bold mt-1">
                       Verified PYQs
                     </div>
                     <div className="text-[11px] text-white/70 font-sans">
@@ -270,22 +258,21 @@ export default function LandingPage() {
                 </motion.div>
 
                 {/* ─── Large Interactive Diagnostic Live Tile (2 Cols Wide) ─── */}
-                <div className="sm:col-span-2 bg-[#161616] border border-neutral-800 p-6 flex flex-col justify-between rounded-none shadow-xl space-y-4">
+                <div className="sm:col-span-2 bg-[#161616] border border-neutral-800 p-5 sm:p-6 flex flex-col justify-between rounded-none shadow-xl space-y-4">
                   <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
                     <div className="flex items-center gap-2">
                       <span className="w-2.5 h-2.5 bg-primary animate-pulse"></span>
-                      <span className="text-xs font-mono font-bold uppercase tracking-wider text-white">
-                        Live Calibration Tile
+                      <span className="text-xs font-bold uppercase tracking-wider text-white">
+                        Live Calibration Simulator
                       </span>
                     </div>
-                    <span className="text-[11px] font-mono text-primary">fx = Acc - (Conf*10)</span>
                   </div>
 
                   {/* Interactive Sliders */}
                   <div className="space-y-4">
-                    <div className="space-y-1 text-xs font-mono">
+                    <div className="space-y-1 text-xs">
                       <div className="flex justify-between text-white/80">
-                        <span>1. Your Confidence (Self-Rating):</span>
+                        <span>1. Your Self-Rating (Confidence):</span>
                         <span className="text-primary font-bold text-sm bg-primary/15 px-2 py-0.5 border border-primary/40">
                           {demoConfidence}/10
                         </span>
@@ -300,14 +287,14 @@ export default function LandingPage() {
                       />
                       <div className="flex justify-between text-[10px] text-white/40">
                         <span>1 (Low)</span>
-                        <span>5 (Average)</span>
+                        <span>5 (Moderate)</span>
                         <span>10 (Mastery)</span>
                       </div>
                     </div>
 
-                    <div className="space-y-1 text-xs font-mono">
+                    <div className="space-y-1 text-xs">
                       <div className="flex justify-between text-white/80">
-                        <span>2. Timed Mock Score (Actual):</span>
+                        <span>2. Actual Mock Score:</span>
                         <span className="text-white font-bold text-sm bg-neutral-800 px-2 py-0.5 border border-white/20">
                           {demoAccuracy}%
                         </span>
@@ -337,7 +324,7 @@ export default function LandingPage() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -4 }}
                       transition={{ duration: 0.16 }}
-                      className={`p-3.5 rounded-none font-mono text-xs ${
+                      className={`p-3.5 rounded-none text-xs ${
                         demoGap <= -20 ? 'bg-[#FF2E55]/15 border border-[#FF2E55]/40 text-white' :
                         demoGap >= 20 ? 'bg-[#00BFFF]/15 border border-[#00BFFF]/40 text-white' :
                         'bg-[#107C10]/15 border border-[#107C10]/40 text-white'
@@ -366,17 +353,14 @@ export default function LandingPage() {
                 >
                   <div className="flex items-center justify-between">
                     <AlertTriangle className="w-5 h-5" />
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest bg-black/30 px-1.5 py-0.5">
-                      DANGER
-                    </span>
                   </div>
                   <div>
                     <div className="text-5xl font-extralight tracking-tighter">-1</div>
-                    <div className="text-xs font-mono uppercase tracking-widest font-bold mt-1">
+                    <div className="text-xs uppercase tracking-wider font-bold mt-1">
                       Negative Marks
                     </div>
                     <div className="text-[11px] text-white/70 font-sans">
-                      Overconfidence exposure
+                      Overconfidence penalty
                     </div>
                   </div>
                 </motion.div>
@@ -391,17 +375,14 @@ export default function LandingPage() {
                 >
                   <div className="flex items-center justify-between">
                     <Zap className="w-5 h-5 text-primary" />
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest bg-primary/20 text-primary px-1.5 py-0.5">
-                      STANDALONE
-                    </span>
                   </div>
                   <div>
                     <div className="text-5xl font-extralight tracking-tighter text-primary">100%</div>
-                    <div className="text-xs font-mono uppercase tracking-widest font-bold mt-1">
+                    <div className="text-xs uppercase tracking-wider font-bold mt-1">
                       Offline PWA
                     </div>
                     <div className="text-[11px] text-white/50 font-sans">
-                      Works with zero internet
+                      Works without network
                     </div>
                   </div>
                 </motion.div>
@@ -739,25 +720,25 @@ export default function LandingPage() {
                   onClick={() => { setActivePivot('start'); setAppBarExpanded(false); }}
                   className="p-2 bg-neutral-900 hover:bg-neutral-800 text-left cursor-pointer"
                 >
-                  // start screen
+                  Start
                 </button>
                 <button
                   onClick={() => { setActivePivot('telemetry'); setAppBarExpanded(false); }}
                   className="p-2 bg-neutral-900 hover:bg-neutral-800 text-left cursor-pointer"
                 >
-                  // telemetry engine
+                  Calibration
                 </button>
                 <button
                   onClick={() => { setActivePivot('install'); setAppBarExpanded(false); }}
                   className="p-2 bg-neutral-900 hover:bg-neutral-800 text-left cursor-pointer"
                 >
-                  // install guide
+                  Install App
                 </button>
                 <button
                   onClick={() => { navigate(user ? '/profile' : '/auth'); setAppBarExpanded(false); }}
                   className="p-2 bg-primary/20 text-primary text-left cursor-pointer"
                 >
-                  {user ? '// profile & settings' : '// student sign in'}
+                  {user ? 'Profile & Settings' : 'Student Sign In'}
                 </button>
               </div>
             </motion.div>

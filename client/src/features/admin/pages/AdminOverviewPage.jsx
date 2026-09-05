@@ -52,11 +52,11 @@ export default function AdminOverviewPage() {
 
   return (
     <div className="space-y-8 animate-fade-in pb-16">
-      {/* Top Telemetry Header */}
+      {/* Top Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/10 pb-5">
         <div>
-          <p className="text-label-sm-mono uppercase tracking-[0.2em] text-primary text-xs">
-            TELEMETRY & COMMAND // MISSION CONTROL
+          <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+            Mission Control
           </p>
           <h1 className="text-display text-on-surface mt-1 font-light lowercase">
             System Observability
@@ -70,10 +70,10 @@ export default function AdminOverviewPage() {
           <button
             onClick={fetchTelemetry}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2.5 border border-white/15 bg-surface-container hover:border-primary text-white text-xs font-mono uppercase tracking-widest transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2.5 border border-white/15 bg-surface-container hover:border-primary text-white text-xs uppercase tracking-wider transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-primary' : ''}`} />
-            <span>{loading ? 'Polling...' : 'Refresh Pulse'}</span>
+            <span>{loading ? 'Refreshing...' : 'Refresh'}</span>
           </button>
 
           <button

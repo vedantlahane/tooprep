@@ -278,13 +278,13 @@ export default function QuestionsPage() {
 
   return (
     <div className="space-y-6 pb-20 animate-fade-in">
-      {/* Telemetry Header */}
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-white/10 pb-5">
         <div>
-          <div className="text-label-sm-mono uppercase tracking-[0.25em] text-primary text-xs">
-            Question Archive &middot; 110 Verified Questions
+          <div className="text-xs text-primary font-semibold uppercase tracking-wider">
+            Question Archive &middot; 110 Bank Questions
           </div>
-          <h1 className="text-4xl md:text-5xl font-extralight text-white tracking-tight lowercase mt-1">
+          <h1 className="text-3xl md:text-5xl font-extralight text-white tracking-tight lowercase mt-1">
             question bank
           </h1>
           <p className="text-body-md text-white/60 font-light mt-1">
