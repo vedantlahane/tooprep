@@ -188,8 +188,55 @@ export const questionsService = {
       .single();
 
     if (error) throw new Error(error.message);
+
+    /* ── Automated Duplicate Check on Ingestion ─────────────────────────
+     * Evaluates new question against existing bank and flags potential
+     * duplicates for admin review without blocking the return. */
+    (async () => {
+      try {
+        const { computeCompositeSimilarity } = await import('../admin/deduplication.utils.js');
+        const { deduplicationService } = await import('../admin/deduplication.service.js');
+        const { data: existingList } = await supabaseAdmin
+          .from('questions')
+          .select('id, question_text, options, topic_id')
+          .neq('id', data.id)
+          .limit(400);
+
+        if (existingList) {
+          const found = [];
+          for (const ex of existingList) {
+            const sim = computeCompositeSimilarity(data, ex);
+            if (sim.matchType) {
+              found.push({
+                id: `dup_${ex.id.slice(0, 8)}_${data.id.slice(0, 8)}`,
+                primary_question_id: ex.id,
+                duplicate_question_id: data.id,
+                similarity_score: sim.score,
+                match_type: sim.matchType,
+                status: 'PENDING',
+                details: {
+                  stem_similarity: sim.stemSimilarity,
+                  options_similarity: sim.optionsSimilarity,
+                  is_exact: sim.isExact
+                },
+                flagged_at: new Date().toISOString(),
+                primary_question: ex,
+                duplicate_question: data
+              });
+            }
+          }
+          if (found.length > 0) {
+            await deduplicationService._persistDetectedPairs(found);
+          }
+        }
+      } catch (err) {
+        // Non-fatal background duplicate check error
+      }
+    })();
+
     return data;
   },
+
 
   /**
    * Update an existing question (admin-only).

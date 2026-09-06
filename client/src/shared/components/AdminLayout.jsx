@@ -12,12 +12,14 @@ import Icon, {
   Shield,
   LogOut,
   Sliders,
-  Sparkles
+  Sparkles,
+  Copy
 } from './Icon';
 
 const ADMIN_PIVOT_ITEMS = [
   { path: '/admin', label: 'overview', icon: Activity },
   { path: '/admin/questions', label: 'question bank', icon: BookOpen },
+  { path: '/admin/duplicates', label: 'deduplication', icon: Copy },
   { path: '/admin/curriculum', label: 'curriculum matrix', icon: LayoutGrid },
   { path: '/admin/content', label: 'content ops', icon: UploadCloud },
   { path: '/admin/syncs', label: 'projection sync', icon: RefreshCw },

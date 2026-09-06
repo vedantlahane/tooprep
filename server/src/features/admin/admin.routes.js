@@ -18,4 +18,12 @@ router.get('/observability', requireAdmin, adminController.getObservability);
 // Curriculum Coverage & Syllabus Question Audit
 router.get('/curriculum', requireAdmin, adminController.getCurriculumCoverage);
 
+// Deduplication Engine & Resolution Console
+router.get('/duplicates', requireAdmin, adminController.listDuplicates);
+router.post('/duplicates/scan', requireAdmin, adminController.scanDuplicates);
+router.post('/duplicates/:id/resolve', requireAdmin, adminController.resolveDuplicate);
+router.post('/duplicates/:id/dismiss', requireAdmin, adminController.dismissDuplicate);
+router.post('/duplicates/:id/merge', requireAdmin, adminController.mergeDuplicates);
+
 export default router;
+

@@ -23,6 +23,7 @@ import QuestionsPage from '@/features/questions/pages/QuestionsPage';
 import AdminQuestionsPage from '@/features/questions/pages/AdminQuestionsPage';
 import AdminOverviewPage from '@/features/admin/pages/AdminOverviewPage';
 import AdminCurriculumPage from '@/features/admin/pages/AdminCurriculumPage';
+import AdminDuplicatesPage from '@/features/admin/pages/AdminDuplicatesPage';
 import ContentSyncPage from '@/features/content/pages/ContentSyncPage';
 import AdminLayout from '@/shared/components/AdminLayout';
 
@@ -194,6 +195,16 @@ function App() {
               <AdminRoute>
                 <AdminLayout>
                   <AdminQuestionsPage />
+                </AdminLayout>
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/duplicates"
+            element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminDuplicatesPage />
                 </AdminLayout>
               </AdminRoute>
             }

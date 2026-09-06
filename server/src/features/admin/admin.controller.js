@@ -6,6 +6,7 @@
  ***/
 
 import { adminService } from './admin.service.js';
+import { deduplicationService } from './deduplication.service.js';
 
 export const adminController = {
   /**
@@ -34,5 +35,87 @@ export const adminController = {
       console.error('GET /api/admin/curriculum error:', err);
       return res.status(500).json({ error: err.message || 'Server error' });
     }
+  },
+
+  /**
+   * GET /api/admin/duplicates — Retrieve flagged duplicate question pairs.
+   */
+  async listDuplicates(req, res) {
+    try {
+      const { status = 'PENDING', match_type } = req.query;
+      const data = await deduplicationService.getDuplicates({ status, match_type });
+      return res.json(data);
+    } catch (err) {
+      console.error('GET /api/admin/duplicates error:', err);
+      return res.status(500).json({ error: err.message || 'Server error' });
+    }
+  },
+
+  /**
+   * POST /api/admin/duplicates/scan — Trigger an automated duplicate scan.
+   */
+  async scanDuplicates(req, res) {
+    try {
+      const { topic_id, force } = req.body || {};
+      const results = await deduplicationService.scanQuestionBank({ topic_id, force: Boolean(force) });
+      return res.json(results);
+    } catch (err) {
+      console.error('POST /api/admin/duplicates/scan error:', err);
+      return res.status(500).json({ error: err.message || 'Server error' });
+    }
+  },
+
+  /**
+   * POST /api/admin/duplicates/:id/resolve — Resolve a duplicate pair by deleting one question.
+   */
+  async resolveDuplicate(req, res) {
+    try {
+      const { id } = req.params;
+      const { keep_id, delete_id } = req.body || {};
+      const result = await deduplicationService.resolveDuplicate(id, {
+        keep_id,
+        delete_id,
+        admin_user_id: req.user?.id
+      });
+      return res.json(result);
+    } catch (err) {
+      console.error('POST /api/admin/duplicates/:id/resolve error:', err);
+      return res.status(err.statusCode || 500).json({ error: err.message || 'Server error' });
+    }
+  },
+
+  /**
+   * POST /api/admin/duplicates/:id/dismiss — Dismiss a flagged pair as false positive.
+   */
+  async dismissDuplicate(req, res) {
+    try {
+      const { id } = req.params;
+      const result = await deduplicationService.dismissDuplicate(id, req.user?.id);
+      return res.json(result);
+    } catch (err) {
+      console.error('POST /api/admin/duplicates/:id/dismiss error:', err);
+      return res.status(err.statusCode || 500).json({ error: err.message || 'Server error' });
+    }
+  },
+
+  /**
+   * POST /api/admin/duplicates/:id/merge — Merge two questions and delete source question.
+   */
+  async mergeDuplicates(req, res) {
+    try {
+      const { id } = req.params;
+      const { target_id, source_id, merged_fields } = req.body || {};
+      const result = await deduplicationService.mergeQuestions(id, {
+        target_id,
+        source_id,
+        merged_fields,
+        admin_user_id: req.user?.id
+      });
+      return res.json(result);
+    } catch (err) {
+      console.error('POST /api/admin/duplicates/:id/merge error:', err);
+      return res.status(err.statusCode || 500).json({ error: err.message || 'Server error' });
+    }
   }
 };
+
