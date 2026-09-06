@@ -1,10 +1,14 @@
 import { randomUUID } from 'node:crypto';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import os from 'node:os';
 import { logger } from '../../platform/logger.js';
 import { contentRepository } from './content.repository.js';
 import { downloadSourcePdf } from './content.storage.js';
 import { createLlamaParseJob, getLlamaParseResult } from './llamaparse.provider.js';
 import { nextRetryAt } from './ingestion-state.js';
 import { extractQuestionCandidates } from './question-extraction.js';
+import { extractPdfDiagrams } from './diagram.service.js';
 import { buildVectorDocument, embedQuestionDocument } from './embedding.provider.js';
 import { upsertQuestionVector } from './qdrant.repository.js';
 import { createVectorPointId } from './content.contracts.js';
@@ -62,7 +66,23 @@ export async function processOneIngestionJob(workerId = `worker_${randomUUID()}`
       }));
     } catch (e) {}
 
-    const candidates = extractQuestionCandidates(job.job_id, parsed.pages, allTopics);
+    // Extract diagrams and chemical figures from PDF
+    let diagramMap = {};
+    let tempPdfPath = null;
+    try {
+      const pdfBytes = bytes || await downloadSourcePdf(job.source.storage_path);
+      tempPdfPath = path.join(os.tmpdir(), `job_${job.job_id}.pdf`);
+      await fs.writeFile(tempPdfPath, pdfBytes);
+      diagramMap = await extractPdfDiagrams(tempPdfPath);
+    } catch (dErr) {
+      logger.warn('worker.diagram_extraction.failed', { job_id: job.job_id, error: dErr.message });
+    } finally {
+      if (tempPdfPath) {
+        try { await fs.rm(tempPdfPath, { force: true }); } catch {}
+      }
+    }
+
+    const candidates = extractQuestionCandidates(job.job_id, parsed.pages, allTopics, diagramMap);
     await contentRepository.saveExtractedCandidates(candidates);
 
     const structured = await contentRepository.setJobState(job.job_id, 'PARSING', 'STRUCTURING', {

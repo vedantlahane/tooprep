@@ -28,7 +28,7 @@ function cleanRunningHeaders(text) {
     .replace(/(?:^|\n)\s*JEE-Main Online Paper[^\n]*/gi, '')
     .replace(/(?:^|\n)\s*# JEE MAIN ONLINE PAPER[^\n]*/gi, '')
     .replace(/(?:^|\n)\s*## Held on [^\n]*/gi, '')
-    .replace(/(?:^|\n)\s*## \*\*Instructions\*\*[\s\S]*?(?=(?:## \*\*PHYSICS\*\*|## PHYSICS|\*\*Q\.1\*\*))/i, '');
+    .replace(/(?:^|\n)\s*## \*\*Instructions\*\*[\s\S]*?(?=(?:## \*\*PHYSICS\*\*|## PHYSICS|#{1,4}\s*(?:\*\*)?Q\.1\b|\*\*Q\.1\*\*))/i, '');
 }
 
 /**
@@ -291,7 +291,7 @@ export function parseSolutionsMap(pages) {
   return solutionsMap;
 }
 
-export function extractQuestionCandidates(jobId, pages, allTopics = []) {
+export function extractQuestionCandidates(jobId, pages, allTopics = [], diagramMap = {}) {
   const candidates = [];
   if (!pages || pages.length === 0) return candidates;
 
@@ -316,8 +316,8 @@ export function extractQuestionCandidates(jobId, pages, allTopics = []) {
     fullQuestionsText += '\n\n' + cleaned;
   }
 
-  // Step 4: Extract Questions using **Q.X** or Q.X
-  const qPattern = /(?:^|\n)\s*(?:\*\*)?Q\.?\s*(\d{1,3})(?:\*\*)?\s+/gi;
+  // Step 4: Extract Questions using **Q.X**, ### **Q.X**, or Q.X
+  const qPattern = /(?:^|\n)\s*(?:#{1,4}\s*)?(?:\*\*)?Q\.?\s*(\d{1,3})(?:\*\*)?\s*/gi;
   const qMatches = [...fullQuestionsText.matchAll(qPattern)];
 
   // Helper to find page number from string offset
@@ -339,7 +339,8 @@ export function extractQuestionCandidates(jobId, pages, allTopics = []) {
     const parsed = extractOptions(rawText);
     const answerKey = answerKeyMap[qNum] || solutionsMap[qNum]?.ansKey || 'A';
     const solutionText = solutionsMap[qNum]?.text || null;
-    const classification = classifyQuestion(qNum, parsed.questionText || rawText, allTopics);
+    const fullClassificationText = `${parsed.questionText || rawText} ${Object.values(parsed.options || {}).join(' ')}`;
+    const classification = classifyQuestion(qNum, fullClassificationText, allTopics);
     const sourcePage = getPageNum(qMatches[i].index);
     const hasDiagram = Boolean(
       rawText.includes('imgur') ||
@@ -432,6 +433,36 @@ export function extractQuestionCandidates(jobId, pages, allTopics = []) {
           extraction_method: 'STRUCTURED_PAGE_FALLBACK_V3',
           status: 'REVIEW_REQUIRED'
         });
+      }
+    }
+  }
+
+  // Step 5: Automatically link extracted diagrams and chemical structures
+  if (diagramMap && typeof diagramMap === 'object' && Object.keys(diagramMap).length > 0) {
+    for (const c of candidates) {
+      const qNum = c.source_question_number;
+      const diag = diagramMap[qNum];
+      if (!diag) continue;
+
+      // 1. Inject Stem Diagram
+      if (diag.stem) {
+        c.has_diagram = true;
+        c.question_text = (c.question_text || '')
+          .replace(/\*\[Diagram:[^\]]*\]\*/gi, '')
+          .trim();
+        if (!c.question_text.includes(diag.stem)) {
+          c.question_text = `${c.question_text}\n\n![Figure](${diag.stem})`;
+        }
+      }
+
+      // 2. Inject Option Diagrams
+      if (diag.options && typeof diag.options === 'object') {
+        c.options = c.options || {};
+        for (const [optKey, optUrl] of Object.entries(diag.options)) {
+          if (!optUrl) continue;
+          c.has_diagram = true;
+          c.options[optKey] = `![Option ${optKey}](${optUrl})`;
+        }
       }
     }
   }

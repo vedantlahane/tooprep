@@ -7,6 +7,7 @@ import { getMongoDb, closeMongoConnection } from '../lib/mongodb.js';
 import { supabaseAdmin } from '../lib/supabase.js';
 import { createLlamaParseJob, getLlamaParseResult } from '../features/content/llamaparse.provider.js';
 import { extractQuestionCandidates } from '../features/content/question-extraction.js';
+import { extractPdfDiagrams } from '../features/content/diagram.service.js';
 import { contentRepository } from '../features/content/content.repository.js';
 import { upsertPublishedQuestion } from '../features/content/publication.repository.js';
 import { createIngestionJobId, createQuestionId } from '../features/content/content.contracts.js';
@@ -30,6 +31,12 @@ async function main() {
   const sha256 = createHash('sha256').update(bytes).digest('hex');
   console.log(`[1/6] Read ${bytes.length} bytes. SHA-256: ${sha256.slice(0, 16)}...`);
 
+  // Detect shift and paper code
+  const isEvening = filename.includes('685') || filename.toLowerCase().includes('evening');
+  const shift = isEvening ? 2 : 1;
+  const paperCode = isEvening ? 'April 15 [Evening]' : 'April 15 [Morning]';
+  console.log(`      Paper Shift: Shift ${shift} (${paperCode})`);
+
   // 2. Fetch all curriculum topics from Supabase
   console.log(`[2/6] Loading curriculum topics from Supabase...`);
   const { data: dbTopics, error: tErr } = await supabaseAdmin
@@ -49,7 +56,7 @@ async function main() {
   // 3. Obtain LlamaParse Markdown Result (check local cache first)
   console.log(`[3/6] Obtaining LlamaParse document structure...`);
   let parsedDoc = null;
-  const cacheFile = 'llamaparse_698_result.json';
+  const cacheFile = filename.includes('685') ? 'llamaparse_685_result.json' : 'llamaparse_698_result.json';
   try {
     const cachedData = await fs.readFile(cacheFile, 'utf8');
     parsedDoc = JSON.parse(cachedData);
@@ -83,7 +90,7 @@ async function main() {
         filename,
         exam,
         year,
-        metadata: { size_bytes: bytes.length }
+        metadata: { size_bytes: bytes.length, shift, paper_code: paperCode }
       },
       progress: {
         total_pages: parsedDoc.pages?.length || 0,
@@ -104,10 +111,20 @@ async function main() {
     console.log(`      Created job: ${jobId}`);
   }
 
-  // 5. Extract Candidates with Answer Keys & Solutions
-  console.log(`[5/6] Extracting questions, options, answer keys, solutions, and topic positions...`);
-  const candidates = extractQuestionCandidates(jobId, parsedDoc.pages, allTopics);
-  console.log(`      Extracted ${candidates.length} candidates.`);
+  // 5. Extract Diagrams & Chemical Figures automatically using PyMuPDF engine
+  console.log(`[5/6] Extracting diagrams and chemical figures automatically via PyMuPDF...`);
+  let diagramMap = {};
+  try {
+    diagramMap = await extractPdfDiagrams(pdfPath);
+    console.log(`      Successfully extracted and CDN-hosted diagrams for ${Object.keys(diagramMap).length} questions.`);
+  } catch (diagErr) {
+    console.warn(`      Automated diagram extraction warning: ${diagErr.message}`);
+  }
+
+  // 6. Extract Candidates with Answer Keys, Solutions & Linked Diagram Assets
+  console.log(`[6/6] Extracting questions, options, answer keys, solutions, and topic positions...`);
+  const candidates = extractQuestionCandidates(jobId, parsedDoc.pages, allTopics, diagramMap);
+  console.log(`      Extracted ${candidates.length} candidates with automated diagram linking.`);
 
   await contentRepository.saveExtractedCandidates(candidates);
   await db.collection('ingestion_jobs').updateOne(
@@ -134,7 +151,8 @@ async function main() {
         continue;
       }
 
-      const questionId = createQuestionId();
+      // Deterministic question ID ensures idempotence on re-runs
+      const questionId = 'q_' + createHash('md5').update(`${exam}:${year}:${shift}:${c.source_question_number}`).digest('hex');
       const questionPayload = {
         question_id: questionId,
         version: 1,
@@ -158,8 +176,8 @@ async function main() {
           exam: exam,
           year: parseInt(year, 10) || 2018,
           session: 1,
-          shift: 1,
-          paper_code: 'Online',
+          shift: shift,
+          paper_code: paperCode,
           question_number: c.source_question_number,
           source_pages: c.source_pages,
           ingestion_job_id: jobId

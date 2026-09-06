@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useDeferredValue, memo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { topicsService } from '@/features/topics/services/topicsService';
 import { questionsService } from '../services/questionsService';
 import MathText from '@/features/questions/components/MathText';
 import QuestionEditModal from '@/features/questions/components/QuestionEditModal';
+import CurriculumMultiPicker from '@/shared/components/CurriculumMultiPicker';
 import Icon, {
   Check,
   Copy,
@@ -15,7 +16,11 @@ import Icon, {
   Trash2,
   Filter,
   RefreshCw,
-  Sparkles
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
+  ChevronLeft,
+  ChevronRight
 } from '@/shared/components/Icon';
 
 const DIFFICULTIES = ['All', 'Easy', 'Medium', 'Hard'];
@@ -26,9 +31,10 @@ const DIFFICULTY_STYLES = {
   hard: 'bg-error/20 text-error border-error/40',
 };
 
-function AdminQuestionCard({ q, onEdit, onDelete, onToggleVerify }) {
+const AdminQuestionCard = memo(function AdminQuestionCard({ q, onEdit, onDelete, onToggleVerify }) {
   const [copied, setCopied] = useState(false);
   const [toggling, setToggling] = useState(false);
+  const [showSolution, setShowSolution] = useState(false);
 
   const options = ['A', 'B', 'C', 'D'];
   const diff = (q.difficulty || 'medium').toLowerCase();
@@ -90,7 +96,7 @@ function AdminQuestionCard({ q, onEdit, onDelete, onToggleVerify }) {
         <div className="ml-auto flex items-center gap-2">
           <button
             onClick={() => onEdit(q)}
-            className="flex items-center gap-1 px-3 py-1 bg-primary/10 border border-primary/40 text-primary hover:bg-primary hover:text-white transition-colors text-label-sm-mono uppercase tracking-widest text-xs font-semibold"
+            className="flex items-center gap-1 px-3 py-1 bg-primary/10 border border-primary/40 text-primary hover:bg-primary hover:text-white transition-colors text-label-sm-mono uppercase tracking-widest text-xs font-semibold cursor-pointer"
             title="Edit question text, choices, answers, and solution"
           >
             <Edit3 className="w-3.5 h-3.5" />
@@ -99,7 +105,7 @@ function AdminQuestionCard({ q, onEdit, onDelete, onToggleVerify }) {
 
           <button
             onClick={() => onDelete(q.id)}
-            className="flex items-center gap-1 px-2.5 py-1 border border-error/40 text-error hover:bg-error hover:text-white transition-colors text-label-sm-mono uppercase tracking-widest text-xs"
+            className="flex items-center gap-1 px-2.5 py-1 border border-error/40 text-error hover:bg-error hover:text-white transition-colors text-label-sm-mono uppercase tracking-widest text-xs cursor-pointer"
             title="Delete this question from question bank"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -107,7 +113,7 @@ function AdminQuestionCard({ q, onEdit, onDelete, onToggleVerify }) {
 
           <button
             onClick={handleCopyId}
-            className="flex items-center gap-1 px-2.5 py-1 border border-outline-variant hover:border-primary text-on-surface-variant hover:text-primary transition-colors text-label-sm-mono uppercase tracking-widest text-xs"
+            className="flex items-center gap-1 px-2.5 py-1 border border-outline-variant hover:border-primary text-on-surface-variant hover:text-primary transition-colors text-label-sm-mono uppercase tracking-widest text-xs cursor-pointer"
             title={`Copy UUID: ${q.id}`}
           >
             {copied ? <Check className="w-3.5 h-3.5 text-status-aligned" /> : <Copy className="w-3.5 h-3.5" />}
@@ -155,23 +161,34 @@ function AdminQuestionCard({ q, onEdit, onDelete, onToggleVerify }) {
         </div>
       )}
 
-      {/* Solution */}
+      {/* Solution Section (Lazy Rendered on Demand) */}
       {q.solution_text && (
-        <div className="px-5 pb-5">
-          <div className="p-4 bg-status-aligned/5 border-l-4 border-status-aligned">
-            <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-1.5 flex items-center gap-1.5 text-xs font-bold">
-              <Sparkles className="w-3.5 h-3.5 text-primary" />
-              <span>Step-by-Step Solution</span>
-            </div>
-            <div className="text-body-md text-on-surface font-light leading-relaxed">
-              <MathText text={q.solution_text} />
-            </div>
+        <div className="px-5 pb-4">
+          <div className="border border-outline-variant bg-surface-dim/60">
+            <button
+              type="button"
+              onClick={() => setShowSolution(v => !v)}
+              className="w-full px-4 py-2.5 flex items-center justify-between text-label-sm-mono text-on-surface-variant hover:text-primary transition-colors text-xs font-bold uppercase tracking-widest cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5 text-primary" />
+                <span>{showSolution ? 'Hide Step-by-Step Solution' : 'View Step-by-Step Solution'}</span>
+              </div>
+              {showSolution ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+            {showSolution && (
+              <div className="p-4 border-t border-outline-variant bg-status-aligned/5 border-l-4 border-l-status-aligned animate-fade-in">
+                <div className="text-body-md text-on-surface font-light leading-relaxed">
+                  <MathText text={q.solution_text} />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
     </div>
   );
-}
+});
 
 export default function AdminQuestionsPage() {
   const [searchParams] = useSearchParams();
@@ -179,8 +196,10 @@ export default function AdminQuestionsPage() {
 
   const [hierarchy, setHierarchy] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState('');
-  const [selectedChapter, setSelectedChapter] = useState('');
-  const [selectedTopic, setSelectedTopic] = useState(initialTopicFromUrl);
+  const [selectedChapters, setSelectedChapters] = useState([]);
+  const [selectedTopics, setSelectedTopics] = useState(
+    initialTopicFromUrl ? [initialTopicFromUrl] : []
+  );
   const [selectedDifficulty, setSelectedDifficulty] = useState('All');
   const [verificationFilter, setVerificationFilter] = useState('All'); // 'All' | 'Verified' | 'Draft'
   const [searchQuery, setSearchQuery] = useState('');
@@ -194,35 +213,54 @@ export default function AdminQuestionsPage() {
   const [activeQuestion, setActiveQuestion] = useState(null); // null = create mode
 
   useEffect(() => {
-    topicsService.getTopics().then(setHierarchy).catch(() => {});
-  }, []);
+    topicsService.getTopics().then((tree) => {
+      setHierarchy(tree || []);
+      if (initialTopicFromUrl && tree) {
+        for (const s of tree) {
+          for (const c of s.chapters || []) {
+            if ((c.topics || []).some(t => t.id === initialTopicFromUrl)) {
+              setSelectedSubject(s.id || s.name);
+              setSelectedChapters([c.id || c.name]);
+              break;
+            }
+          }
+        }
+      }
+    }).catch(() => {});
+  }, [initialTopicFromUrl]);
 
-  const subjects = hierarchy;
-  const chapters = selectedSubject
-    ? (hierarchy.find((s) => s.id === selectedSubject || s.name === selectedSubject)?.chapters || [])
-    : [];
-  const topics = selectedChapter
-    ? (chapters.find((c) => c.id === selectedChapter || c.name === selectedChapter)?.topics || [])
-    : [];
+  const fetchQuestions = useCallback(async () => {
+    let topicIds = [...selectedTopics];
 
-  const handleSubjectChange = (val) => {
-    setSelectedSubject(val);
-    setSelectedChapter('');
-    setSelectedTopic('');
-  };
+    if (topicIds.length === 0) {
+      if (selectedChapters.length > 0) {
+        for (const s of hierarchy) {
+          for (const c of s.chapters || []) {
+            if (selectedChapters.includes(c.id || c.name)) {
+              (c.topics || []).forEach(t => {
+                if (!topicIds.includes(t.id)) topicIds.push(t.id);
+              });
+            }
+          }
+        }
+      } else if (selectedSubject) {
+        const s = hierarchy.find(subj => subj.id === selectedSubject || subj.name === selectedSubject);
+        if (s) {
+          for (const c of s.chapters || []) {
+            (c.topics || []).forEach(t => {
+              if (!topicIds.includes(t.id)) topicIds.push(t.id);
+            });
+          }
+        }
+      }
+    }
 
-  const handleChapterChange = (val) => {
-    setSelectedChapter(val);
-    setSelectedTopic('');
-  };
-
-  const fetchQuestions = useCallback(async (topicId, difficulty) => {
     setLoading(true);
     setError('');
     try {
       const result = await questionsService.adminListQuestions({
-        topic_id: topicId || undefined,
-        difficulty: difficulty && difficulty !== 'All' ? difficulty.toLowerCase() : undefined,
+        topic_ids: topicIds.length > 0 ? topicIds : undefined,
+        difficulty: selectedDifficulty && selectedDifficulty !== 'All' ? selectedDifficulty.toLowerCase() : undefined,
       });
       setQuestions(Array.isArray(result) ? result : result?.questions || []);
     } catch (err) {
@@ -231,22 +269,26 @@ export default function AdminQuestionsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedTopics, selectedChapters, selectedSubject, selectedDifficulty, hierarchy]);
 
   useEffect(() => {
-    fetchQuestions(selectedTopic, selectedDifficulty);
-  }, [selectedTopic, selectedDifficulty, fetchQuestions]);
+    fetchQuestions();
+  }, [fetchQuestions]);
 
-  // Client-side filtering for search text and verification status
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  // Client-side filtering for search text and verification status using deferred search value
   const filteredQuestions = useMemo(() => {
+    const query = deferredSearchQuery.trim().toLowerCase();
     return questions.filter((q) => {
       // Verification filter
       if (verificationFilter === 'Verified' && !q.verified) return false;
       if (verificationFilter === 'Draft' && q.verified) return false;
 
       // Text search filter
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
+      if (query) {
         const textMatch = (q.question_text || '').toLowerCase().includes(query);
         const solMatch = (q.solution_text || '').toLowerCase().includes(query);
         const idMatch = (q.id || '').toLowerCase().includes(query) || (q.canonical_question_id || '').toLowerCase().includes(query);
@@ -254,20 +296,32 @@ export default function AdminQuestionsPage() {
       }
       return true;
     });
-  }, [questions, verificationFilter, searchQuery]);
+  }, [questions, verificationFilter, deferredSearchQuery]);
 
-  // Actions
-  const handleCreateNew = () => {
+  // Reset pagination to page 1 whenever any filter criteria changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedSubject, selectedChapters, selectedTopics, selectedDifficulty, verificationFilter, deferredSearchQuery, pageSize]);
+
+  // Compute pagination window
+  const totalPages = Math.max(1, Math.ceil(filteredQuestions.length / pageSize));
+  const paginatedQuestions = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredQuestions.slice(startIndex, startIndex + pageSize);
+  }, [filteredQuestions, currentPage, pageSize]);
+
+  // Actions wrapped in useCallback for referential stability with memoized cards
+  const handleCreateNew = useCallback(() => {
     setActiveQuestion(null);
     setModalOpen(true);
-  };
+  }, []);
 
-  const handleEditQuestion = (q) => {
+  const handleEditQuestion = useCallback((q) => {
     setActiveQuestion(q);
     setModalOpen(true);
-  };
+  }, []);
 
-  const handleDeleteQuestion = async (id) => {
+  const handleDeleteQuestion = useCallback(async (id) => {
     if (!window.confirm(`Permanently delete question ${id}? This cannot be undone.`)) return;
     try {
       await questionsService.deleteQuestion(id);
@@ -275,20 +329,20 @@ export default function AdminQuestionsPage() {
     } catch (err) {
       alert('Delete failed: ' + err.message);
     }
-  };
+  }, []);
 
-  const handleToggleVerify = async (id, nextVerified) => {
+  const handleToggleVerify = useCallback(async (id, nextVerified) => {
     try {
       const updated = await questionsService.toggleVerify(id, nextVerified);
       setQuestions(prev => prev.map(q => q.id === id ? { ...q, verified: updated.verified, publication_status: updated.publication_status } : q));
     } catch (err) {
       alert('Verification update failed: ' + err.message);
     }
-  };
+  }, []);
 
-  const handleSavedQuestion = (saved) => {
+  const handleSavedQuestion = useCallback(() => {
     fetchQuestions(selectedTopic, selectedDifficulty);
-  };
+  }, [fetchQuestions, selectedTopic, selectedDifficulty]);
 
   const selectClass =
     'w-full px-4 py-3 border border-outline-variant bg-surface-dim text-body-md text-on-surface outline-none focus:border-primary uppercase transition-colors text-xs font-mono';
@@ -356,46 +410,16 @@ export default function AdminQuestionsPage() {
           />
         </div>
 
-        {/* Curriculum Cascading Dropdowns */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-1.5 text-xs">Subject</label>
-            <select value={selectedSubject} onChange={(e) => handleSubjectChange(e.target.value)} className={selectClass}>
-              <option value="">All Subjects</option>
-              {subjects.map((s) => (
-                <option key={s.id || s.name} value={s.id || s.name}>{s.name}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-1.5 text-xs">Chapter</label>
-            <select
-              value={selectedChapter}
-              onChange={(e) => handleChapterChange(e.target.value)}
-              disabled={!selectedSubject}
-              className={`${selectClass} disabled:opacity-40`}
-            >
-              <option value="">All Chapters</option>
-              {chapters.map((c) => (
-                <option key={c.id || c.name} value={c.id || c.name}>{c.name}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-1.5 text-xs">Topic</label>
-            <select
-              value={selectedTopic}
-              onChange={(e) => setSelectedTopic(e.target.value)}
-              disabled={!selectedChapter}
-              className={`${selectClass} disabled:opacity-40`}
-            >
-              <option value="">All Topics</option>
-              {topics.map((t) => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-            </select>
-          </div>
-        </div>
+        {/* Curriculum Multi-Picker */}
+        <CurriculumMultiPicker
+          hierarchy={hierarchy}
+          selectedSubject={selectedSubject}
+          onSubjectChange={setSelectedSubject}
+          selectedChapters={selectedChapters}
+          onChaptersChange={setSelectedChapters}
+          selectedTopics={selectedTopics}
+          onTopicsChange={setSelectedTopics}
+        />
 
         {/* Difficulty & Verification Toggles */}
         <div className="flex flex-col sm:flex-row justify-between gap-4 pt-2 border-t border-white/10">
@@ -464,26 +488,147 @@ export default function AdminQuestionsPage() {
 
       {!loading && filteredQuestions.length > 0 && (
         <div className="space-y-4">
-          <div className="flex justify-between items-center text-xs font-mono text-white/50 px-1">
-            <span>Showing {filteredQuestions.length} of {questions.length} questions</span>
-            <button
-              onClick={() => fetchQuestions(selectedTopic, selectedDifficulty)}
-              className="flex items-center gap-1 hover:text-primary transition-colors"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Refresh</span>
-            </button>
+          {/* Top Pagination Toolbar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 border border-outline-variant bg-surface-dim text-xs font-mono">
+            <div className="flex items-center gap-2 text-on-surface-variant flex-wrap">
+              <span className="text-white/50 uppercase tracking-widest text-[11px]">Rows per page:</span>
+              {[10, 20, 50, 100].map(size => (
+                <button
+                  key={size}
+                  onClick={() => { setPageSize(size); setCurrentPage(1); }}
+                  className={`px-2.5 py-1 border transition-colors cursor-pointer text-xs ${
+                    pageSize === size ? 'bg-primary border-primary text-white font-bold' : 'border-outline-variant hover:border-primary text-on-surface'
+                  }`}
+                >
+                  {size}
+                </button>
+              ))}
+              <span className="text-white/30 ml-2">|</span>
+              <span className="text-on-surface ml-1">
+                Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filteredQuestions.length)} of {filteredQuestions.length}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => fetchQuestions(selectedTopic, selectedDifficulty)}
+                className="flex items-center gap-1 text-white/60 hover:text-primary transition-colors cursor-pointer"
+                title="Refresh Question Bank"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Refresh</span>
+              </button>
+
+              {totalPages > 1 && (
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    className="px-2 py-1 border border-outline-variant text-on-surface disabled:opacity-20 hover:border-primary transition-colors cursor-pointer disabled:cursor-not-allowed"
+                    title="First Page"
+                  >
+                    &laquo;
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-2 py-1 border border-outline-variant text-on-surface disabled:opacity-20 hover:border-primary transition-colors cursor-pointer disabled:cursor-not-allowed flex items-center gap-0.5"
+                    title="Previous Page"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="px-2.5 py-1 bg-surface-container border border-outline-variant text-primary font-bold">
+                    {currentPage} / {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-2 py-1 border border-outline-variant text-on-surface disabled:opacity-20 hover:border-primary transition-colors cursor-pointer disabled:cursor-not-allowed flex items-center gap-0.5"
+                    title="Next Page"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage === totalPages}
+                    className="px-2 py-1 border border-outline-variant text-on-surface disabled:opacity-20 hover:border-primary transition-colors cursor-pointer disabled:cursor-not-allowed"
+                    title="Last Page"
+                  >
+                    &raquo;
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
-          {filteredQuestions.map((q) => (
-            <AdminQuestionCard
-              key={q.id}
-              q={q}
-              onEdit={handleEditQuestion}
-              onDelete={handleDeleteQuestion}
-              onToggleVerify={handleToggleVerify}
-            />
-          ))}
+          {/* Cards List (Only renders active page, ~20 items) */}
+          <div className="space-y-4">
+            {paginatedQuestions.map((q) => (
+              <AdminQuestionCard
+                key={q.id}
+                q={q}
+                onEdit={handleEditQuestion}
+                onDelete={handleDeleteQuestion}
+                onToggleVerify={handleToggleVerify}
+              />
+            ))}
+          </div>
+
+          {/* Bottom Pagination Toolbar */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between p-3 border border-outline-variant bg-surface-dim text-xs font-mono">
+              <span className="text-on-surface-variant">
+                Page {currentPage} of {totalPages} ({filteredQuestions.length} total questions)
+              </span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => {
+                    setCurrentPage(1);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  disabled={currentPage === 1}
+                  className="px-2.5 py-1 border border-outline-variant text-on-surface disabled:opacity-20 hover:border-primary transition-colors cursor-pointer disabled:cursor-not-allowed"
+                >
+                  &laquo; First
+                </button>
+                <button
+                  onClick={() => {
+                    setCurrentPage(p => Math.max(1, p - 1));
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 border border-outline-variant text-on-surface disabled:opacity-20 hover:border-primary transition-colors cursor-pointer disabled:cursor-not-allowed flex items-center gap-1"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                  <span>Prev</span>
+                </button>
+                <span className="px-3 py-1 bg-primary text-white font-bold">
+                  {currentPage}
+                </span>
+                <button
+                  onClick={() => {
+                    setCurrentPage(p => Math.min(totalPages, p + 1));
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 border border-outline-variant text-on-surface disabled:opacity-20 hover:border-primary transition-colors cursor-pointer disabled:cursor-not-allowed flex items-center gap-1"
+                >
+                  <span>Next</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => {
+                    setCurrentPage(totalPages);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  disabled={currentPage === totalPages}
+                  className="px-2.5 py-1 border border-outline-variant text-on-surface disabled:opacity-20 hover:border-primary transition-colors cursor-pointer disabled:cursor-not-allowed"
+                >
+                  Last &raquo;
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

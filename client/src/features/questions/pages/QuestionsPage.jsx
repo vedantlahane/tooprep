@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useDeferredValue, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { topicsService } from '@/features/topics/services/topicsService';
 import { questionsService } from '../services/questionsService';
 import MathText from '@/features/questions/components/MathText';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import QuestionEditModal from '@/features/questions/components/QuestionEditModal';
+import CurriculumMultiPicker from '@/shared/components/CurriculumMultiPicker';
 import Icon, {
   CheckCircle2,
   BookOpen,
@@ -14,6 +15,8 @@ import Icon, {
   Timer,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   Layers,
   Sparkles,
   Edit3,
@@ -34,7 +37,7 @@ const SOURCE_STYLES = {
   default: 'bg-surface-container text-white/60 border-outline-variant',
 };
 
-function QuestionBrowserCard({ q, onPracticeTopic, isAdmin, onEditQuestion }) {
+const QuestionBrowserCard = memo(function QuestionBrowserCard({ q, onPracticeTopic, isAdmin, onEditQuestion }) {
   const [showAnswer, setShowAnswer] = useState(false);
 
   const options = ['A', 'B', 'C', 'D'];
@@ -180,7 +183,7 @@ function QuestionBrowserCard({ q, onPracticeTopic, isAdmin, onEditQuestion }) {
       )}
     </div>
   );
-}
+});
 
 export default function QuestionsPage() {
   const navigate = useNavigate();
@@ -189,8 +192,8 @@ export default function QuestionsPage() {
 
   const [hierarchy, setHierarchy] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState('');
-  const [selectedChapter, setSelectedChapter] = useState('');
-  const [selectedTopic, setSelectedTopic] = useState('');
+  const [selectedChapters, setSelectedChapters] = useState([]);
+  const [selectedTopics, setSelectedTopics] = useState([]);
   const [selectedDifficulty, setSelectedDifficulty] = useState('All');
   const [searchFilter, setSearchFilter] = useState('');
 
@@ -207,32 +210,38 @@ export default function QuestionsPage() {
     topicsService.getTopics().then(setHierarchy).catch(() => {});
   }, []);
 
-  const subjects = hierarchy;
-  const chapters = selectedSubject
-    ? (hierarchy.find((s) => s.id === selectedSubject || s.name === selectedSubject)?.chapters || [])
-    : [];
-  const topics = selectedChapter
-    ? (chapters.find((c) => c.id === selectedChapter || c.name === selectedChapter)?.topics || [])
-    : [];
-
-  const handleSubjectChange = (val) => {
-    setSelectedSubject(val);
-    setSelectedChapter('');
-    setSelectedTopic('');
-  };
-  const handleChapterChange = (val) => {
-    setSelectedChapter(val);
-    setSelectedTopic('');
-  };
-
   const handleFetchQuestions = useCallback(async () => {
-    if (!selectedTopic) return;
+    let topicIds = [...selectedTopics];
+
+    if (topicIds.length === 0) {
+      if (selectedChapters.length > 0) {
+        for (const s of hierarchy) {
+          for (const c of s.chapters || []) {
+            if (selectedChapters.includes(c.id || c.name)) {
+              (c.topics || []).forEach(t => {
+                if (!topicIds.includes(t.id)) topicIds.push(t.id);
+              });
+            }
+          }
+        }
+      } else if (selectedSubject) {
+        const s = hierarchy.find(subj => subj.id === selectedSubject || subj.name === selectedSubject);
+        if (s) {
+          for (const c of s.chapters || []) {
+            (c.topics || []).forEach(t => {
+              if (!topicIds.includes(t.id)) topicIds.push(t.id);
+            });
+          }
+        }
+      }
+    }
+
     setLoading(true);
     setError('');
     setHasSearched(true);
     try {
       const data = await questionsService.browseQuestions({
-        topic_id: selectedTopic,
+        topic_ids: topicIds.length > 0 ? topicIds : undefined,
         difficulty: selectedDifficulty === 'All' ? undefined : selectedDifficulty,
       });
       setQuestions(Array.isArray(data) ? data : []);
@@ -242,7 +251,7 @@ export default function QuestionsPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedTopic, selectedDifficulty]);
+  }, [selectedTopics, selectedChapters, selectedSubject, selectedDifficulty, hierarchy]);
 
   const handleEditQuestion = (q) => {
     setActiveQuestion(q);
@@ -255,26 +264,38 @@ export default function QuestionsPage() {
   };
 
   const handleSavedQuestion = () => {
-    if (selectedTopic) {
-      handleFetchQuestions();
-    }
+    handleFetchQuestions();
   };
 
   useEffect(() => {
-    if (selectedTopic) {
-      handleFetchQuestions();
-    }
-  }, [selectedTopic, selectedDifficulty, handleFetchQuestions]);
+    handleFetchQuestions();
+  }, [selectedTopics, selectedChapters, selectedSubject, selectedDifficulty, handleFetchQuestions]);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  const deferredSearchFilter = useDeferredValue(searchFilter);
 
   const filteredQuestions = useMemo(() => {
-    if (!searchFilter.trim()) return questions;
-    const q = searchFilter.toLowerCase().trim();
+    if (!deferredSearchFilter.trim()) return questions;
+    const q = deferredSearchFilter.toLowerCase().trim();
     return questions.filter(item => {
       const text = (item.question_text || item.text || '').toLowerCase();
       const sol = (item.solution_text || '').toLowerCase();
       return text.includes(q) || sol.includes(q);
     });
-  }, [questions, searchFilter]);
+  }, [questions, deferredSearchFilter]);
+
+  const totalPages = Math.ceil(filteredQuestions.length / pageSize) || 1;
+  const paginatedQuestions = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredQuestions.slice(start, start + pageSize);
+  }, [filteredQuestions, currentPage, pageSize]);
+
+  // Reset pagination when search or filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedSubject, selectedChapters, selectedTopics, selectedDifficulty, deferredSearchFilter]);
 
   return (
     <div className="w-full max-w-6xl min-w-0 mr-auto space-y-6 pb-20 animate-fade-in text-left">
@@ -282,13 +303,13 @@ export default function QuestionsPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-white/10 pb-5">
         <div>
           <div className="text-xs text-primary font-semibold uppercase tracking-wider">
-            Question Archive &middot; 110 Bank Questions
+            Question Archive &middot; Verified Curriculum Pool
           </div>
           <h1 className="text-3xl md:text-5xl font-extralight text-white tracking-tight lowercase mt-1">
             question bank
           </h1>
           <p className="text-body-md text-white/60 font-light mt-1">
-            Browse official JEE Main PYQ papers by subject, chapter, and curriculum topic.
+            Browse official JEE Main PYQ papers across multiple chapters and curriculum topics.
           </p>
         </div>
 
@@ -311,93 +332,42 @@ export default function QuestionsPage() {
             </>
           )}
 
-          {selectedTopic && (
+          {selectedTopics.length > 0 && (
             <>
               <button
-                onClick={() => navigate(`/practice?topic=${selectedTopic}`)}
+                onClick={() => navigate(`/practice?topic=${selectedTopics[0]}`)}
                 className="px-4 py-2 bg-surface-container border border-outline-variant hover:border-primary text-white rounded-sm text-xs font-mono uppercase tracking-wider flex items-center gap-1.5 transition-colors"
               >
                 <Play className="w-3.5 h-3.5 fill-current text-primary" />
-                <span>Drill</span>
+                <span>Drill Selected</span>
               </button>
               <button
-                onClick={() => navigate(`/evaluate?topic=${selectedTopic}`)}
+                onClick={() => navigate(`/evaluate?topic=${selectedTopics[0]}`)}
                 className="px-4 py-2 bg-primary text-black rounded-sm text-xs font-mono uppercase tracking-wider font-bold hover:brightness-110 flex items-center gap-1.5 transition-colors"
               >
                 <Timer className="w-3.5 h-3.5 stroke-[2]" />
-                <span>Mock</span>
+                <span>Mock Test</span>
               </button>
             </>
           )}
         </div>
       </div>
 
-      {/* Filter Matrix Card */}
+      {/* Multi-Curriculum Filter Card */}
       <div className="acrylic-glass p-5 rounded-sm border border-outline-variant space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {/* Subject Dropdown */}
-          <div className="space-y-1">
-            <label className="block text-[10px] font-mono text-white/60 uppercase tracking-widest">
-              Subject
-            </label>
-            <select
-              value={selectedSubject}
-              onChange={e => handleSubjectChange(e.target.value)}
-              className="w-full px-3 py-2.5 bg-black/60 border border-outline-variant text-xs font-mono text-white outline-none focus:border-primary rounded-sm"
-            >
-              <option value="">Choose Subject...</option>
-              {subjects.map(s => (
-                <option key={s.id || s.name} value={s.id || s.name}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Chapter Dropdown */}
-          <div className="space-y-1">
-            <label className="block text-[10px] font-mono text-white/60 uppercase tracking-widest">
-              Chapter
-            </label>
-            <select
-              value={selectedChapter}
-              onChange={e => handleChapterChange(e.target.value)}
-              disabled={!selectedSubject}
-              className="w-full px-3 py-2.5 bg-black/60 border border-outline-variant text-xs font-mono text-white outline-none focus:border-primary rounded-sm disabled:opacity-40"
-            >
-              <option value="">Choose Chapter...</option>
-              {chapters.map(c => (
-                <option key={c.id || c.name} value={c.id || c.name}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Topic Dropdown */}
-          <div className="space-y-1">
-            <label className="block text-[10px] font-mono text-white/60 uppercase tracking-widest">
-              Topic
-            </label>
-            <select
-              value={selectedTopic}
-              onChange={e => setSelectedTopic(e.target.value)}
-              disabled={!selectedChapter}
-              className="w-full px-3 py-2.5 bg-black/60 border border-outline-variant text-xs font-mono text-white outline-none focus:border-primary rounded-sm disabled:opacity-40"
-            >
-              <option value="">Choose Topic...</option>
-              {topics.map(t => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+        <CurriculumMultiPicker
+          hierarchy={hierarchy}
+          selectedSubject={selectedSubject}
+          onSubjectChange={setSelectedSubject}
+          selectedChapters={selectedChapters}
+          onChaptersChange={setSelectedChapters}
+          selectedTopics={selectedTopics}
+          onTopicsChange={setSelectedTopics}
+        />
 
         {/* Secondary Filter: Difficulty Buttons & Search Filter */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-white/5">
-          <div className="flex items-center gap-1.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-white/5">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-[10px] font-mono text-white/50 uppercase tracking-wider mr-1">Difficulty:</span>
             {DIFFICULTIES.map(d => (
               <button
@@ -414,18 +384,16 @@ export default function QuestionsPage() {
             ))}
           </div>
 
-          {questions.length > 0 && (
-            <div className="relative max-w-xs w-full">
-              <Search className="w-3.5 h-3.5 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchFilter}
-                onChange={e => setSearchFilter(e.target.value)}
-                placeholder="Filter questions by text..."
-                className="w-full bg-black/50 border border-outline-variant rounded-sm pl-8 pr-3 py-1.5 text-xs font-mono text-white placeholder:text-white/30 outline-none focus:border-primary"
-              />
-            </div>
-          )}
+          <div className="relative max-w-xs w-full">
+            <Search className="w-3.5 h-3.5 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchFilter}
+              onChange={e => setSearchFilter(e.target.value)}
+              placeholder="Search in questions or derivations..."
+              className="w-full bg-black/50 border border-outline-variant rounded-sm pl-8 pr-3 py-1.5 text-xs font-mono text-white placeholder:text-white/30 outline-none focus:border-primary"
+            />
+          </div>
         </div>
       </div>
 
@@ -443,28 +411,77 @@ export default function QuestionsPage() {
             Loading Questions...
           </div>
         </div>
-      ) : !selectedTopic ? (
-        <div className="acrylic-glass border border-white/10 rounded-sm p-16 text-center text-white/40 space-y-3">
-          <BookOpen className="w-10 h-10 mx-auto opacity-30" />
-          <div className="text-base font-light text-white">Select a curriculum topic to browse questions</div>
-          <p className="text-xs text-white/50 font-light max-w-md mx-auto">
-            Choose a subject and chapter above to load verified questions from the 2018 JEE Main question bank.
-          </p>
-        </div>
       ) : filteredQuestions.length === 0 ? (
         <div className="acrylic-glass border border-white/10 rounded-sm p-16 text-center text-white/40 space-y-2">
-          <div className="text-sm font-light text-white">No questions found for this filter</div>
-          <p className="text-xs text-white/50 font-mono">Try selecting a different difficulty or clear your search term.</p>
+          <div className="text-sm font-light text-white">No questions found for this filter combination</div>
+          <p className="text-xs text-white/50 font-mono">Try selecting different chapters/topics or clear your search term.</p>
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="flex items-center justify-between text-xs font-mono text-white/50 px-1">
-            <span>Showing {filteredQuestions.length} questions</span>
-            <span>Click to reveal solutions</span>
+          {/* Top Pagination Toolbar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 border border-outline-variant bg-surface-dim text-xs font-mono">
+            <div className="flex items-center gap-2 text-on-surface-variant flex-wrap">
+              <span className="text-white/50 uppercase tracking-widest text-[11px]">Per page:</span>
+              {[10, 20, 50, 100].map(size => (
+                <button
+                  key={size}
+                  onClick={() => { setPageSize(size); setCurrentPage(1); }}
+                  className={`px-2.5 py-1 border transition-colors cursor-pointer text-xs ${
+                    pageSize === size ? 'bg-primary border-primary text-black font-bold' : 'border-outline-variant hover:border-primary text-white/70'
+                  }`}
+                >
+                  {size}
+                </button>
+              ))}
+              <span className="text-white/30 ml-2">|</span>
+              <span className="text-white/70 ml-1">
+                Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filteredQuestions.length)} of {filteredQuestions.length}
+              </span>
+            </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className="px-2 py-1 border border-outline-variant text-white/70 disabled:opacity-20 hover:border-primary transition-colors cursor-pointer disabled:cursor-not-allowed"
+                  title="First Page"
+                >
+                  &laquo;
+                </button>
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-2 py-1 border border-outline-variant text-white/70 disabled:opacity-20 hover:border-primary transition-colors cursor-pointer disabled:cursor-not-allowed flex items-center gap-0.5"
+                  title="Previous Page"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+                <span className="px-2.5 py-1 bg-surface-container border border-outline-variant text-primary font-bold">
+                  {currentPage} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-2 py-1 border border-outline-variant text-white/70 disabled:opacity-20 hover:border-primary transition-colors cursor-pointer disabled:cursor-not-allowed flex items-center gap-0.5"
+                  title="Next Page"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="px-2 py-1 border border-outline-variant text-white/70 disabled:opacity-20 hover:border-primary transition-colors cursor-pointer disabled:cursor-not-allowed"
+                  title="Last Page"
+                >
+                  &raquo;
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="space-y-4">
-            {filteredQuestions.map((q) => (
+            {paginatedQuestions.map((q) => (
               <QuestionBrowserCard
                 key={q.id}
                 q={q}
@@ -474,6 +491,42 @@ export default function QuestionsPage() {
               />
             ))}
           </div>
+
+          {/* Bottom Pagination Toolbar if multiple pages */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between p-3 border border-outline-variant bg-surface-dim text-xs font-mono">
+              <span className="text-white/50">
+                Page {currentPage} of {totalPages}
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => {
+                    setCurrentPage(p => Math.max(1, p - 1));
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 border border-outline-variant text-white/70 disabled:opacity-20 hover:border-primary transition-colors cursor-pointer disabled:cursor-not-allowed flex items-center gap-1"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                  <span>Prev</span>
+                </button>
+                <span className="px-3 py-1.5 bg-surface-container border border-outline-variant text-primary font-bold">
+                  {currentPage} / {totalPages}
+                </span>
+                <button
+                  onClick={() => {
+                    setCurrentPage(p => Math.min(totalPages, p + 1));
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1.5 border border-outline-variant text-white/70 disabled:opacity-20 hover:border-primary transition-colors cursor-pointer disabled:cursor-not-allowed flex items-center gap-1"
+                >
+                  <span>Next</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -482,7 +535,7 @@ export default function QuestionsPage() {
         <QuestionEditModal
           isOpen={modalOpen}
           question={activeQuestion}
-          initialTopicId={selectedTopic}
+          initialTopicId={selectedTopics[0] || ''}
           onClose={() => setModalOpen(false)}
           onSaved={handleSavedQuestion}
           onDeleted={handleSavedQuestion}

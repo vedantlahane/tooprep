@@ -7,7 +7,7 @@ import { confidenceService } from '@/features/confidence/services/confidenceServ
 import QuestionCard from '@/features/questions/components/QuestionCard';
 import MistakeTypeSelector from '@/features/questions/components/MistakeTypeSelector';
 import ConfidenceSlider from '@/features/confidence/components/ConfidenceSlider';
-import TopicPicker from '@/shared/components/TopicPicker';
+import CurriculumMultiPicker from '@/shared/components/CurriculumMultiPicker';
 import Icon, {
   Play,
   CheckCircle2,
@@ -24,10 +24,13 @@ export default function PracticePage() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Setup state
-  const [topics, setTopics] = useState([]);
-  const [selectedTopic, setSelectedTopic] = useState(searchParams.get('topic') || '');
-  const [questionCount, setQuestionCount] = useState(10);
+  // Multi-Curriculum Setup state
+  const [hierarchy, setHierarchy] = useState([]);
+  const [selectedSubject, setSelectedSubject] = useState('');
+  const [selectedChapters, setSelectedChapters] = useState([]);
+  const [selectedTopics, setSelectedTopics] = useState(
+    searchParams.get('topic') ? [searchParams.get('topic')] : []
+  );
 
   // Session state (supports direct pre-loading from re-drill)
   const [session, setSession] = useState(location.state?.session || null);
@@ -44,67 +47,38 @@ export default function PracticePage() {
   const [error, setError] = useState('');
   const startTimeRef = useRef(null);
 
-  // Initial confidence prompt state
-  const [needsConfidence, setNeedsConfidence] = useState(false);
-  const [confidence, setConfidence] = useState(5);
-
   // Post-session confidence update
   const [postSessionConfidence, setPostSessionConfidence] = useState(5);
   const [confidenceUpdated, setConfidenceUpdated] = useState(false);
   const [confidenceUpdating, setConfidenceUpdating] = useState(false);
 
   useEffect(() => {
-    loadTopics();
+    loadHierarchy();
     if (location.state?.session && location.state?.questions) {
       startTimeRef.current = Date.now();
     }
   }, []);
 
-  const loadTopics = async () => {
+  const loadHierarchy = async () => {
     try {
-      const hierarchy = await topicsService.getTopics();
-      const allTopics = [];
-      for (const subject of hierarchy) {
-        for (const chapter of subject.chapters || []) {
-          for (const topic of chapter.topics || []) {
-            allTopics.push({
-              id: topic.id,
-              name: topic.name,
-              chapter: chapter.name,
-              subject: subject.name,
-              confidence: topic.confidence
-            });
+      const tree = await topicsService.getTopics();
+      setHierarchy(tree || []);
+
+      const urlTopic = searchParams.get('topic');
+      if (urlTopic && tree) {
+        setSelectedTopics([urlTopic]);
+        for (const s of tree) {
+          for (const c of s.chapters || []) {
+            if ((c.topics || []).some(t => t.id === urlTopic)) {
+              setSelectedSubject(s.id || s.name);
+              setSelectedChapters([c.id || c.name]);
+              break;
+            }
           }
         }
       }
-      setTopics(allTopics);
-
-      // Auto-select if from URL
-      if (searchParams.get('topic')) {
-        const t = allTopics.find(t => t.id === searchParams.get('topic'));
-        if (t && t.confidence === null) setNeedsConfidence(true);
-      }
     } catch (err) {
-      setError(err.message);
-    }
-  };
-
-  const handleTopicSelect = (topicId) => {
-    setSelectedTopic(topicId);
-    const topic = topics.find(t => t.id === topicId);
-    if (topic && topic.confidence === null) {
-      setNeedsConfidence(true);
-    } else {
-      setNeedsConfidence(false);
-    }
-  };
-
-  const handleSetConfidence = async () => {
-    try {
-      await confidenceService.setConfidence(selectedTopic, confidence, 'INITIAL');
-      setNeedsConfidence(false);
-    } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to load curriculum hierarchy');
     }
   };
 
@@ -112,14 +86,45 @@ export default function PracticePage() {
     setLoading(true);
     setError('');
     try {
-      const result = await practiceService.startPractice(selectedTopic, questionCount);
+      let targetTopicIds = [...selectedTopics];
+
+      if (targetTopicIds.length === 0) {
+        if (selectedChapters.length > 0) {
+          for (const s of hierarchy) {
+            for (const c of s.chapters || []) {
+              if (selectedChapters.includes(c.id || c.name)) {
+                (c.topics || []).forEach(t => {
+                  if (!targetTopicIds.includes(t.id)) targetTopicIds.push(t.id);
+                });
+              }
+            }
+          }
+        } else if (selectedSubject) {
+          const s = hierarchy.find(subj => subj.id === selectedSubject || subj.name === selectedSubject);
+          if (s) {
+            for (const c of s.chapters || []) {
+              (c.topics || []).forEach(t => {
+                if (!targetTopicIds.includes(t.id)) targetTopicIds.push(t.id);
+              });
+            }
+          }
+        }
+      }
+
+      if (targetTopicIds.length === 0) {
+        setError('Please select at least one topic or chapter to practice.');
+        setLoading(false);
+        return;
+      }
+
+      const result = await practiceService.startPractice(targetTopicIds, null);
       setSession(result.session);
       setQuestions(result.questions);
       setCurrentIndex(0);
       setAttempts([]);
       startTimeRef.current = Date.now();
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to start practice drill');
     } finally {
       setLoading(false);
     }
@@ -188,10 +193,12 @@ export default function PracticePage() {
     }
   };
 
-  // ─── Screen 1: Setup & Configuration Screen ───
+  // ─── Screen 1: Setup & Multi-Curriculum Configuration Screen ───
   if (!session) {
+    const hasSelection = selectedChapters.length > 0 || selectedTopics.length > 0 || Boolean(selectedSubject);
+
     return (
-      <div className="w-full max-w-3xl mr-auto animate-fade-in space-y-8 text-left">
+      <div className="w-full max-w-5xl mr-auto animate-fade-in space-y-6 text-left">
         <div>
           <div className="text-label-sm-mono uppercase tracking-[0.25em] text-primary text-xs">
             Training Facility &middot; Problem Drill
@@ -200,7 +207,8 @@ export default function PracticePage() {
             practice mode
           </h1>
           <p className="text-body-md text-white/60 font-light mt-2">
-            Untimed drill mode. Answers and step-by-step LaTeX solutions are revealed immediately after every submission.
+            Continuous self-paced drill. Select multiple chapters and topics to customize your problem set.
+            Answers and full step-by-step LaTeX derivations are revealed immediately after every submission.
           </p>
         </div>
 
@@ -211,69 +219,34 @@ export default function PracticePage() {
         )}
 
         <div className="acrylic-glass p-6 md:p-8 rounded-sm border border-outline-variant space-y-6">
-          {/* Topic Selector */}
-          <div className="space-y-2">
-            <label className="block text-label-sm-mono text-white/80 uppercase tracking-widest text-xs font-bold">
-              1. Select Curriculum Topic
-            </label>
-            <TopicPicker
-              topics={topics}
-              selectedTopicId={selectedTopic}
-              onSelect={handleTopicSelect}
-              placeholder="Search or pick a topic to practice..."
-            />
+          <div className="space-y-1">
+            <h2 className="text-xs font-mono font-bold uppercase tracking-widest text-white/90">
+              1. Choose Curriculum Scope (Multi-Select)
+            </h2>
+            <p className="text-xs font-light text-white/50">
+              Select one or multiple chapters and specific topics. The drill pool automatically adapts to your selection.
+            </p>
           </div>
 
-          {/* Initial confidence prompt */}
-          {needsConfidence && selectedTopic && (
-            <div className="p-5 bg-primary/10 border-l-4 border-primary rounded-r-sm space-y-3 animate-fade-in">
-              <div className="text-xs font-mono uppercase tracking-wider text-primary font-bold">
-                Rate Initial Confidence (1–10)
-              </div>
-              <p className="text-xs text-white/70 font-light">
-                You haven't calibrated this topic yet. How confident do you feel before practicing?
-              </p>
-              <ConfidenceSlider value={confidence} onChange={setConfidence} />
-              <button
-                onClick={handleSetConfidence}
-                className="w-full py-2.5 bg-primary text-black text-xs font-mono font-bold uppercase tracking-wider rounded-sm hover:brightness-110"
-              >
-                Set Confidence &amp; Continue
-              </button>
-            </div>
-          )}
+          <CurriculumMultiPicker
+            hierarchy={hierarchy}
+            selectedSubject={selectedSubject}
+            onSubjectChange={setSelectedSubject}
+            selectedChapters={selectedChapters}
+            onChaptersChange={setSelectedChapters}
+            selectedTopics={selectedTopics}
+            onTopicsChange={setSelectedTopics}
+          />
 
-          {/* Question count selector */}
-          <div className="space-y-2">
-            <label className="block text-label-sm-mono text-white/80 uppercase tracking-widest text-xs font-bold">
-              2. Number of Questions
-            </label>
-            <div className="grid grid-cols-4 gap-2.5">
-              {[5, 10, 15, 20].map(n => (
-                <button
-                  key={n}
-                  onClick={() => setQuestionCount(n)}
-                  className={`py-3 rounded-sm border text-xs font-mono font-bold uppercase tracking-wider transition-all ${
-                    questionCount === n
-                      ? 'bg-primary text-black border-primary shadow'
-                      : 'bg-surface-dim border-outline-variant text-white/60 hover:border-white/30 hover:text-white'
-                  }`}
-                >
-                  {n} Qs
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Start Drill Button */}
+          {/* Start Drill Action */}
           <div className="pt-2">
             <button
               onClick={startPractice}
-              disabled={!selectedTopic || loading || needsConfidence}
-              className="w-full py-3.5 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest rounded-sm hover:brightness-110 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-primary/20"
+              disabled={loading || !hasSelection}
+              className="w-full py-4 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest rounded-sm hover:brightness-110 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-primary/20 cursor-pointer"
             >
               <Play className="w-4 h-4 fill-current" />
-              <span>{loading ? 'Preparing Questions...' : 'Start Practice Drill'}</span>
+              <span>{loading ? 'Preparing Drill Pool...' : 'Start Practice Drill'}</span>
             </button>
           </div>
         </div>
@@ -356,17 +329,21 @@ export default function PracticePage() {
 
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <button
-            onClick={() => navigate('/')}
+            onClick={() => {
+              setSession(null);
+              setCompleted(false);
+              setSummary(null);
+            }}
             className="flex-1 py-3 border border-outline-variant text-xs font-mono uppercase tracking-widest text-white/80 hover:text-white hover:border-primary transition-colors rounded-sm"
           >
-            Knowledge Map
+            New Practice Drill
           </button>
           <button
-            onClick={() => navigate(`/evaluate?topic=${session.topic_id}`)}
+            onClick={() => navigate('/')}
             className="flex-1 py-3 bg-primary text-black text-xs font-mono uppercase tracking-widest font-bold hover:brightness-110 transition-colors rounded-sm flex items-center justify-center gap-1.5"
           >
-            <Timer className="w-4 h-4 stroke-[2]" />
-            <span>Take Timed Mock Test</span>
+            <BookOpen className="w-4 h-4 stroke-[2]" />
+            <span>Knowledge Map</span>
           </button>
         </div>
       </div>
@@ -379,12 +356,24 @@ export default function PracticePage() {
   return (
     <div className="w-full max-w-4xl mr-auto animate-fade-in space-y-6 text-left">
       {/* Telemetry status bar */}
-      <div className="flex items-center justify-between border-b border-white/10 pb-3">
+      <div className="flex items-center justify-between border-b border-white/10 pb-3 flex-wrap gap-2">
         <div className="text-xs font-mono uppercase tracking-widest text-white/60">
           Question <span className="text-primary font-bold">{currentIndex + 1}</span> of {questions.length}
         </div>
-        <div className="text-xs font-mono uppercase tracking-widest text-white/60">
-          Score: <span className="text-primary font-bold">{attempts.filter(a => a.correct).length}</span>/{attempts.length}
+        <div className="flex items-center gap-4">
+          <div className="text-xs font-mono uppercase tracking-widest text-white/60">
+            Score: <span className="text-primary font-bold">{attempts.filter(a => a.correct).length}</span>/{attempts.length}
+          </div>
+          {attempts.length > 0 && (
+            <button
+              type="button"
+              onClick={completePractice}
+              className="text-[10px] font-mono uppercase tracking-wider text-status-weak hover:text-white px-2.5 py-1 border border-status-weak/40 hover:border-white/50 transition-colors"
+              title="Finish session early with current score"
+            >
+              Finish Drill
+            </button>
+          )}
         </div>
       </div>
 

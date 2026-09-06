@@ -52,8 +52,12 @@ export const practiceController = {
    */
   async startSession(req, res) {
     try {
-      const { topic_id, question_count = 15 } = req.body;
-      const data = await practiceService.startSession(req.user.id, topic_id, question_count);
+      const { topic_id, topic_ids, question_count } = req.body;
+      const data = await practiceService.startSession(req.user.id, {
+        topic_id,
+        topic_ids,
+        question_count
+      });
       return res.status(201).json(data);
     } catch (err) {
       console.error('POST /practice-sessions error:', err);

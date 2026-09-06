@@ -48,55 +48,67 @@ export const practiceService = {
    * @throws {Error} statusCode=400 if topicId is missing or no verified questions exist
    * @throws {Error} on any Supabase query failure
    */
-  async startSession(userId, topicId, questionCount = 15) {
-    if (!topicId) {
-      const err = new Error('topic_id is required');
+  async startSession(userId, topicIdOrOptions, questionCount = null) {
+    let topicId = null;
+    let topicIds = [];
+    let count = questionCount;
+
+    if (typeof topicIdOrOptions === 'object' && topicIdOrOptions !== null) {
+      topicId = topicIdOrOptions.topic_id;
+      topicIds = Array.isArray(topicIdOrOptions.topic_ids)
+        ? topicIdOrOptions.topic_ids.filter(Boolean)
+        : (topicId ? [topicId] : []);
+      count = topicIdOrOptions.question_count ?? null;
+    } else {
+      topicId = topicIdOrOptions;
+      topicIds = Array.isArray(topicId) ? topicId.filter(Boolean) : (topicId ? [topicId] : []);
+    }
+
+    if (topicIds.length === 0) {
+      const err = new Error('topic_id or topic_ids is required');
       err.statusCode = 400;
       throw err;
     }
 
-    /* Step 1: Fetch all verified questions for the requested topic.
-     * Only verified questions are eligible — this ensures that draft or
-     * unreviewed content never reaches users. We select minimal columns
-     * here because we only need IDs for shuffling; full data is fetched later. */
+    const primaryTopicId = topicIds[0];
+
+    /* Step 1: Fetch all verified questions for the requested topic(s).
+     * Only verified and published questions are eligible for practice drills. */
     const { data: questions, error: qErr } = await supabaseAdmin
       .from('questions')
       .select('id, difficulty, source_type')
-      .eq('topic_id', topicId)
+      .in('topic_id', topicIds)
       .eq('verified', true)
       .eq('publication_status', 'PUBLISHED');
 
     if (qErr) throw new Error(qErr.message);
     if (!questions || questions.length === 0) {
-      const err = new Error('No verified questions available for this topic');
+      const err = new Error('No verified questions available for the selected topic(s)');
       err.statusCode = 400;
       throw err;
     }
 
-    /* Step 2: Shuffle and pick up to questionCount.
-     * Uses Array.sort with a random comparator — not cryptographically secure,
-     * but acceptable for practice question ordering. If fewer questions exist
-     * than requested, all available questions are used. */
-    const shuffled = questions.sort(() => Math.random() - 0.5);
-    const selected = shuffled.slice(0, Math.min(questionCount, shuffled.length));
+    /* Step 2: Shuffle questions randomly.
+     * If count is provided and positive, slice to that count; otherwise include all available questions. */
+    const shuffled = [...questions].sort(() => Math.random() - 0.5);
+    const selected = (count && Number(count) > 0)
+      ? shuffled.slice(0, Math.min(Number(count), shuffled.length))
+      : shuffled;
 
     /* Step 3: Create the practice session record in the database.
-     * The session stores user_id and topic_id. ended_at is left NULL until
-     * completeSession() is called. */
+     * Uses primaryTopicId to satisfy the database foreign-key constraint. */
     const { data: session, error: sErr } = await supabaseAdmin
       .from('practice_sessions')
       .insert({
         user_id: userId,
-        topic_id: topicId
+        topic_id: primaryTopicId
       })
       .select()
       .single();
 
     if (sErr) throw new Error(sErr.message);
 
-    /* Step 4: Fetch full question data for the selected question IDs.
-     * This second query retrieves all columns (including correct_answer)
-     * because practice mode allows users to see answers immediately. */
+    /* Step 4: Fetch full question data for the selected question IDs. */
     const { data: fullQuestions, error: fqErr } = await supabaseAdmin
       .from('questions')
       .select('*')
@@ -104,9 +116,13 @@ export const practiceService = {
 
     if (fqErr) throw new Error(fqErr.message);
 
+    // Preserve the shuffled ordering
+    const questionsById = new Map((fullQuestions || []).map(q => [q.id, q]));
+    const orderedQuestions = selected.map(q => questionsById.get(q.id)).filter(Boolean);
+
     return {
-      session,
-      questions: fullQuestions
+      session: { ...session, topic_ids: topicIds },
+      questions: orderedQuestions
     };
   },
 

@@ -10,6 +10,9 @@ export function registerServiceWorker() {
         .then((registration) => {
           console.log('[PWA] Service Worker registered with scope:', registration.scope);
 
+          // Force check for updated sw.js immediately
+          registration.update().catch(() => {});
+
           // Listen for updates
           registration.onupdatefound = () => {
             const installingWorker = registration.installing;
@@ -17,7 +20,7 @@ export function registerServiceWorker() {
               installingWorker.onstatechange = () => {
                 if (installingWorker.state === 'installed') {
                   if (navigator.serviceWorker.controller) {
-                    console.log('[PWA] New content available; please refresh.');
+                    console.log('[PWA] New service worker version installed and active.');
                   } else {
                     console.log('[PWA] Content cached for offline use.');
                   }
@@ -29,6 +32,10 @@ export function registerServiceWorker() {
         .catch((error) => {
           console.error('[PWA] Service Worker registration failed:', error);
         });
+
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        console.log('[PWA] Active Service Worker controller updated.');
+      });
     });
   }
 }

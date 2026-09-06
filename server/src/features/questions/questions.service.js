@@ -65,7 +65,7 @@ export const questionsService = {
    *   newest first.
    * @throws  {Error} If the Supabase query fails.
    */
-  async getQuestions({ topic_id, difficulty, source_type, verified }, { includeAnswers = false } = {}) {
+  async getQuestions({ topic_id, topic_ids, chapter_id, chapter_ids, difficulty, source_type, verified }, { includeAnswers = false } = {}) {
     /* Start with a base query that selects every column. */
     const fields = includeAnswers
       ? '*'
@@ -77,10 +77,38 @@ export const questionsService = {
     if (!includeAnswers) query = query.eq('publication_status', 'PUBLISHED');
 
     /* ── Dynamic filter chaining ────────────────────────────────────────
-     * Each filter is only appended when its value is truthy / defined.
-     * The mutable `query` variable is reassigned on each chain so that
-     * Supabase's immutable query builder produces the correct final query. */
-    if (topic_id) query = query.eq('topic_id', topic_id);
+     * Supports single topic or multiple topics (via topic_ids array or comma-separated string) */
+    const rawTopicIds = topic_ids || topic_id;
+    if (rawTopicIds) {
+      const ids = Array.isArray(rawTopicIds)
+        ? rawTopicIds.filter(Boolean)
+        : String(rawTopicIds).split(',').map(s => s.trim()).filter(Boolean);
+      if (ids.length === 1) {
+        query = query.eq('topic_id', ids[0]);
+      } else if (ids.length > 1) {
+        query = query.in('topic_id', ids);
+      }
+    } else {
+      /* If no specific topics provided, support chapter_ids filter */
+      const rawChapterIds = chapter_ids || chapter_id;
+      if (rawChapterIds) {
+        const cids = Array.isArray(rawChapterIds)
+          ? rawChapterIds.filter(Boolean)
+          : String(rawChapterIds).split(',').map(s => s.trim()).filter(Boolean);
+        if (cids.length > 0) {
+          const { data: topicRows } = await supabaseAdmin
+            .from('topics')
+            .select('id')
+            .in('chapter_id', cids);
+          if (topicRows && topicRows.length > 0) {
+            query = query.in('topic_id', topicRows.map(t => t.id));
+          } else {
+            return []; // No topics exist in selected chapters
+          }
+        }
+      }
+    }
+
     if (difficulty) query = query.eq('difficulty', difficulty);
     if (source_type) query = query.eq('source_type', source_type);
     /* `verified` arrives as a query-string value (always a string).

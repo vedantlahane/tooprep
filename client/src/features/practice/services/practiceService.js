@@ -1,8 +1,12 @@
 import { request } from '@/shared/lib/apiClient';
 
 export const practiceService = {
-  startPractice: (topicId, questionCount) =>
-    request('POST', '/practice-sessions', { topic_id: topicId, question_count: questionCount }),
+  startPractice: (topicIdOrIds, questionCount = null) => {
+    const payload = Array.isArray(topicIdOrIds)
+      ? { topic_ids: topicIdOrIds, topic_id: topicIdOrIds[0], question_count: questionCount }
+      : { topic_id: topicIdOrIds, question_count: questionCount };
+    return request('POST', '/practice-sessions', payload);
+  },
   getPracticeSession: (id) => request('GET', `/practice-sessions/${id}`),
   submitPracticeAttempt: (sessionId, body) =>
     request('POST', `/practice-sessions/${sessionId}/attempts`, body),

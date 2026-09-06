@@ -6,16 +6,34 @@ export const questionsService = {
     return request('GET', `/questions?${qs}`);
   },
   createQuestion: (body) => request('POST', '/questions', body),
-  browseQuestions: ({ topic_id, difficulty, source_type } = {}) => {
+  browseQuestions: ({ topic_id, topic_ids, chapter_id, chapter_ids, difficulty, source_type } = {}) => {
     const params = new URLSearchParams();
-    if (topic_id) params.append('topic_id', topic_id);
+    if (topic_ids && Array.isArray(topic_ids) && topic_ids.length > 0) {
+      params.append('topic_ids', topic_ids.join(','));
+    } else if (topic_id) {
+      params.append('topic_id', topic_id);
+    }
+    if (chapter_ids && Array.isArray(chapter_ids) && chapter_ids.length > 0) {
+      params.append('chapter_ids', chapter_ids.join(','));
+    } else if (chapter_id) {
+      params.append('chapter_id', chapter_id);
+    }
     if (difficulty) params.append('difficulty', difficulty);
     if (source_type) params.append('source_type', source_type);
     return request('GET', `/questions?${params.toString()}`);
   },
-  adminListQuestions: ({ topic_id, difficulty } = {}) => {
+  adminListQuestions: ({ topic_id, topic_ids, chapter_id, chapter_ids, difficulty } = {}) => {
     const params = new URLSearchParams();
-    if (topic_id) params.append('topic_id', topic_id);
+    if (topic_ids && Array.isArray(topic_ids) && topic_ids.length > 0) {
+      params.append('topic_ids', topic_ids.join(','));
+    } else if (topic_id) {
+      params.append('topic_id', topic_id);
+    }
+    if (chapter_ids && Array.isArray(chapter_ids) && chapter_ids.length > 0) {
+      params.append('chapter_ids', chapter_ids.join(','));
+    } else if (chapter_id) {
+      params.append('chapter_id', chapter_id);
+    }
     if (difficulty) params.append('difficulty', difficulty);
     return request('GET', `/questions/admin?${params.toString()}`);
   },

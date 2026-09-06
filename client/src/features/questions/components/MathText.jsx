@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, memo } from 'react';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import 'katex/dist/contrib/mhchem';
@@ -389,7 +389,29 @@ export function renderLatex(text) {
   return processed;
 }
 
-export default function MathText({ text, className = '' }) {
+// High-performance LRU cache for rendered LaTeX HTML strings
+const LATEX_CACHE = new Map();
+const MAX_LATEX_CACHE = 3000;
+
+export function getCachedLatexHtml(rawText) {
+  if (!rawText) return '';
+  const key = typeof rawText === 'string' ? rawText : String(rawText);
+  const cached = LATEX_CACHE.get(key);
+  if (cached !== undefined) return cached;
+
+  const html = renderLatex(key);
+
+  if (LATEX_CACHE.size >= MAX_LATEX_CACHE) {
+    // Evict oldest 500 entries to prevent memory leak
+    const keysToDelete = Array.from(LATEX_CACHE.keys()).slice(0, 500);
+    for (const k of keysToDelete) LATEX_CACHE.delete(k);
+  }
+
+  LATEX_CACHE.set(key, html);
+  return html;
+}
+
+function MathTextComponent({ text, className = '' }) {
   const [zoomImg, setZoomImg] = useState(null);
 
   const html = useMemo(() => {
@@ -398,7 +420,7 @@ export default function MathText({ text, className = '' }) {
         setZoomImg({ src, alt });
       };
     }
-    return renderLatex(text);
+    return getCachedLatexHtml(text);
   }, [text]);
 
   return (
@@ -445,3 +467,6 @@ export default function MathText({ text, className = '' }) {
     </>
   );
 }
+
+const MathText = memo(MathTextComponent);
+export default MathText;
