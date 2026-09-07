@@ -221,44 +221,49 @@ function transformImages(text) {
 }
 
 function renderImageTag(src, alt) {
+  if (!src) return '';
+  const cleanSrc = src.trim();
+  const cleanAlt = (alt || '').trim();
+
   // Guard 1: Hallucinated imgur links
-  if (/https?:\/\/(?:i\.)?imgur\.com\//i.test(src)) {
+  if (/https?:\/\/(?:i\.)?imgur\.com\//i.test(cleanSrc)) {
     return `
-      <div class="my-2.5 p-3 border border-status-weak/40 bg-status-weak/10 rounded-sm text-status-weak flex items-center gap-2 text-xs font-mono">
+      <div class="my-2 p-2.5 border border-status-weak/40 bg-status-weak/10 rounded-sm text-status-weak flex items-center gap-2 text-xs font-mono">
         <span class="px-1.5 py-0.5 bg-status-weak/20 rounded-xs font-bold uppercase tracking-wider text-[10px]">Diagram Required</span>
-        <span>${alt ? `[${alt}]` : 'Visual structure from original paper'}</span>
+        <span>${cleanAlt ? `[${cleanAlt}]` : 'Visual structure from original paper'}</span>
       </div>
     `;
   }
 
   // Guard 2: Pseudo-paths from LLM OCR (e.g. "benzene ring with CH2CH2CH2Br attached")
-  if (!/^(https?:\/\/|\/|data:image\/)/i.test(src)) {
-    const desc = alt || src;
+  if (!/^(https?:\/\/|\/|data:image\/)/i.test(cleanSrc)) {
     return `
-      <div class="my-2.5 p-2.5 border border-primary/40 bg-primary/10 rounded-sm flex items-center gap-2 text-xs font-mono text-on-surface">
+      <div class="my-2 p-2 border border-primary/40 bg-primary/10 rounded-sm flex items-center gap-2 text-xs font-mono text-on-surface">
         <span class="px-1.5 py-0.5 bg-primary/20 text-primary rounded-xs font-bold uppercase tracking-wider text-[10px]">Structure</span>
-        <span class="text-on-surface font-medium">${desc}</span>
+        <span class="text-on-surface font-medium">${cleanAlt || cleanSrc}</span>
       </div>
     `;
   }
 
   // Guard 3: Valid Image URL
-  const escapedSrc = src.replace(/"/g, '&quot;');
-  const escapedAlt = (alt || 'Question Diagram').replace(/"/g, '&quot;');
+  const escapedSrc = cleanSrc.replace(/"/g, '&quot;');
+  const escapedAlt = cleanAlt.replace(/"/g, '&quot;');
+  const isGenericLabel = !cleanAlt || cleanAlt.toLowerCase() === 'figure' || cleanAlt.toLowerCase() === 'diagram' || /^option\s+[a-d]$/i.test(cleanAlt);
 
   return `
-    <div class="my-3 inline-block max-w-full">
-      <div class="bg-white p-2.5 rounded border border-outline-variant shadow-sm inline-block">
+    <div class="my-2.5 inline-block max-w-full group">
+      <div class="bg-white p-2 sm:p-2.5 rounded border border-outline-variant shadow-sm inline-flex items-center justify-center transition-all hover:border-primary/60">
         <img
           src="${escapedSrc}"
-          alt="${escapedAlt}"
-          class="max-h-72 max-w-full object-contain rounded cursor-pointer hover:opacity-95 transition-opacity select-none"
+          alt="${escapedAlt || 'Question Diagram'}"
+          data-zoomable="true"
+          class="max-h-64 sm:max-h-72 max-w-full object-contain rounded cursor-zoom-in select-none transition-transform duration-150 group-hover:scale-[1.01]"
           loading="lazy"
-          onerror="this.onerror=null; this.closest('.inline-block').innerHTML='<div class=\\'p-3 border border-error/30 bg-error/10 text-error text-xs font-mono rounded\\'>Image unavailable: ${escapedAlt}</div>';"
-          onclick="window.__tooprep_open_image_zoom && window.__tooprep_open_image_zoom('${escapedSrc}', '${escapedAlt}')"
+          onerror="this.onerror=null; this.closest('.inline-block').innerHTML='<div class=\\'p-2.5 border border-error/30 bg-error/10 text-error text-xs font-mono rounded\\'>Image unavailable</div>';"
+          onclick="window.__tooprep_open_image_zoom && window.__tooprep_open_image_zoom('${escapedSrc}', '${escapedAlt || 'Diagram Preview'}')"
         />
       </div>
-      ${alt ? `<div class="text-[11px] text-on-surface-variant font-mono mt-1 tracking-wide">${escapedAlt}</div>` : ''}
+      ${!isGenericLabel ? `<div class="text-[11px] text-on-surface-variant font-mono mt-1 tracking-wide">${escapedAlt}</div>` : ''}
     </div>
   `;
 }
@@ -319,56 +324,82 @@ function transformMarkdownLists(text) {
 export function renderLatex(text) {
   if (!text) return '';
 
+  const imagePlaceholders = [];
   const mathPlaceholders = [];
-  const placeholderPrefix = '@@@KATEX_PH_';
+  const imgPrefix = '@@@IMG_PH_';
+  const mathPrefix = '@@@KATEX_PH_';
 
   let processed = String(text);
 
-  // 1. Display math $$...$$
+  // 1. EXTRACT ALL IMAGES FIRST (Markdown and HTML) to protect URLs from LaTeX parser
+  processed = processed.replace(/!\[(.*?)\]\((.*?)\)/g, (_, alt, src) => {
+    const id = `${imgPrefix}${imagePlaceholders.length}@@@`;
+    imagePlaceholders.push({ id, html: renderImageTag(src, alt) });
+    return id;
+  });
+
+  processed = processed.replace(/<img\s+([^>]*?)src=["']([^"']*)["']([^>]*?)\/?>/gi, (_, before, src, after) => {
+    const altMatch = (before + ' ' + after).match(/alt=["']([^"']*)["']/i);
+    const alt = altMatch ? altMatch[1] : '';
+    const id = `${imgPrefix}${imagePlaceholders.length}@@@`;
+    imagePlaceholders.push({ id, html: renderImageTag(src, alt) });
+    return id;
+  });
+
+  // 2. Display math $$...$$
   processed = processed.replace(/\$\$(.*?)\$\$/gs, (_, math) => {
-    const id = `${placeholderPrefix}${mathPlaceholders.length}@@@`;
+    const id = `${mathPrefix}${mathPlaceholders.length}@@@`;
     const html = `<div class="katex-display-wrapper my-2.5 overflow-x-auto">${renderMathRobust(math, true)}</div>`;
     mathPlaceholders.push({ id, html });
     return id;
   });
 
-  // 2. Display math \[...\]
+  // 3. Display math \[...\]
   processed = processed.replace(/\\\[(.*?)\\\]/gs, (_, math) => {
-    const id = `${placeholderPrefix}${mathPlaceholders.length}@@@`;
+    const id = `${mathPrefix}${mathPlaceholders.length}@@@`;
     const html = `<div class="katex-display-wrapper my-2.5 overflow-x-auto">${renderMathRobust(math, true)}</div>`;
     mathPlaceholders.push({ id, html });
     return id;
   });
 
-  // 3. Inline math $...$
+  // 4. Inline math $...$
   processed = processed.replace(/\$(.*?)\$/g, (_, math) => {
-    const id = `${placeholderPrefix}${mathPlaceholders.length}@@@`;
+    const id = `${mathPrefix}${mathPlaceholders.length}@@@`;
     const html = renderMathRobust(math, false);
     mathPlaceholders.push({ id, html });
     return id;
   });
 
-  // 4. Inline math \(...\)
+  // 5. Inline math \(...\)
   processed = processed.replace(/\\\((.*?)\\\)/g, (_, math) => {
-    const id = `${placeholderPrefix}${mathPlaceholders.length}@@@`;
+    const id = `${mathPrefix}${mathPlaceholders.length}@@@`;
     const html = renderMathRobust(math, false);
     mathPlaceholders.push({ id, html });
     return id;
   });
 
-  // 5. Prose Auto-Math Fallback:
-  // If no math delimiters exist, but the snippet contains explicit LaTeX math commands
-  // (e.g. "\frac{1}{2}", "1 \times 10^{-4} \, ^\circ C^{-1}", "\sqrt{2gh}", "\alpha = 2 \times 10^{-4}")
-  if (mathPlaceholders.length === 0 && /\\[a-zA-Z]+|\^\{?[0-9\-+]|\_\{?[0-9]/.test(processed)) {
-    // If the entire text is an equation snippet
-    const testMath = renderMathRobust(processed, false);
-    if (!testMath.includes('katex-error') && !testMath.includes('math-fallback')) {
-      return testMath;
-    }
-  }
+  // 6. Prose Guard & Isolated Undelimited LaTeX Extraction:
+  const strippedOfLatex = processed.replace(/\\[a-zA-Z]+/g, '').replace(/@@@[A-Z0-9_]+@@@/g, '');
+  const hasProseWords = /[a-zA-Z]{3,}\s+[a-zA-Z]{3,}/.test(strippedOfLatex);
 
-  // 6. Transform images & diagrams
-  processed = transformImages(processed);
+  if (!hasProseWords && mathPlaceholders.length === 0 && imagePlaceholders.length === 0) {
+    // If text contains NO natural language words and has math characters, try whole-string math
+    if (/[\^_{}\\]|[-+=/0-9]/.test(processed.trim())) {
+      const testMath = renderMathRobust(processed.trim(), false);
+      if (!testMath.includes('katex-error') && !testMath.includes('math-fallback') && !testMath.includes('katex-fallback')) {
+        return testMath;
+      }
+    }
+  } else if (hasProseWords) {
+    // If text contains natural language prose, extract only isolated undelimited LaTeX commands
+    const isolatedMathRegex = /\\(?:frac\{[^}]+\}\{[^}]+\}|sqrt(?:\[[^\]]+\])?\{[^}]+\}|(?:alpha|beta|gamma|delta|epsilon|theta|lambda|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi|omega|Delta|Omega)\b|times\s*10\^\{?[0-9\-+]+\}?)/g;
+    processed = processed.replace(isolatedMathRegex, (match) => {
+      const id = `${mathPrefix}${mathPlaceholders.length}@@@`;
+      const html = renderMathRobust(match, false);
+      mathPlaceholders.push({ id, html });
+      return id;
+    });
+  }
 
   // 7. Markdown Tables & Lists
   processed = transformMarkdownTables(processed);
@@ -383,6 +414,11 @@ export function renderLatex(text) {
 
   // 9. Restore KaTeX math placeholders
   for (const item of mathPlaceholders) {
+    processed = processed.replace(item.id, item.html);
+  }
+
+  // 10. Restore Image placeholders
+  for (const item of imagePlaceholders) {
     processed = processed.replace(item.id, item.html);
   }
 
@@ -423,9 +459,17 @@ function MathTextComponent({ text, className = '' }) {
     return getCachedLatexHtml(text);
   }, [text]);
 
+  const handleContainerClick = (e) => {
+    const img = e.target.closest('img[data-zoomable="true"]');
+    if (img) {
+      setZoomImg({ src: img.src, alt: img.alt });
+    }
+  };
+
   return (
     <>
       <span
+        onClick={handleContainerClick}
         className={`math-rendered-content leading-relaxed inline-block max-w-full overflow-x-auto align-baseline break-words ${className}`}
         dangerouslySetInnerHTML={{ __html: html }}
       />

@@ -32,15 +32,17 @@ def render_page(pdf_path, page_num, output_path=None, dpi=150):
     page = doc[page_idx]
     pix = page.get_pixmap(dpi=int(dpi))
     png_bytes = pix.tobytes("png")
+    page_w = round(page.rect.width, 2)
+    page_h = round(page.rect.height, 2)
 
     if output_path:
         os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
         with open(output_path, "wb") as f:
             f.write(png_bytes)
-        return {"success": True, "output_path": output_path, "bytes": len(png_bytes)}
+        return {"success": True, "output_path": output_path, "bytes": len(png_bytes), "width": page_w, "height": page_h}
     else:
         b64 = base64.b64encode(png_bytes).decode("ascii")
-        return {"success": True, "data_url": f"data:image/png;base64,{b64}", "bytes": len(png_bytes)}
+        return {"success": True, "data_url": f"data:image/png;base64,{b64}", "bytes": len(png_bytes), "width": page_w, "height": page_h}
 
 
 def crop_rect(pdf_path, page_num, output_path, x0, y0, x1, y1, dpi=300):
@@ -54,18 +56,31 @@ def crop_rect(pdf_path, page_num, output_path, x0, y0, x1, y1, dpi=300):
         raise ValueError(f"Page {page_num} out of bounds (1..{len(doc)})")
 
     page = doc[page_idx]
-    rect = pymupdf.Rect(float(x0), float(y0), float(x1), float(y1))
+    pw, ph = page.rect.width, page.rect.height
+
+    rx0 = max(0.0, min(float(x0), float(x1)))
+    ry0 = max(0.0, min(float(y0), float(y1)))
+    rx1 = min(pw, max(float(x0), float(x1)))
+    ry1 = min(ph, max(float(y0), float(y1)))
+
+    if rx1 - rx0 < 2 or ry1 - ry0 < 2:
+        raise ValueError("Selected crop region is too small (< 2 points)")
+
+    rect = pymupdf.Rect(rx0, ry0, rx1, ry1)
     pix = page.get_pixmap(clip=rect, dpi=int(dpi))
     png_bytes = pix.tobytes("png")
+
+    crop_w = round(rect.width, 2)
+    crop_h = round(rect.height, 2)
 
     if output_path:
         os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
         with open(output_path, "wb") as f:
             f.write(png_bytes)
-        return {"success": True, "output_path": output_path, "bytes": len(png_bytes)}
+        return {"success": True, "output_path": output_path, "bytes": len(png_bytes), "width": crop_w, "height": crop_h}
     else:
         b64 = base64.b64encode(png_bytes).decode("ascii")
-        return {"success": True, "data_url": f"data:image/png;base64,{b64}", "bytes": len(png_bytes)}
+        return {"success": True, "data_url": f"data:image/png;base64,{b64}", "bytes": len(png_bytes), "width": crop_w, "height": crop_h}
 
 
 def main():

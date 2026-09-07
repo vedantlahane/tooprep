@@ -95,12 +95,12 @@ def extract_diagrams(pdf_path, output_dir, dpi=300, min_size=15):
         if not candidate_rects:
             continue
 
-        # 4. Cluster nearby drawings into diagram envelopes
+        # 4. Cluster nearby drawings into diagram envelopes (24pt radius for chemical reagents & arrows)
         clusters = []
         for r in candidate_rects:
             merged = False
             for c in clusters:
-                exp = pymupdf.Rect(c.x0 - 12, c.y0 - 12, c.x1 + 12, c.y1 + 12)
+                exp = pymupdf.Rect(c.x0 - 24, c.y0 - 24, c.x1 + 24, c.y1 + 24)
                 if exp.intersects(r):
                     c.include_rect(r)
                     merged = True
@@ -117,7 +117,7 @@ def extract_diagrams(pdf_path, output_dir, dpi=300, min_size=15):
                 curr = clusters.pop(0)
                 merged = False
                 for other in clusters:
-                    exp = pymupdf.Rect(curr.x0 - 12, curr.y0 - 12, curr.x1 + 12, curr.y1 + 12)
+                    exp = pymupdf.Rect(curr.x0 - 24, curr.y0 - 24, curr.x1 + 24, curr.y1 + 24)
                     if exp.intersects(other):
                         other.include_rect(curr)
                         merged = True
@@ -132,11 +132,11 @@ def extract_diagrams(pdf_path, output_dir, dpi=300, min_size=15):
         for c in clusters:
             if c.width < min_size or c.height < min_size:
                 continue
-            # Expand to encapsulate touching chemical/symbol text words (e.g. Br, CH3, OH, R1, C1)
+            # Expand to encapsulate touching chemical/symbol text words (e.g. Br, CH3, OH, R1, C1, PCC)
             expanded = pymupdf.Rect(c)
             for w in words:
-                if (c.x0 - 8 <= w[0] and w[2] <= c.x1 + 8 and
-                    c.y0 - 8 <= w[1] and w[3] <= c.y1 + 8):
+                if (c.x0 - 18 <= w[0] and w[2] <= c.x1 + 18 and
+                    c.y0 - 18 <= w[1] and w[3] <= c.y1 + 18):
                     expanded.include_rect(pymupdf.Rect(w[0], w[1], w[2], w[3]))
             valid_diagrams.append(expanded)
 
@@ -185,19 +185,19 @@ def extract_diagrams(pdf_path, output_dir, dpi=300, min_size=15):
                     composite_stem = pymupdf.Rect(stem_diags[0])
                     for sd in stem_diags[1:]:
                         composite_stem.include_rect(sd)
-                    # Also include any text words inside or between the stem drawings (reaction reagents, arrows)
+                    # Also include any text words inside or between the stem drawings (reaction reagents, arrows, conditions)
                     for w in words:
-                        if (composite_stem.x0 - 5 <= w[0] and w[2] <= composite_stem.x1 + 5 and
-                            composite_stem.y0 - 5 <= w[1] and w[3] <= composite_stem.y1 + 5 and
+                        if (composite_stem.x0 - 14 <= w[0] and w[2] <= composite_stem.x1 + 14 and
+                            composite_stem.y0 - 14 <= w[1] and w[3] <= composite_stem.y1 + 14 and
                             w[3] < first_opt_y - 4):
                             composite_stem.include_rect(pymupdf.Rect(w[0], w[1], w[2], w[3]))
 
-                    # Crop and save stem diagram
+                    # Crop and save stem diagram with generous 14pt margin
                     stem_crop_rect = pymupdf.Rect(
-                        max(0, composite_stem.x0 - 6),
-                        max(0, composite_stem.y0 - 6),
-                        min(pw, composite_stem.x1 + 6),
-                        min(ph, composite_stem.y1 + 6)
+                        max(0, composite_stem.x0 - 14),
+                        max(0, composite_stem.y0 - 14),
+                        min(pw, composite_stem.x1 + 14),
+                        min(ph, composite_stem.y1 + 14)
                     )
                     pix = page.get_pixmap(clip=stem_crop_rect, dpi=dpi)
                     stem_filename = f'q{q_num}_stem.png'
@@ -212,33 +212,47 @@ def extract_diagrams(pdf_path, output_dir, dpi=300, min_size=15):
                         'height': round(stem_crop_rect.height, 1)
                     }
 
-                # Map option diagrams to closest option marker
-                for od in opt_diags:
-                    if not q_opts:
-                        continue
-                    # Find closest option marker using Euclidean distance
-                    best_opt = min(q_opts, key=lambda o: math.hypot(od.x0 - o['x0'], od.y0 - o['y0']))
-                    opt_key = best_opt['opt']
+                # Option diagrams: group by closest option marker and merge all fragments
+                if opt_diags and q_opts:
+                    opt_groups = {o['opt']: [] for o in q_opts}
+                    for od in opt_diags:
+                        best_opt = min(q_opts, key=lambda o: math.hypot(od.x0 - o['x0'], od.y0 - o['y0']))
+                        opt_groups[best_opt['opt']].append(od)
 
-                    # Expand slightly
-                    opt_crop_rect = pymupdf.Rect(
-                        max(0, od.x0 - 6),
-                        max(0, od.y0 - 6),
-                        min(pw, od.x1 + 6),
-                        min(ph, od.y1 + 6)
-                    )
-                    pix = page.get_pixmap(clip=opt_crop_rect, dpi=dpi)
-                    opt_filename = f'q{q_num}_opt_{opt_key}.png'
-                    opt_path = os.path.join(output_dir, opt_filename)
-                    pix.save(opt_path)
+                    for opt_key, o_diags in opt_groups.items():
+                        if not o_diags:
+                            continue
+                        comp_opt = pymupdf.Rect(o_diags[0])
+                        for od in o_diags[1:]:
+                            comp_opt.include_rect(od)
 
-                    diagrams_by_q[q_num]['options'][opt_key] = {
-                        'filename': opt_filename,
-                        'path': os.path.abspath(opt_path),
-                        'page': pno + 1,
-                        'width': round(opt_crop_rect.width, 1),
-                        'height': round(opt_crop_rect.height, 1)
-                    }
+                        # Include adjacent chemical text labels for this option (e.g. OH, CHO, CH3, Br)
+                        for w in words:
+                            if (comp_opt.x0 - 10 <= w[0] and w[2] <= comp_opt.x1 + 10 and
+                                comp_opt.y0 - 10 <= w[1] and w[3] <= comp_opt.y1 + 10 and
+                                w[1] >= first_opt_y - 2 and w[3] <= bot_y + 2):
+                                if not re.match(r'^\([A-D]\)$', w[4]):
+                                    comp_opt.include_rect(pymupdf.Rect(w[0], w[1], w[2], w[3]))
+
+                        # Crop and save option diagram with generous 12pt margin
+                        opt_crop_rect = pymupdf.Rect(
+                            max(0, comp_opt.x0 - 12),
+                            max(0, comp_opt.y0 - 12),
+                            min(pw, comp_opt.x1 + 12),
+                            min(ph, comp_opt.y1 + 12)
+                        )
+                        pix = page.get_pixmap(clip=opt_crop_rect, dpi=dpi)
+                        opt_filename = f'q{q_num}_opt_{opt_key}.png'
+                        opt_path = os.path.join(output_dir, opt_filename)
+                        pix.save(opt_path)
+
+                        diagrams_by_q[q_num]['options'][opt_key] = {
+                            'filename': opt_filename,
+                            'path': os.path.abspath(opt_path),
+                            'page': pno + 1,
+                            'width': round(opt_crop_rect.width, 1),
+                            'height': round(opt_crop_rect.height, 1)
+                        }
 
     # Clean up empty entries
     clean_diagrams = {k: v for k, v in diagrams_by_q.items() if v['stem'] or v['options']}

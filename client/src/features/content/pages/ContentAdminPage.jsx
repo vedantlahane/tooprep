@@ -23,7 +23,8 @@ import {
   ChevronLeft,
   ChevronRight,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  Crop
 } from 'lucide-react';
 
 const REJECTION_PRESETS = [
@@ -61,7 +62,7 @@ const TopicSelect = memo(function TopicSelect({ value, onChange, groupedTopics }
 /**
  * Interactive Candidate Verification Component
  */
-function CandidateCard({ candidate, jobId, groupedTopics, onReviewed, onViewPdfPage }) {
+function CandidateCard({ candidate, jobId, groupedTopics, onReviewed, onViewPdfPage, onOpenCropper }) {
   // Parse initial values intelligently
   const initialParsed = useMemo(() => {
     let qText = candidate.question_text || candidate.raw_text || '';
@@ -118,6 +119,19 @@ function CandidateCard({ candidate, jobId, groupedTopics, onReviewed, onViewPdfP
       setTopicId(candidate.suggested_topic_id);
     }
   }, [candidate.suggested_topic_id]);
+
+  const handleApplyCroppedImage = (target, imageUrl) => {
+    const cleanUrl = imageUrl.trim();
+    if (target === 'stem') {
+      setQuestionText(prev => prev ? `${prev.trim()}\n\n![Figure](${cleanUrl})\n` : `![Figure](${cleanUrl})\n`);
+    } else if (target && target.startsWith('opt')) {
+      const optId = target.slice(3).toUpperCase();
+      setOptions(prev => prev.map(o => o.id === optId ? {
+        ...o,
+        text: (o.text ? o.text.trim() + ' ' : '') + `![Option ${optId}](${cleanUrl})`
+      } : o));
+    }
+  };
 
   const handleAutoExtract = () => {
     const extracted = extractOptionsFromText(questionText || candidate.raw_text);
@@ -320,6 +334,17 @@ function CandidateCard({ candidate, jobId, groupedTopics, onReviewed, onViewPdfP
             </button>
           )}
 
+          {onOpenCropper && (
+            <button
+              onClick={() => onOpenCropper(primaryPage, candidate.source_question_number, candidate.candidate_key, handleApplyCroppedImage, 'stem')}
+              className="px-2 py-1 text-label-sm-mono uppercase tracking-widest border border-primary/60 bg-primary/10 hover:bg-primary hover:text-white text-primary transition-colors rounded-sm flex items-center gap-1 text-[11px] font-bold"
+              title="Open interactive cropping studio for this candidate"
+            >
+              <Crop className="w-3 h-3" />
+              <span>Crop Diagram</span>
+            </button>
+          )}
+
           {isExpanded && (
             <>
               <button
@@ -408,14 +433,25 @@ function CandidateCard({ candidate, jobId, groupedTopics, onReviewed, onViewPdfP
                     Question Stem (LaTeX / Markdown)
                   </label>
                   <div className="flex items-center gap-3">
+                    {onOpenCropper && (
+                      <button
+                        onClick={() => onOpenCropper(primaryPage, candidate.source_question_number, candidate.candidate_key, handleApplyCroppedImage, 'stem')}
+                        className="text-label-sm-mono text-primary hover:underline uppercase tracking-widest text-xs flex items-center gap-1 font-bold"
+                        title="Crop stem diagram from source PDF"
+                      >
+                        <Crop className="w-3.5 h-3.5" />
+                        <span>Crop PDF</span>
+                      </button>
+                    )}
+
                     <button
                       onClick={() => handleAttachImage('stem')}
                       disabled={uploadingImage}
-                      className="text-label-sm-mono text-primary hover:underline uppercase tracking-widest text-xs flex items-center gap-1"
+                      className="text-label-sm-mono text-on-surface-variant hover:text-primary hover:underline uppercase tracking-widest text-xs flex items-center gap-1"
                       title="Upload or attach diagram image"
                     >
                       <ImageIcon className="w-3.5 h-3.5" />
-                      <span>{uploadingImage && targetImageField === 'stem' ? 'Uploading...' : 'Attach Diagram'}</span>
+                      <span>{uploadingImage && targetImageField === 'stem' ? 'Uploading...' : 'Attach Image'}</span>
                     </button>
 
                     <button
@@ -482,6 +518,16 @@ function CandidateCard({ candidate, jobId, groupedTopics, onReviewed, onViewPdfP
                         <div className="flex items-center justify-between">
                           <span className="text-label-sm-mono text-on-surface font-bold text-xs">Option {opt.id}</span>
                           <div className="flex items-center gap-2">
+                            {onOpenCropper && (
+                              <button
+                                onClick={() => onOpenCropper(primaryPage, candidate.source_question_number, candidate.candidate_key, handleApplyCroppedImage, `opt${opt.id}`)}
+                                className="text-label-sm-mono text-primary hover:underline text-[10px] uppercase tracking-wider flex items-center gap-0.5 font-bold"
+                                title={`Crop diagram from PDF for Option ${opt.id}`}
+                              >
+                                <Crop className="w-3 h-3" />
+                                <span>Crop</span>
+                              </button>
+                            )}
                             <button
                               onClick={() => handleAttachImage(`opt${opt.id}`)}
                               className="text-label-sm-mono text-on-surface-variant hover:text-primary text-[10px] uppercase tracking-wider flex items-center gap-0.5"
@@ -671,6 +717,301 @@ function CandidateCard({ candidate, jobId, groupedTopics, onReviewed, onViewPdfP
 }
 
 /**
+ * Interactive PDF Cropping & Inspector Studio Modal
+ * Allows dragging crosshair bounding boxes to crop at 300 DPI directly into question stem or options.
+ */
+function PdfCroppingStudioModal({ modal, onClose, onCrop, onNavigatePage }) {
+  const [target, setTarget] = useState(modal?.defaultTarget || 'stem');
+  const [selection, setSelection] = useState(null); // { x, y, w, h } in fractions [0..1]
+  const [isDragging, setIsDragging] = useState(false);
+  const [startPoint, setStartPoint] = useState(null);
+  const [cropping, setCropping] = useState(false);
+  const [cropSuccess, setCropSuccess] = useState('');
+  const [error, setError] = useState('');
+  const imgRef = useRef(null);
+
+  useEffect(() => {
+    if (modal?.defaultTarget) setTarget(modal.defaultTarget);
+    setCropSuccess('');
+    setError('');
+  }, [modal?.defaultTarget, modal?.pageNum]);
+
+  const getRelativeCoords = (e) => {
+    if (!imgRef.current) return null;
+    const rect = imgRef.current.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const x = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const y = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+    return { x, y };
+  };
+
+  const handlePointerDown = (e) => {
+    const coords = getRelativeCoords(e);
+    if (!coords) return;
+    setIsDragging(true);
+    setStartPoint(coords);
+    setSelection({ x: coords.x, y: coords.y, w: 0, h: 0 });
+    setCropSuccess('');
+    setError('');
+  };
+
+  const handlePointerMove = (e) => {
+    if (!isDragging || !startPoint) return;
+    const coords = getRelativeCoords(e);
+    if (!coords) return;
+    const x0 = Math.min(startPoint.x, coords.x);
+    const y0 = Math.min(startPoint.y, coords.y);
+    const w = Math.abs(coords.x - startPoint.x);
+    const h = Math.abs(coords.y - startPoint.y);
+    setSelection({ x: x0, y: y0, w, h });
+  };
+
+  const handlePointerUp = () => {
+    setIsDragging(false);
+    if (selection && (selection.w < 0.01 || selection.h < 0.01)) {
+      setSelection(null);
+    }
+  };
+
+  const pdfPoints = useMemo(() => {
+    if (!selection) return null;
+    const pw = modal?.width || 595.3;
+    const ph = modal?.height || 841.9;
+    const x0 = Math.round(selection.x * pw);
+    const y0 = Math.round(selection.y * ph);
+    const x1 = Math.round((selection.x + selection.w) * pw);
+    const y1 = Math.round((selection.y + selection.h) * ph);
+    const w = x1 - x0;
+    const h = y1 - y0;
+    return { x0, y0, x1, y1, w, h };
+  }, [selection, modal?.width, modal?.height]);
+
+  const handleApplyCrop = async () => {
+    if (!pdfPoints) {
+      setError('Please click & drag a selection box over the diagram first.');
+      return;
+    }
+    setCropping(true);
+    setError('');
+    setCropSuccess('');
+    try {
+      await onCrop(pdfPoints, target);
+      const targetName = target === 'stem' ? 'Question Stem' : `Option ${target.slice(3).toUpperCase()}`;
+      setCropSuccess(`✓ Diagram cropped at 300 DPI and inserted into ${targetName}!`);
+      if (target === 'stem') setTarget('optA');
+      else if (target === 'optA') setTarget('optB');
+      else if (target === 'optB') setTarget('optC');
+      else if (target === 'optC') setTarget('optD');
+      setSelection(null);
+    } catch (err) {
+      setError(err.message || 'Failed to crop diagram');
+    } finally {
+      setCropping(false);
+    }
+  };
+
+  if (!modal) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in select-none"
+      onClick={onClose}
+    >
+      <div
+        className="bg-surface-dim border border-outline-variant rounded-sm w-full max-w-5xl max-h-[94vh] flex flex-col overflow-hidden shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Top Header */}
+        <div className="flex justify-between items-center px-4 sm:px-6 py-3 border-b border-outline-variant bg-surface-container">
+          <div className="flex items-center gap-2.5 min-w-0 truncate">
+            <Crop className="w-4 h-4 text-primary shrink-0" />
+            <span className="text-label-sm-mono uppercase tracking-widest text-primary font-bold text-xs truncate">
+              PDF Cropping Studio &middot; Page {modal.pageNum}
+            </span>
+            {modal.qNum && (
+              <span className="text-xs text-on-surface-variant font-mono shrink-0">
+                (Q.{modal.qNum})
+              </span>
+            )}
+          </div>
+
+          {/* Page Navigator */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onNavigatePage(-1)}
+              disabled={modal.pageNum <= 1 || modal.loading}
+              className="px-2 py-1 text-xs font-mono border border-outline-variant rounded hover:border-primary disabled:opacity-40 flex items-center gap-1"
+              title="Previous Page"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+              <span>P.{modal.pageNum - 1}</span>
+            </button>
+            <span className="text-xs font-mono text-primary font-bold px-1.5">
+              Page {modal.pageNum}
+            </span>
+            <button
+              onClick={() => onNavigatePage(1)}
+              disabled={modal.loading}
+              className="px-2 py-1 text-xs font-mono border border-outline-variant rounded hover:border-primary disabled:opacity-40 flex items-center gap-1"
+              title="Next Page"
+            >
+              <span>P.{modal.pageNum + 1}</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+
+            <div className="h-4 w-px bg-outline-variant mx-1" />
+
+            <button
+              onClick={onClose}
+              className="text-on-surface-variant hover:text-on-surface font-mono text-xs px-2.5 py-1 rounded hover:bg-surface-container transition-colors"
+            >
+              ✕ Close
+            </button>
+          </div>
+        </div>
+
+        {/* Toolbar & Target Selector */}
+        <div className="px-4 sm:px-6 py-2.5 bg-surface-container/80 border-b border-outline-variant flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-on-surface-variant text-[11px] uppercase tracking-wider font-bold">Apply Crop To:</span>
+            {[
+              { id: 'stem', label: 'Stem' },
+              { id: 'optA', label: 'Option A' },
+              { id: 'optB', label: 'Option B' },
+              { id: 'optC', label: 'Option C' },
+              { id: 'optD', label: 'Option D' }
+            ].map(t => (
+              <button
+                key={t.id}
+                onClick={() => setTarget(t.id)}
+                className={`px-2.5 py-1 rounded-sm uppercase tracking-wider text-[11px] font-bold border transition-colors ${
+                  target === t.id
+                    ? 'bg-primary text-white border-primary shadow-sm'
+                    : 'bg-surface-dim border-outline-variant text-on-surface-variant hover:text-on-surface'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-3">
+            {pdfPoints && (
+              <span className="text-[11px] text-primary bg-primary/10 border border-primary/30 px-2 py-0.5 rounded-xs">
+                {pdfPoints.w} &times; {pdfPoints.h} pt
+              </span>
+            )}
+
+            {selection && (
+              <button
+                onClick={() => setSelection(null)}
+                className="text-on-surface-variant hover:text-error text-[11px] underline"
+              >
+                Clear Box
+              </button>
+            )}
+
+            <button
+              onClick={handleApplyCrop}
+              disabled={!selection || cropping || modal.loading}
+              className="px-4 py-1.5 bg-primary text-white hover:bg-primary-hover disabled:opacity-40 rounded-sm font-bold uppercase tracking-wider text-xs flex items-center gap-1.5 transition-all shadow-sm"
+            >
+              {cropping ? (
+                <>
+                  <Sparkles className="w-3.5 h-3.5 animate-spin" />
+                  <span>Cropping 300 DPI...</span>
+                </>
+              ) : (
+                <>
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>Crop & Apply</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Status / Notice Banner */}
+        {cropSuccess && (
+          <div className="bg-status-aligned/10 border-b border-status-aligned/30 px-4 py-2 text-status-aligned font-mono text-xs flex items-center justify-between">
+            <span>{cropSuccess}</span>
+            <span className="text-[11px] opacity-75">Target advanced to next field. Drag to crop another!</span>
+          </div>
+        )}
+
+        {error && (
+          <div className="bg-error/10 border-b border-error/30 px-4 py-2 text-error font-mono text-xs">
+            {error}
+          </div>
+        )}
+
+        {/* Canvas / Image Interactive Stage */}
+        <div
+          className="p-3 sm:p-6 overflow-auto flex-1 flex flex-col items-center justify-center bg-black/75 min-h-[360px] max-w-full relative select-none cursor-crosshair"
+          onMouseDown={handlePointerDown}
+          onMouseMove={handlePointerMove}
+          onMouseUp={handlePointerUp}
+          onTouchStart={handlePointerDown}
+          onTouchMove={handlePointerMove}
+          onTouchEnd={handlePointerUp}
+        >
+          {modal.loading ? (
+            <div className="text-center space-y-2.5 font-mono text-primary animate-pulse-soft">
+              <Sparkles className="w-7 h-7 mx-auto animate-spin" />
+              <p className="text-xs">Rendering vector page {modal.pageNum} at high resolution...</p>
+            </div>
+          ) : modal.error ? (
+            <div className="text-error font-mono text-xs border border-error/30 bg-error/10 p-4 rounded text-center">
+              Error rendering page: {modal.error}
+            </div>
+          ) : (
+            <div className="relative inline-block shadow-2xl bg-white rounded border border-outline-variant/80">
+              <img
+                ref={imgRef}
+                src={modal.dataUrl}
+                alt={`Page ${modal.pageNum}`}
+                draggable={false}
+                className="max-h-[64vh] max-w-full w-auto object-contain select-none pointer-events-none"
+              />
+
+              {/* Selection overlay box */}
+              {selection && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: `${selection.x * 100}%`,
+                    top: `${selection.y * 100}%`,
+                    width: `${selection.w * 100}%`,
+                    height: `${selection.h * 100}%`,
+                  }}
+                  className="border-2 border-primary bg-primary/20 pointer-events-none shadow-[0_0_12px_rgba(0,191,255,0.4)]"
+                >
+                  <div className="absolute top-0 right-0 -translate-y-full bg-primary text-white text-[10px] font-mono px-1.5 py-0.5 rounded-xs tracking-wider uppercase font-bold">
+                    Target: {target.toUpperCase()}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Bottom Hint */}
+        <div className="px-4 sm:px-6 py-2 border-t border-outline-variant bg-surface-container flex justify-between items-center text-[11px] font-mono text-on-surface-variant">
+          <span>Click &amp; drag on any chemical reaction, graph, or option diagram to crop at 300 DPI.</span>
+          <button
+            onClick={onClose}
+            className="px-3.5 py-1 bg-primary text-white rounded-sm font-bold uppercase tracking-widest text-xs"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
  * Main Content Operations Hub Page
  */
 export default function ContentAdminPage() {
@@ -704,8 +1045,8 @@ export default function ContentAdminPage() {
   const [error, setError] = useState('');
   const [bulkPublishing, setBulkPublishing] = useState(false);
 
-  // PDF Viewer Modal
-  const [pdfModal, setPdfModal] = useState(null); // { pageNum, qNum, dataUrl: null, loading: true }
+  // PDF Viewer & Cropping Studio Modal
+  const [cropperModal, setCropperModal] = useState(null);
 
   const loadJobs = async () => {
     try {
@@ -815,16 +1156,72 @@ export default function ContentAdminPage() {
     }
   };
 
-  // Open PDF page viewer
-  const handleOpenPdfPage = async (pageNum, qNum) => {
+  // Open Interactive PDF Cropping Studio
+  const handleOpenCropper = async (pageNum, qNum, candidateKey, onApply, defaultTarget = 'stem') => {
     if (!selectedJob) return;
-    setPdfModal({ pageNum, qNum, loading: true, dataUrl: null, error: null });
+    const page = Number(pageNum) || 1;
+    setCropperModal({
+      jobId: selectedJob.job_id,
+      pageNum: page,
+      qNum,
+      candidateKey,
+      onApply,
+      defaultTarget,
+      loading: true,
+      dataUrl: null,
+      width: 595.3,
+      height: 841.9,
+      error: null
+    });
     try {
-      const res = await contentService.renderPdfPage(selectedJob.job_id, pageNum, 150);
-      setPdfModal(prev => ({ ...prev, loading: false, dataUrl: res.data_url }));
+      const res = await contentService.renderPdfPage(selectedJob.job_id, page, 150);
+      setCropperModal(prev => ({
+        ...prev,
+        loading: false,
+        dataUrl: res.data_url,
+        width: res.width || 595.3,
+        height: res.height || 841.9
+      }));
     } catch (err) {
-      setPdfModal(prev => ({ ...prev, loading: false, error: err.message }));
+      setCropperModal(prev => ({ ...prev, loading: false, error: err.message }));
     }
+  };
+
+  const handleOpenPdfPage = (pageNum, qNum) => {
+    handleOpenCropper(pageNum, qNum, null, null, 'stem');
+  };
+
+  const handleCropperNavigatePage = async (delta) => {
+    if (!cropperModal || !selectedJob) return;
+    const newPage = Math.max(1, cropperModal.pageNum + delta);
+    setCropperModal(prev => ({
+      ...prev,
+      pageNum: newPage,
+      loading: true,
+      dataUrl: null,
+      error: null
+    }));
+    try {
+      const res = await contentService.renderPdfPage(selectedJob.job_id, newPage, 150);
+      setCropperModal(prev => ({
+        ...prev,
+        loading: false,
+        dataUrl: res.data_url,
+        width: res.width || 595.3,
+        height: res.height || 841.9
+      }));
+    } catch (err) {
+      setCropperModal(prev => ({ ...prev, loading: false, error: err.message }));
+    }
+  };
+
+  const handleExecuteCrop = async (rect, target) => {
+    if (!cropperModal || !selectedJob) return;
+    const res = await contentService.cropPdfDiagram(selectedJob.job_id, cropperModal.pageNum, rect, 300);
+    if (cropperModal.onApply && res.url) {
+      cropperModal.onApply(target, res.url);
+    }
+    return res;
   };
 
   useEffect(() => {
@@ -1261,6 +1658,7 @@ export default function ContentAdminPage() {
                 groupedTopics={groupedTopics}
                 onReviewed={() => chooseJob(selectedJob)}
                 onViewPdfPage={handleOpenPdfPage}
+                onOpenCropper={handleOpenCropper}
               />
             ))}
           </div>
@@ -1297,68 +1695,14 @@ export default function ContentAdminPage() {
         </div>
       </section>
 
-      {/* Responsive Source PDF Page Inspector Modal */}
-      {pdfModal && (
-        <div
-          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in"
-          onClick={() => setPdfModal(null)}
-        >
-          <div
-            className="bg-surface-dim border border-outline-variant rounded-sm w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-center px-4 sm:px-6 py-3 border-b border-outline-variant bg-surface-container">
-              <div className="flex items-center gap-2.5 min-w-0 truncate">
-                <FileText className="w-4 h-4 text-primary shrink-0" />
-                <span className="text-label-sm-mono uppercase tracking-widest text-primary font-bold text-xs truncate">
-                  Source Exam Paper &middot; Page {pdfModal.pageNum}
-                </span>
-                {pdfModal.qNum && (
-                  <span className="text-xs text-on-surface-variant font-mono shrink-0">
-                    (Q.{pdfModal.qNum})
-                  </span>
-                )}
-              </div>
-              <button
-                onClick={() => setPdfModal(null)}
-                className="text-on-surface-variant hover:text-on-surface font-mono text-xs px-2 py-1 rounded hover:bg-surface-container"
-              >
-                ✕ Close
-              </button>
-            </div>
-
-            <div className="p-3 sm:p-6 overflow-auto flex-1 flex flex-col items-center justify-center bg-black/60 min-h-[300px] max-w-full">
-              {pdfModal.loading ? (
-                <div className="text-center space-y-2.5 font-mono text-primary animate-pulse-soft">
-                  <Sparkles className="w-6 h-6 mx-auto animate-spin" />
-                  <p className="text-xs">Rendering vector page {pdfModal.pageNum}...</p>
-                </div>
-              ) : pdfModal.error ? (
-                <div className="text-error font-mono text-xs border border-error/30 bg-error/10 p-3 rounded">
-                  Error rendering page: {pdfModal.error}
-                </div>
-              ) : (
-                <div className="bg-white p-2.5 rounded shadow-lg max-w-full overflow-auto">
-                  <img
-                    src={pdfModal.dataUrl}
-                    alt={`Page ${pdfModal.pageNum}`}
-                    className="max-h-[68vh] max-w-full w-auto object-contain select-none shadow-sm"
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="px-4 sm:px-6 py-2.5 border-t border-outline-variant bg-surface-container flex justify-between items-center text-[11px] font-mono text-on-surface-variant">
-              <span>Original high-res vector scan. Use clipboard (Ctrl+V) or Attach Diagram to add visuals.</span>
-              <button
-                onClick={() => setPdfModal(null)}
-                className="px-3.5 py-1 bg-primary text-white rounded-sm font-bold uppercase tracking-widest text-xs"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Interactive Source PDF Cropping Studio Modal */}
+      {cropperModal && (
+        <PdfCroppingStudioModal
+          modal={cropperModal}
+          onClose={() => setCropperModal(null)}
+          onCrop={handleExecuteCrop}
+          onNavigatePage={handleCropperNavigatePage}
+        />
       )}
     </div>
   );
