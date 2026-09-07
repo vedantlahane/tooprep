@@ -12,22 +12,24 @@ async function getAuthHeaders(includeContentType = true) {
     : { 'Authorization': `Bearer ${session.access_token}` };
 }
 
-export async function request(method, path, body = null, retries = 3) {
+export async function request(method, path, body = null, retries = 5) {
   const isFormData = body instanceof FormData;
   const headers = await getAuthHeaders(!isFormData);
   const options = { method, headers };
   if (body) options.body = isFormData ? body : JSON.stringify(body);
 
   let attempt = 0;
+  const maxColdRetries = 6; // Ample budget for Render free tier container spin-up (45-60s)
+
   while (true) {
     try {
       const res = await fetch(`${API_BASE}${path}`, options);
       
       // Handle Render free-tier spinning up (408, 502, 503, 504) on idempotent GET requests
-      if ((res.status === 408 || res.status === 502 || res.status === 503 || res.status === 504) && attempt < retries && method === 'GET') {
+      if ((res.status === 408 || res.status === 502 || res.status === 503 || res.status === 504) && attempt < maxColdRetries && method === 'GET') {
         attempt++;
-        const backoffMs = 1500 * attempt;
-        console.warn(`[API] Backend cold-start / timeout (${res.status}) on ${path}. Retrying in ${backoffMs / 1000}s (attempt ${attempt}/${retries})...`);
+        const backoffMs = Math.min(2000 + attempt * 1500, 7500);
+        console.warn(`[API] Backend waking from cold sleep (${res.status}) on ${path}. Retrying in ${backoffMs / 1000}s (attempt ${attempt}/${maxColdRetries})...`);
         await new Promise((r) => setTimeout(r, backoffMs));
         continue;
       }
@@ -44,11 +46,12 @@ export async function request(method, path, body = null, retries = 3) {
         return await res.text();
       }
     } catch (err) {
-      // Retry transient network failures on GET during backend cold-starts
-      if (attempt < retries && method === 'GET' && (err.name === 'TypeError' || err.message.includes('fetch'))) {
+      // Retry transient network connection errors during container boot
+      if (attempt < maxColdRetries && method === 'GET' && (err.name === 'TypeError' || err.message.includes('fetch'))) {
         attempt++;
-        console.warn(`[API] Transient network error on ${path}. Retrying in 2s (attempt ${attempt}/${retries})...`);
-        await new Promise((r) => setTimeout(r, 2000));
+        const backoffMs = Math.min(2000 + attempt * 1500, 7500);
+        console.warn(`[API] Connection waiting for backend wake-up on ${path}. Retrying in ${backoffMs / 1000}s (attempt ${attempt}/${maxColdRetries})...`);
+        await new Promise((r) => setTimeout(r, backoffMs));
         continue;
       }
       throw err;

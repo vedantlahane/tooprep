@@ -33,8 +33,13 @@ export function registerServiceWorker() {
           console.error('[PWA] Service Worker registration failed:', error);
         });
 
+      let refreshing = false;
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         console.log('[PWA] Active Service Worker controller updated.');
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
       });
     });
   }

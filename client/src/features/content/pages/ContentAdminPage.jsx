@@ -745,7 +745,24 @@ export default function ContentAdminPage() {
       await chooseJob(job);
       setFile(null);
       event.target.reset();
+      if (job?.already_existed) {
+        alert(`This PDF was already uploaded previously (Job ID: ${job.job_id}).\nLoaded existing candidate questions and page extractions.`);
+      }
     } catch (err) {
+      if (err.message && (err.message.includes('already exists') || err.message.includes('409'))) {
+        try {
+          const jList = await contentService.listJobs();
+          setJobs(jList);
+          const matching = jList.find(j => j.filename === file.name || j.metadata?.filename === file.name);
+          if (matching) {
+            await chooseJob(matching);
+            setFile(null);
+            event.target.reset();
+            alert(`This PDF was already uploaded previously (Job ID: ${matching.job_id}).\nLoaded existing candidate questions and page extractions.`);
+            return;
+          }
+        } catch (_) {}
+      }
       setError(err.message);
     } finally {
       setUploading(false);

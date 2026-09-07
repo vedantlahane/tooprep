@@ -147,6 +147,11 @@ export const contentRepository = {
     return jobs.findOne({ job_id: jobId }, { projection: { _id: 0 } });
   },
 
+  async findJobByChecksum(sha256) {
+    const { jobs } = await collections();
+    return jobs.findOne({ 'source.sha256': sha256 }, { projection: { _id: 0 } });
+  },
+
   async updateJobStage(jobId, expectedStage, stage, transitionEvent) {
     const { jobs } = await collections();
     const now = new Date();

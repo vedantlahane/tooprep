@@ -12,7 +12,7 @@
  * 5. Instant activation with skipWaiting() and immediate clients.claim().
  ***/
 
-const CACHE_NAME = 'tooprep-pwa-v2';
+const CACHE_NAME = 'tooprep-pwa-v3';
 
 const PRECACHE_ASSETS = [
   '/',

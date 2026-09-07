@@ -140,7 +140,15 @@ export const contentService = {
     try {
       return await contentRepository.insertJob(job);
     } catch (error) {
-      if (error?.code === 11000) throw applicationError('An ingestion job already exists for this source checksum', 409);
+      if (error?.code === 11000) {
+        if (input.source_sha256) {
+          const existing = await contentRepository.findJobByChecksum(input.source_sha256);
+          if (existing) {
+            return { ...existing, already_existed: true };
+          }
+        }
+        throw applicationError('An ingestion job already exists for this source checksum', 409);
+      }
       throw error;
     }
   },
