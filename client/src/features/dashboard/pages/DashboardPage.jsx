@@ -515,7 +515,7 @@ export default function DashboardPage() {
           <div className="acrylic-glass border border-white/10 rounded-sm p-1.5 flex items-center gap-2 bg-surface-container/90">
             {/* Name Box (Active Cell Coordinate) */}
             <div
-              className="hidden sm:block px-2.5 py-1 bg-black/60 border border-white/15 rounded text-primary text-xs font-semibold min-w-[56px] text-center shrink-0 tracking-wider"
+              className="px-2 py-1 bg-black/60 border border-white/15 rounded text-primary text-[11px] sm:text-xs font-semibold min-w-[44px] sm:min-w-[56px] text-center shrink-0 tracking-wider font-mono"
               title="Selected Cell"
             >
               {activeCell.coord}
@@ -662,116 +662,18 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* ─── Mobile Topic Cards View (< md screens) ─── */}
-          <div className="block md:hidden space-y-2.5">
-            {filteredAndSorted.length === 0 ? (
-              <div className="p-8 text-center bg-surface-container border border-outline-variant rounded-sm text-white/50 text-xs">
-                No topics matching your filter criteria.
-              </div>
-            ) : (
-              filteredAndSorted.map((topic, idx) => {
-                const gap = topic.gap;
+          {/* ─── The Master Spreadsheet Grid (Desktop & Mobile) ─── */}
+          <div className="border border-neutral-800 rounded-sm bg-black overflow-hidden shadow-2xl">
+            {/* Mobile Scroll Indicator */}
+            <div className="md:hidden px-3 py-1.5 bg-neutral-900/90 border-b border-neutral-800 flex items-center justify-between text-[10px] font-mono text-white/50 select-none">
+              <span className="flex items-center gap-1 text-primary">
+                <span>&larr;&rarr;</span>
+                <span>Spreadsheet &middot; Swipe horizontally</span>
+              </span>
+              <span>Tap cell to select</span>
+            </div>
 
-                return (
-                  <div
-                    key={topic.topic_id}
-                    style={{ animationDelay: `${Math.min(idx * 25, 600)}ms` }}
-                    className="animate-slide-up p-3.5 bg-surface-container border border-white/10 rounded-sm space-y-2.5 hover:border-primary/50 transition-colors"
-                  >
-                    {/* Top row: Subject, Chapter & Status */}
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 ${getSubjectColor(topic.subject_name)}`}>
-                          {topic.subject_name}
-                        </span>
-                        <span className="text-[11px] text-white/50 truncate">
-                          {topic.chapter_name}
-                        </span>
-                      </div>
-                      <div className="shrink-0">
-                        {getStatusBadge(topic.status)}
-                      </div>
-                    </div>
-
-                    {/* Topic Title */}
-                    <div className="flex items-start justify-between gap-2">
-                      <button
-                        onClick={() => navigate(`/topics/${topic.topic_id}`)}
-                        className="text-left font-medium text-sm text-white hover:text-primary transition-colors leading-snug"
-                      >
-                        {topic.topic_name}
-                      </button>
-                      <span className="text-[10px] text-primary bg-primary/10 border border-primary/25 px-1.5 py-0.5 rounded-xs shrink-0 font-semibold">
-                        {topic.questions_available || 0} Qs
-                      </span>
-                    </div>
-
-                    {/* Metrics Row: Confidence, Accuracy, Gap */}
-                    <div className="grid grid-cols-3 gap-2 py-2 px-2.5 bg-black/40 border border-white/5 rounded-xs text-center text-xs">
-                      <div>
-                        <div className="text-[10px] text-white/50 uppercase">Confidence</div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCalibrateModal({
-                              topicId: topic.topic_id,
-                              name: topic.topic_name,
-                              currentVal: topic.confidence || 5,
-                              subject: topic.subject_name,
-                              chapter: topic.chapter_name
-                            });
-                            setCalibrateVal(topic.confidence || 5);
-                          }}
-                          className="font-bold text-primary hover:underline cursor-pointer inline-flex items-center gap-1 mt-0.5"
-                        >
-                          <span>{topic.confidence !== null ? `${topic.confidence}/10` : 'Rate'}</span>
-                          <Sliders className="w-2.5 h-2.5 opacity-60" />
-                        </button>
-                      </div>
-
-                      <div>
-                        <div className="text-[10px] text-white/50 uppercase">Accuracy</div>
-                        <div className="font-bold text-white mt-0.5">
-                          {topic.evaluation_accuracy !== null ? `${topic.evaluation_accuracy}%` : '--'}
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="text-[10px] text-white/50 uppercase">Gap</div>
-                        <div className={`font-bold mt-0.5 ${
-                          gap === null ? 'text-white/40' : gap < 0 ? 'text-error' : gap > 0 ? 'text-primary' : 'text-status-aligned'
-                        }`}>
-                          {gap !== null ? (gap > 0 ? `+${gap}%` : `${gap}%`) : '--'}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Action buttons */}
-                    <div className="flex items-center gap-2 pt-1">
-                      <button
-                        onClick={() => navigate(`/practice?topic=${topic.topic_id}`)}
-                        className="flex-1 py-1.5 bg-surface border border-outline-variant hover:border-primary text-white/90 hover:text-white rounded-xs text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
-                      >
-                        <Play className="w-3 h-3 fill-current text-primary" />
-                        <span>Practice</span>
-                      </button>
-                      <button
-                        onClick={() => navigate(`/evaluate?topic=${topic.topic_id}`)}
-                        className="flex-1 py-1.5 bg-primary/15 border border-primary/40 hover:bg-primary hover:text-black text-primary rounded-xs text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
-                      >
-                        <Timer className="w-3 h-3 stroke-[2]" />
-                        <span>Mock Test</span>
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          {/* ─── The Master Spreadsheet Grid (Desktop Screens) ─── */}
-          <div className="hidden md:block border border-neutral-800 rounded-sm bg-black overflow-hidden shadow-2xl">
-            <div className="overflow-x-auto max-h-[640px] overflow-y-auto no-scrollbar relative">
+            <div className="overflow-x-auto max-h-[72vh] md:max-h-[640px] overflow-y-auto no-scrollbar relative touch-pan-x touch-pan-y overscroll-x-contain">
               <table className="w-full border-collapse text-left font-mono text-xs">
                 {/* ─── Excel Column Header Row ─── */}
                 <thead className="sticky top-0 z-20 bg-neutral-900/95 backdrop-blur-md text-white/70 border-b border-neutral-700">
