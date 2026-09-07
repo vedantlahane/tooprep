@@ -58,5 +58,7 @@ router.post('/', requireAdmin, questionsController.createQuestion);
 router.put('/:id', requireAdmin, questionsController.updateQuestion);
 router.delete('/:id', requireAdmin, questionsController.deleteQuestion);
 router.patch('/:id/verify', requireAdmin, questionsController.toggleVerify);
+router.post('/bulk-verify', requireAdmin, questionsController.bulkVerify);
+router.post('/bulk-delete', requireAdmin, questionsController.bulkDelete);
 
 export default router;

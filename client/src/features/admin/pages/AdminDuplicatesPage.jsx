@@ -16,8 +16,11 @@ import Icon, {
   Filter,
   ShieldAlert,
   GitMerge,
-  ArrowRight
+  ArrowRight,
+  Sparkles,
+  Layers
 } from '@/shared/components/Icon';
+import { Download } from 'lucide-react';
 
 export default function AdminDuplicatesPage() {
   const [duplicates, setDuplicates] = useState([]);
@@ -25,11 +28,14 @@ export default function AdminDuplicatesPage() {
   const [scanning, setScanning] = useState(false);
   const [activeStatus, setActiveStatus] = useState('PENDING');
   const [activeMatchType, setActiveMatchType] = useState('ALL');
+  const [selectedSubject, setSelectedSubject] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const deferredSearch = useDeferredValue(searchQuery);
   const [scanSummary, setScanSummary] = useState(null);
   const [actionInProgress, setActionInProgress] = useState({});
   const [expandedSolutions, setExpandedSolutions] = useState({});
+  const [batchResolving, setBatchResolving] = useState(false);
+  const [batchProgress, setBatchProgress] = useState(null);
 
   // Load duplicates on mount and status/type filter changes
   const fetchDuplicates = async () => {
@@ -126,6 +132,161 @@ export default function AdminDuplicatesPage() {
     }
   };
 
+  // Batch auto-resolve exact matches
+  const handleBatchAutoResolveExact = async () => {
+    const exactPending = duplicates.filter(p => p.status === 'PENDING' && (p.match_type === 'EXACT' || p.similarity_score >= 98));
+    if (exactPending.length === 0) {
+      alert('No pending exact duplicate pairs found to auto-resolve.');
+      return;
+    }
+
+    const ok = window.confirm(
+      `Detected ${exactPending.length} exact duplicate pair(s).\n\n` +
+      `The auto-resolve engine will:\n` +
+      `1. Preserve verified questions over unverified drafts\n` +
+      `2. Preserve questions with complete solutions & diagrams\n` +
+      `3. Preserve the primary/older original question\n` +
+      `4. Permanently delete the redundant duplicate question\n\n` +
+      `Do you want to proceed?`
+    );
+    if (!ok) return;
+
+    setBatchResolving(true);
+    setBatchProgress({ current: 0, total: exactPending.length });
+
+    let resolvedCount = 0;
+    let failedCount = 0;
+
+    for (let i = 0; i < exactPending.length; i++) {
+      const pair = exactPending[i];
+      setBatchProgress({ current: i + 1, total: exactPending.length });
+      const q1 = pair.primary_question;
+      const q2 = pair.duplicate_question;
+
+      if (!q1 || !q2) continue;
+
+      let keepId = q1.id;
+      let deleteId = q2.id;
+
+      // 1. Verified question takes precedence
+      if (q1.verified && !q2.verified) {
+        keepId = q1.id;
+        deleteId = q2.id;
+      } else if (!q1.verified && q2.verified) {
+        keepId = q2.id;
+        deleteId = q1.id;
+      }
+      // 2. Complete solution presence takes precedence
+      else if (q1.solution_text && !q2.solution_text) {
+        keepId = q1.id;
+        deleteId = q2.id;
+      } else if (!q1.solution_text && q2.solution_text) {
+        keepId = q2.id;
+        deleteId = q1.id;
+      }
+      // 3. Older creation timestamp takes precedence
+      else if (q1.created_at && q2.created_at) {
+        if (new Date(q1.created_at) <= new Date(q2.created_at)) {
+          keepId = q1.id;
+          deleteId = q2.id;
+        } else {
+          keepId = q2.id;
+          deleteId = q1.id;
+        }
+      }
+
+      try {
+        await adminService.resolveDuplicate(pair.id, { keep_id: keepId, delete_id: deleteId });
+        resolvedCount++;
+      } catch (err) {
+        console.error(`Auto-resolve failed for pair ${pair.id}:`, err);
+        failedCount++;
+      }
+    }
+
+    setBatchResolving(false);
+    setBatchProgress(null);
+    alert(`Auto-resolve completed: Successfully resolved and deleted ${resolvedCount} exact duplicate pair(s).${failedCount > 0 ? ` (${failedCount} failed)` : ''}`);
+    await fetchDuplicates();
+  };
+
+  // Export duplicates to CSV
+  const handleExportCsv = () => {
+    if (filteredDuplicates.length === 0) {
+      alert('No duplicate records available to export.');
+      return;
+    }
+
+    const headers = [
+      'Pair ID',
+      'Match Type',
+      'Similarity (%)',
+      'Status',
+      'Flagged Date',
+      'Q1 ID',
+      'Q1 Subject',
+      'Q1 Chapter',
+      'Q1 Topic',
+      'Q1 Question Text',
+      'Q1 Correct Answer',
+      'Q1 Verified',
+      'Q1 Has Solution',
+      'Q2 ID',
+      'Q2 Subject',
+      'Q2 Chapter',
+      'Q2 Topic',
+      'Q2 Question Text',
+      'Q2 Correct Answer',
+      'Q2 Verified',
+      'Q2 Has Solution'
+    ];
+
+    const escapeCsv = (val) => {
+      if (val == null) return '""';
+      const clean = String(val).replace(/"/g, '""');
+      return `"${clean}"`;
+    };
+
+    const rows = filteredDuplicates.map(p => {
+      const q1 = p.primary_question || {};
+      const q2 = p.duplicate_question || {};
+      return [
+        escapeCsv(p.id),
+        escapeCsv(p.match_type),
+        escapeCsv(p.similarity_score),
+        escapeCsv(p.status),
+        escapeCsv(p.flagged_at),
+        escapeCsv(q1.id || ''),
+        escapeCsv(q1.topics?.chapters?.subjects?.name || ''),
+        escapeCsv(q1.topics?.chapters?.name || ''),
+        escapeCsv(q1.topics?.name || ''),
+        escapeCsv(q1.question_text || ''),
+        escapeCsv(q1.correct_answer || ''),
+        escapeCsv(q1.verified ? 'Verified' : 'Draft'),
+        escapeCsv(q1.solution_text ? 'Yes' : 'No'),
+        escapeCsv(q2.id || ''),
+        escapeCsv(q2.topics?.chapters?.subjects?.name || ''),
+        escapeCsv(q2.topics?.chapters?.name || ''),
+        escapeCsv(q2.topics?.name || ''),
+        escapeCsv(q2.question_text || ''),
+        escapeCsv(q2.correct_answer || ''),
+        escapeCsv(q2.verified ? 'Verified' : 'Draft'),
+        escapeCsv(q2.solution_text ? 'Yes' : 'No')
+      ].join(',');
+    });
+
+    const csvData = [headers.join(','), ...rows].join('\r\n');
+    const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `tooprep-duplicates-${selectedSubject.toLowerCase()}-${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const toggleSolution = (key) => {
     setExpandedSolutions(prev => ({ ...prev, [key]: !prev[key] }));
   };
@@ -133,24 +294,42 @@ export default function AdminDuplicatesPage() {
   // KPI calculations
   const stats = useMemo(() => {
     const total = duplicates.length;
-    const exact = duplicates.filter(d => d.match_type === 'EXACT').length;
-    const high = duplicates.filter(d => d.match_type === 'HIGH_CONFIDENCE').length;
-    const potential = duplicates.filter(d => d.match_type === 'POTENTIAL').length;
+    const exact = duplicates.filter(d => d.match_type === 'EXACT' || d.similarity_score >= 98).length;
+    const high = duplicates.filter(d => (d.match_type === 'HIGH_CONFIDENCE' || d.similarity_score >= 88) && d.similarity_score < 98).length;
+    const potential = duplicates.filter(d => d.match_type === 'POTENTIAL' && d.similarity_score < 88).length;
     return { total, exact, high, potential };
   }, [duplicates]);
 
-  // Client search filtering
+  // Client search & subject filtering
   const filteredDuplicates = useMemo(() => {
-    if (!deferredSearch.trim()) return duplicates;
-    const q = deferredSearch.toLowerCase();
-    return duplicates.filter(d => {
-      const text1 = d.primary_question?.question_text?.toLowerCase() || '';
-      const text2 = d.duplicate_question?.question_text?.toLowerCase() || '';
-      const topic1 = d.primary_question?.topics?.name?.toLowerCase() || '';
-      const topic2 = d.duplicate_question?.topics?.name?.toLowerCase() || '';
-      return text1.includes(q) || text2.includes(q) || topic1.includes(q) || topic2.includes(q);
-    });
-  }, [duplicates, deferredSearch]);
+    let list = duplicates;
+
+    // Subject Filter
+    if (selectedSubject !== 'ALL') {
+      const sub = selectedSubject.toLowerCase();
+      list = list.filter(d => {
+        const sub1 = d.primary_question?.topics?.chapters?.subjects?.name?.toLowerCase() || '';
+        const sub2 = d.duplicate_question?.topics?.chapters?.subjects?.name?.toLowerCase() || '';
+        return sub1 === sub || sub2 === sub;
+      });
+    }
+
+    // Search query filter
+    if (deferredSearch.trim()) {
+      const q = deferredSearch.toLowerCase();
+      list = list.filter(d => {
+        const text1 = d.primary_question?.question_text?.toLowerCase() || '';
+        const text2 = d.duplicate_question?.question_text?.toLowerCase() || '';
+        const topic1 = d.primary_question?.topics?.name?.toLowerCase() || '';
+        const topic2 = d.duplicate_question?.topics?.name?.toLowerCase() || '';
+        const id1 = d.primary_question?.id?.toLowerCase() || '';
+        const id2 = d.duplicate_question?.id?.toLowerCase() || '';
+        return text1.includes(q) || text2.includes(q) || topic1.includes(q) || topic2.includes(q) || id1.includes(q) || id2.includes(q);
+      });
+    }
+
+    return list;
+  }, [duplicates, selectedSubject, deferredSearch]);
 
   const getMatchBadge = (type, score) => {
     if (type === 'EXACT' || score >= 98) {
@@ -192,10 +371,39 @@ export default function AdminDuplicatesPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            {/* Batch Auto-Resolve Exact Matches Button */}
+            {activeStatus === 'PENDING' && stats.exact > 0 && (
+              <button
+                onClick={handleBatchAutoResolveExact}
+                disabled={batchResolving || scanning}
+                className="flex items-center gap-2 px-3.5 py-2.5 bg-error/20 border border-error/50 hover:bg-error/30 text-error font-mono font-semibold text-xs tracking-wider uppercase transition-colors cursor-pointer disabled:opacity-50"
+                title="Automatically resolve all exact matches by preserving verified questions"
+              >
+                <Sparkles className={`w-3.5 h-3.5 ${batchResolving ? 'animate-spin' : ''}`} />
+                <span>
+                  {batchResolving
+                    ? `Resolving ${batchProgress?.current}/${batchProgress?.total}...`
+                    : `Auto-Resolve Exact (${stats.exact})`}
+                </span>
+              </button>
+            )}
+
+            {/* CSV Export Button */}
+            <button
+              onClick={handleExportCsv}
+              disabled={filteredDuplicates.length === 0}
+              className="flex items-center gap-2 px-3.5 py-2.5 bg-surface-container border border-white/20 hover:border-primary text-white text-xs font-mono tracking-wider uppercase transition-colors disabled:opacity-40 cursor-pointer"
+              title="Download duplicate pairs as CSV spreadsheet"
+            >
+              <Download className="w-3.5 h-3.5 text-primary" />
+              <span>Export CSV</span>
+            </button>
+
+            {/* Run Full Scan Button */}
             <button
               onClick={() => handleTriggerScan(false)}
-              disabled={scanning}
+              disabled={scanning || batchResolving}
               className="flex items-center gap-2 px-4 py-2.5 bg-primary text-black font-semibold text-xs tracking-wider uppercase hover:bg-primary/90 transition-colors disabled:opacity-50 cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${scanning ? 'animate-spin' : ''}`} />
@@ -292,22 +500,46 @@ export default function AdminDuplicatesPage() {
           </div>
         </div>
 
-        {/* Match Type Pills */}
-        <div className="flex items-center gap-2 pt-2 border-t border-white/10 text-xs text-white/60 overflow-x-auto no-scrollbar">
-          <span className="text-[11px] font-mono uppercase text-white/40 shrink-0">MATCH TYPE:</span>
-          {['ALL', 'EXACT', 'HIGH_CONFIDENCE', 'POTENTIAL'].map(mt => (
-            <button
-              key={mt}
-              onClick={() => setActiveMatchType(mt)}
-              className={`px-2.5 py-0.5 text-[11px] font-mono uppercase tracking-wider transition-colors cursor-pointer border ${
-                activeMatchType === mt
-                  ? 'border-primary text-primary bg-primary/10'
-                  : 'border-white/10 text-white/50 hover:text-white hover:border-white/25'
-              }`}
-            >
-              {mt.replace('_', ' ')}
-            </button>
-          ))}
+        {/* Second Row: Subject Selector & Match Type Pills */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2.5 border-t border-white/10 text-xs">
+          {/* Subject Filter Dropdown / Buttons */}
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+            <span className="text-[11px] font-mono uppercase text-white/40 shrink-0 flex items-center gap-1">
+              <Layers className="w-3 h-3 text-primary" />
+              <span>SUBJECT:</span>
+            </span>
+            {['ALL', 'Physics', 'Chemistry', 'Mathematics'].map(subj => (
+              <button
+                key={subj}
+                onClick={() => setSelectedSubject(subj)}
+                className={`px-2.5 py-0.5 text-[11px] font-mono uppercase tracking-wider transition-colors cursor-pointer border ${
+                  selectedSubject === subj
+                    ? 'border-primary text-primary bg-primary/10 font-bold'
+                    : 'border-white/10 text-white/50 hover:text-white hover:border-white/25'
+                }`}
+              >
+                {subj}
+              </button>
+            ))}
+          </div>
+
+          {/* Match Type Pills */}
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+            <span className="text-[11px] font-mono uppercase text-white/40 shrink-0">MATCH TYPE:</span>
+            {['ALL', 'EXACT', 'HIGH_CONFIDENCE', 'POTENTIAL'].map(mt => (
+              <button
+                key={mt}
+                onClick={() => setActiveMatchType(mt)}
+                className={`px-2.5 py-0.5 text-[11px] font-mono uppercase tracking-wider transition-colors cursor-pointer border ${
+                  activeMatchType === mt
+                    ? 'border-primary text-primary bg-primary/10 font-bold'
+                    : 'border-white/10 text-white/50 hover:text-white hover:border-white/25'
+                }`}
+              >
+                {mt.replace('_', ' ')}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

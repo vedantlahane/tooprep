@@ -31,7 +31,7 @@ const DIFFICULTY_STYLES = {
   hard: 'bg-error/20 text-error border-error/40',
 };
 
-const AdminQuestionCard = memo(function AdminQuestionCard({ q, onEdit, onDelete, onToggleVerify }) {
+const AdminQuestionCard = memo(function AdminQuestionCard({ q, isSelected, onToggleSelect, onEdit, onDelete, onToggleVerify }) {
   const [copied, setCopied] = useState(false);
   const [toggling, setToggling] = useState(false);
   const [showSolution, setShowSolution] = useState(false);
@@ -57,9 +57,18 @@ const AdminQuestionCard = memo(function AdminQuestionCard({ q, onEdit, onDelete,
   };
 
   return (
-    <div className="border border-outline-variant bg-surface-container hover:border-primary/50 transition-colors">
+    <div className={`border transition-all ${
+      isSelected ? 'border-primary bg-primary/[0.04] ring-1 ring-primary/40' : 'border-outline-variant bg-surface-container hover:border-primary/50'
+    }`}>
       {/* Header Bar */}
       <div className="flex items-center gap-2 px-5 pt-4 pb-3 border-b border-outline-variant flex-wrap">
+        <input
+          type="checkbox"
+          checked={Boolean(isSelected)}
+          onChange={() => onToggleSelect(q.id)}
+          className="w-4 h-4 accent-[#00BFFF] cursor-pointer mr-1"
+          title="Select question for bulk action"
+        />
         {q.difficulty && (
           <span className={`px-2 py-0.5 border text-label-sm-mono uppercase tracking-widest text-xs ${diffStyle}`}>
             {q.difficulty}
@@ -202,7 +211,14 @@ export default function AdminQuestionsPage() {
   );
   const [selectedDifficulty, setSelectedDifficulty] = useState('All');
   const [verificationFilter, setVerificationFilter] = useState('All'); // 'All' | 'Verified' | 'Draft'
+  const [sourceTypeFilter, setSourceTypeFilter] = useState('All'); // 'All' | 'PYQ' | 'ORIGINAL'
+  const [examYearFilter, setExamYearFilter] = useState('All');
+  const [sortOption, setSortOption] = useState('newest'); // 'newest' | 'oldest' | 'difficulty_asc' | 'difficulty_desc'
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Multi-question bulk selection state
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState([]);
+  const [bulkActionInProgress, setBulkActionInProgress] = useState(false);
 
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -261,6 +277,9 @@ export default function AdminQuestionsPage() {
       const result = await questionsService.adminListQuestions({
         topic_ids: topicIds.length > 0 ? topicIds : undefined,
         difficulty: selectedDifficulty && selectedDifficulty !== 'All' ? selectedDifficulty.toLowerCase() : undefined,
+        source_type: sourceTypeFilter && sourceTypeFilter !== 'All' ? sourceTypeFilter : undefined,
+        exam_year: examYearFilter && examYearFilter !== 'All' ? examYearFilter : undefined,
+        sort: sortOption
       });
       setQuestions(Array.isArray(result) ? result : result?.questions || []);
     } catch (err) {
@@ -269,7 +288,7 @@ export default function AdminQuestionsPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedTopics, selectedChapters, selectedSubject, selectedDifficulty, hierarchy]);
+  }, [selectedTopics, selectedChapters, selectedSubject, selectedDifficulty, sourceTypeFilter, examYearFilter, sortOption, hierarchy]);
 
   useEffect(() => {
     fetchQuestions();
@@ -341,8 +360,71 @@ export default function AdminQuestionsPage() {
   }, []);
 
   const handleSavedQuestion = useCallback(() => {
-    fetchQuestions(selectedTopic, selectedDifficulty);
-  }, [fetchQuestions, selectedTopic, selectedDifficulty]);
+    fetchQuestions();
+  }, [fetchQuestions]);
+
+  // Bulk Selection Handlers
+  const handleToggleSelectOne = useCallback((id) => {
+    setSelectedQuestionIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  }, []);
+
+  const handleSelectAllOnPage = useCallback(() => {
+    const pageIds = paginatedQuestions.map(q => q.id);
+    const allSelected = pageIds.every(id => selectedQuestionIds.includes(id));
+    if (allSelected) {
+      setSelectedQuestionIds(prev => prev.filter(id => !pageIds.includes(id)));
+    } else {
+      setSelectedQuestionIds(prev => Array.from(new Set([...prev, ...pageIds])));
+    }
+  }, [paginatedQuestions, selectedQuestionIds]);
+
+  const handleBulkVerify = async (targetVerified) => {
+    if (selectedQuestionIds.length === 0) return;
+    setBulkActionInProgress(true);
+    try {
+      await questionsService.bulkVerify(selectedQuestionIds, targetVerified);
+      setQuestions(prev => prev.map(q =>
+        selectedQuestionIds.includes(q.id)
+          ? { ...q, verified: targetVerified, publication_status: targetVerified ? 'PUBLISHED' : 'DRAFT' }
+          : q
+      ));
+      setSelectedQuestionIds([]);
+    } catch (err) {
+      alert('Bulk verify failed: ' + err.message);
+    } finally {
+      setBulkActionInProgress(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedQuestionIds.length === 0) return;
+    if (!window.confirm(`Permanently delete ${selectedQuestionIds.length} question(s)? This cannot be undone.`)) return;
+    setBulkActionInProgress(true);
+    try {
+      await questionsService.bulkDelete(selectedQuestionIds);
+      setQuestions(prev => prev.filter(q => !selectedQuestionIds.includes(q.id)));
+      setSelectedQuestionIds([]);
+    } catch (err) {
+      alert('Bulk delete failed: ' + err.message);
+    } finally {
+      setBulkActionInProgress(false);
+    }
+  };
+
+  const handleExportJson = () => {
+    const subset = selectedQuestionIds.length > 0
+      ? questions.filter(q => selectedQuestionIds.includes(q.id))
+      : questions;
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(subset, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute('href', dataStr);
+    downloadAnchor.setAttribute('download', `tooprep-questions-export-${Date.now()}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
 
   const selectClass =
     'w-full px-4 py-3 border border-outline-variant bg-surface-dim text-body-md text-on-surface outline-none focus:border-primary uppercase transition-colors text-xs font-mono';
@@ -421,16 +503,16 @@ export default function AdminQuestionsPage() {
           onTopicsChange={setSelectedTopics}
         />
 
-        {/* Difficulty & Verification Toggles */}
-        <div className="flex flex-col sm:flex-row justify-between gap-4 pt-2 border-t border-white/10">
+        {/* Filter Controls Row: Difficulty, Verification, Source, Year, Sort */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-3 border-t border-white/10 text-xs font-mono">
           <div>
-            <label className="block text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-2 text-xs">Difficulty</label>
-            <div className="flex gap-2 flex-wrap">
+            <label className="block text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-1.5 text-[11px]">Difficulty</label>
+            <div className="flex gap-1.5 flex-wrap">
               {DIFFICULTIES.map((d) => (
                 <button
                   key={d}
                   onClick={() => setSelectedDifficulty(d)}
-                  className={`px-4 py-1.5 border text-label-sm-mono uppercase tracking-widest text-xs transition-colors ${
+                  className={`px-3 py-1 border uppercase tracking-wider text-xs transition-colors ${
                     selectedDifficulty === d ? 'bg-primary border-primary text-white font-bold' : 'border-outline-variant text-on-surface hover:border-on-surface'
                   }`}
                 >
@@ -441,13 +523,13 @@ export default function AdminQuestionsPage() {
           </div>
 
           <div>
-            <label className="block text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-2 text-xs">Verification Status</label>
-            <div className="flex gap-2 flex-wrap">
+            <label className="block text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-1.5 text-[11px]">Status</label>
+            <div className="flex gap-1.5 flex-wrap">
               {['All', 'Verified', 'Draft'].map((v) => (
                 <button
                   key={v}
                   onClick={() => setVerificationFilter(v)}
-                  className={`px-4 py-1.5 border text-label-sm-mono uppercase tracking-widest text-xs transition-colors ${
+                  className={`px-3 py-1 border uppercase tracking-wider text-xs transition-colors ${
                     verificationFilter === v ? 'bg-primary border-primary text-white font-bold' : 'border-outline-variant text-on-surface hover:border-on-surface'
                   }`}
                 >
@@ -455,6 +537,61 @@ export default function AdminQuestionsPage() {
                 </button>
               ))}
             </div>
+          </div>
+
+          <div>
+            <label className="block text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-1.5 text-[11px]">Source Type</label>
+            <div className="flex gap-1.5 flex-wrap">
+              {['All', 'PYQ', 'ORIGINAL'].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setSourceTypeFilter(s)}
+                  className={`px-3 py-1 border uppercase tracking-wider text-xs transition-colors ${
+                    sourceTypeFilter === s ? 'bg-primary border-primary text-white font-bold' : 'border-outline-variant text-on-surface hover:border-on-surface'
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-1.5 text-[11px]">Sort By</label>
+            <select
+              value={sortOption}
+              onChange={(e) => setSortOption(e.target.value)}
+              className="w-full bg-black border border-white/15 px-3 py-1.5 text-white outline-none focus:border-primary uppercase text-xs"
+            >
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="difficulty_asc">Difficulty (Easy &rarr; Hard)</option>
+              <option value="difficulty_desc">Difficulty (Hard &rarr; Easy)</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-1.5 text-[11px]">Exam Year</label>
+            <select
+              value={examYearFilter}
+              onChange={(e) => setExamYearFilter(e.target.value)}
+              className="w-full bg-black border border-white/15 px-3 py-1.5 text-white outline-none focus:border-primary uppercase text-xs"
+            >
+              <option value="All">All Years</option>
+              {[2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018].map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-end">
+            <button
+              onClick={handleExportJson}
+              className="w-full py-2 border border-white/15 hover:border-primary text-white text-xs font-mono uppercase tracking-widest flex items-center justify-center gap-2 transition-colors"
+              title="Export filtered questions as JSON"
+            >
+              <span>Export {selectedQuestionIds.length > 0 ? `Selected (${selectedQuestionIds.length})` : 'All'} JSON</span>
+            </button>
           </div>
         </div>
       </div>
@@ -490,7 +627,22 @@ export default function AdminQuestionsPage() {
         <div className="space-y-4">
           {/* Top Pagination Toolbar */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 border border-outline-variant bg-surface-dim text-xs font-mono">
-            <div className="flex items-center gap-2 text-on-surface-variant flex-wrap">
+            <div className="flex items-center gap-3 text-on-surface-variant flex-wrap">
+              <label className="flex items-center gap-1.5 cursor-pointer text-white hover:text-primary transition-colors">
+                <input
+                  type="checkbox"
+                  checked={paginatedQuestions.length > 0 && paginatedQuestions.every(q => selectedQuestionIds.includes(q.id))}
+                  onChange={handleSelectAllOnPage}
+                  className="w-4 h-4 accent-[#00BFFF] cursor-pointer"
+                />
+                <span className="text-[11px] uppercase tracking-wider">Select Page</span>
+              </label>
+              {selectedQuestionIds.length > 0 && (
+                <span className="px-2 py-0.5 bg-primary/20 text-primary border border-primary/40 text-[10px] font-bold">
+                  {selectedQuestionIds.length} SELECTED
+                </span>
+              )}
+              <span className="text-white/30">|</span>
               <span className="text-white/50 uppercase tracking-widest text-[11px]">Rows per page:</span>
               {[10, 20, 50, 100].map(size => (
                 <button
@@ -511,7 +663,7 @@ export default function AdminQuestionsPage() {
 
             <div className="flex items-center gap-3">
               <button
-                onClick={() => fetchQuestions(selectedTopic, selectedDifficulty)}
+                onClick={() => fetchQuestions()}
                 className="flex items-center gap-1 text-white/60 hover:text-primary transition-colors cursor-pointer"
                 title="Refresh Question Bank"
               >
@@ -567,12 +719,57 @@ export default function AdminQuestionsPage() {
               <AdminQuestionCard
                 key={q.id}
                 q={q}
+                isSelected={selectedQuestionIds.includes(q.id)}
+                onToggleSelect={handleToggleSelectOne}
                 onEdit={handleEditQuestion}
                 onDelete={handleDeleteQuestion}
                 onToggleVerify={handleToggleVerify}
               />
             ))}
           </div>
+
+          {/* Floating Metro Bulk Actions Command Bar */}
+          {selectedQuestionIds.length > 0 && (
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-black/95 border-2 border-primary shadow-2xl p-4 flex flex-wrap items-center gap-3 sm:gap-4 text-xs font-mono backdrop-blur-md animate-fade-in max-w-[95vw]">
+              <div className="flex items-center gap-2 border-r border-white/20 pr-3">
+                <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
+                <span className="text-white font-bold">{selectedQuestionIds.length} Selected</span>
+              </div>
+
+              <button
+                onClick={() => handleBulkVerify(true)}
+                disabled={bulkActionInProgress}
+                className="px-3.5 py-1.5 bg-status-aligned/20 border border-status-aligned text-status-aligned hover:bg-status-aligned hover:text-black font-bold uppercase tracking-wider transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Bulk Verify</span>
+              </button>
+
+              <button
+                onClick={() => handleBulkVerify(false)}
+                disabled={bulkActionInProgress}
+                className="px-3.5 py-1.5 bg-status-weak/20 border border-status-weak text-status-weak hover:bg-status-weak hover:text-black font-bold uppercase tracking-wider transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>Draft All</span>
+              </button>
+
+              <button
+                onClick={handleBulkDelete}
+                disabled={bulkActionInProgress}
+                className="px-3.5 py-1.5 bg-error/20 border border-error text-error hover:bg-error hover:text-white font-bold uppercase tracking-wider transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Bulk Delete</span>
+              </button>
+
+              <button
+                onClick={() => setSelectedQuestionIds([])}
+                className="px-2.5 py-1.5 border border-white/20 text-white/60 hover:text-white uppercase tracking-wider transition-colors cursor-pointer"
+              >
+                Deselect
+              </button>
+            </div>
+          )}
 
           {/* Bottom Pagination Toolbar */}
           {totalPages > 1 && (
@@ -636,7 +833,7 @@ export default function AdminQuestionsPage() {
       <QuestionEditModal
         isOpen={modalOpen}
         question={activeQuestion}
-        initialTopicId={selectedTopic}
+        initialTopicId={selectedTopics[0] || ''}
         onClose={() => setModalOpen(false)}
         onSaved={handleSavedQuestion}
         onDeleted={(deletedId) => setQuestions(prev => prev.filter(q => q.id !== deletedId))}

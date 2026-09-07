@@ -135,5 +135,35 @@ export const questionsController = {
       const statusCode = err.statusCode || 500;
       return res.status(statusCode).json({ error: err.message || 'Server error' });
     }
+  },
+
+  /**
+   * POST /api/questions/bulk-verify — Bulk update verification status (admin-only).
+   */
+  async bulkVerify(req, res) {
+    try {
+      const { question_ids, verified } = req.body;
+      const result = await questionsService.bulkVerifyQuestions(question_ids, verified);
+      return res.json(result);
+    } catch (err) {
+      console.error('POST /questions/bulk-verify error:', err);
+      const statusCode = err.statusCode || 500;
+      return res.status(statusCode).json({ error: err.message || 'Server error' });
+    }
+  },
+
+  /**
+   * POST /api/questions/bulk-delete — Bulk delete questions (admin-only).
+   */
+  async bulkDelete(req, res) {
+    try {
+      const { question_ids } = req.body;
+      const result = await questionsService.bulkDeleteQuestions(question_ids);
+      return res.json(result);
+    } catch (err) {
+      console.error('POST /questions/bulk-delete error:', err);
+      const statusCode = err.statusCode || 500;
+      return res.status(statusCode).json({ error: err.message || 'Server error' });
+    }
   }
 };

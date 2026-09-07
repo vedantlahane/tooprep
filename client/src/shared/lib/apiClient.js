@@ -12,7 +12,7 @@ async function getAuthHeaders(includeContentType = true) {
     : { 'Authorization': `Bearer ${session.access_token}` };
 }
 
-export async function request(method, path, body = null, retries = 2) {
+export async function request(method, path, body = null, retries = 3) {
   const isFormData = body instanceof FormData;
   const headers = await getAuthHeaders(!isFormData);
   const options = { method, headers };
@@ -23,11 +23,12 @@ export async function request(method, path, body = null, retries = 2) {
     try {
       const res = await fetch(`${API_BASE}${path}`, options);
       
-      // Handle Render free-tier spinning up (502, 503, 504) on idempotent GET requests
-      if ((res.status === 502 || res.status === 503 || res.status === 504) && attempt < retries && method === 'GET') {
+      // Handle Render free-tier spinning up (408, 502, 503, 504) on idempotent GET requests
+      if ((res.status === 408 || res.status === 502 || res.status === 503 || res.status === 504) && attempt < retries && method === 'GET') {
         attempt++;
-        console.warn(`[API] Backend warming up (${res.status}). Retrying in 2s (attempt ${attempt}/${retries})...`);
-        await new Promise((r) => setTimeout(r, 2000));
+        const backoffMs = 1500 * attempt;
+        console.warn(`[API] Backend cold-start / timeout (${res.status}) on ${path}. Retrying in ${backoffMs / 1000}s (attempt ${attempt}/${retries})...`);
+        await new Promise((r) => setTimeout(r, backoffMs));
         continue;
       }
 

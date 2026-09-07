@@ -41,6 +41,28 @@ describe('TooPrep - Admin Management & Observability Tests', () => {
     );
   });
 
+  it('rejects bulkVerifyQuestions without ids array', async () => {
+    await assert.rejects(
+      async () => questionsService.bulkVerifyQuestions([], true),
+      (err) => {
+        assert.equal(err.statusCode, 400);
+        assert.match(err.message, /ids array must not be empty/);
+        return true;
+      }
+    );
+  });
+
+  it('rejects bulkDeleteQuestions without ids array', async () => {
+    await assert.rejects(
+      async () => questionsService.bulkDeleteQuestions([]),
+      (err) => {
+        assert.equal(err.statusCode, 400);
+        assert.match(err.message, /ids array must not be empty/);
+        return true;
+      }
+    );
+  });
+
   it('provides comprehensive system observability structure', async () => {
     const telemetry = await adminService.getSystemObservability();
     assert.ok(telemetry.timestamp);
@@ -50,6 +72,12 @@ describe('TooPrep - Admin Management & Observability Tests', () => {
     assert.ok(telemetry.questions.by_subject);
     assert.ok(telemetry.questions.by_difficulty);
     assert.ok(telemetry.evaluations);
+    assert.ok(telemetry.practice);
+    assert.ok(Array.isArray(telemetry.practice.recent_sessions));
+    assert.ok(telemetry.deduplication);
+    assert.equal(typeof telemetry.deduplication.pending_count, 'number');
+    assert.ok(telemetry.syllabus);
+    assert.equal(typeof telemetry.syllabus.readiness_percentage, 'number');
     assert.ok(telemetry.runtime);
     assert.ok(telemetry.runtime.memory);
     assert.equal(typeof telemetry.runtime.uptime_seconds, 'number');
@@ -60,6 +88,7 @@ describe('TooPrep - Admin Management & Observability Tests', () => {
     assert.ok(curriculum.summary);
     assert.equal(typeof curriculum.summary.total_topics, 'number');
     assert.equal(typeof curriculum.summary.low_coverage_topics, 'number');
+    assert.equal(typeof curriculum.summary.readiness_percentage, 'number');
     assert.ok(Array.isArray(curriculum.subjects));
     if (curriculum.subjects.length > 0) {
       const firstSubject = curriculum.subjects[0];

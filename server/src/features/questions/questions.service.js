@@ -65,7 +65,7 @@ export const questionsService = {
    *   newest first.
    * @throws  {Error} If the Supabase query fails.
    */
-  async getQuestions({ topic_id, topic_ids, chapter_id, chapter_ids, difficulty, source_type, verified }, { includeAnswers = false } = {}) {
+  async getQuestions({ topic_id, topic_ids, chapter_id, chapter_ids, difficulty, source_type, verified, exam_year, sort }, { includeAnswers = false } = {}) {
     /* Start with a base query that selects every column. */
     const fields = includeAnswers
       ? '*'
@@ -111,13 +111,23 @@ export const questionsService = {
 
     if (difficulty) query = query.eq('difficulty', difficulty);
     if (source_type) query = query.eq('source_type', source_type);
+    if (exam_year) query = query.eq('exam_year', Number(exam_year));
     /* `verified` arrives as a query-string value (always a string).
        Coerce to a real boolean so the equality check works correctly
        against the Postgres boolean column. */
     if (verified !== undefined) query = query.eq('verified', verified === 'true');
 
-    /* Default sort: newest questions first (most recently added on top). */
-    query = query.order('created_at', { ascending: false });
+    /* Sorting */
+    if (sort === 'oldest') {
+      query = query.order('created_at', { ascending: true });
+    } else if (sort === 'difficulty_asc') {
+      query = query.order('difficulty', { ascending: true });
+    } else if (sort === 'difficulty_desc') {
+      query = query.order('difficulty', { ascending: false });
+    } else {
+      /* Default sort: newest questions first (most recently added on top). */
+      query = query.order('created_at', { ascending: false });
+    }
 
     const { data, error } = await query;
     if (error) throw new Error(error.message);
@@ -338,5 +348,56 @@ export const questionsService = {
 
     if (error) throw new Error(error.message);
     return data;
+  },
+
+  /**
+   * Bulk verify or unverify multiple questions (admin-only).
+   *
+   * @param {string[]} ids - Array of question UUIDs.
+   * @param {boolean} verified - Verification status.
+   * @returns {Promise<{ updated_count: number, verified: boolean }>}
+   */
+  async bulkVerifyQuestions(ids, verified) {
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      const err = new Error('ids array must not be empty');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const isVerified = Boolean(verified);
+    const { data, error } = await supabaseAdmin
+      .from('questions')
+      .update({
+        verified: isVerified,
+        publication_status: isVerified ? 'PUBLISHED' : 'DRAFT'
+      })
+      .in('id', ids)
+      .select('id');
+
+    if (error) throw new Error(error.message);
+    return { updated_count: data?.length || 0, verified: isVerified };
+  },
+
+  /**
+   * Bulk delete multiple questions from the question bank (admin-only).
+   *
+   * @param {string[]} ids - Array of question UUIDs.
+   * @returns {Promise<{ deleted_count: number, ids: string[] }>}
+   */
+  async bulkDeleteQuestions(ids) {
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      const err = new Error('ids array must not be empty');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('questions')
+      .delete()
+      .in('id', ids)
+      .select('id');
+
+    if (error) throw new Error(error.message);
+    return { deleted_count: data?.length || 0, ids: (data || []).map(d => d.id) };
   }
 };

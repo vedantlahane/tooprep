@@ -115,10 +115,101 @@ export const adminService = {
       .from('practice_attempts')
       .select('*', { count: 'exact', head: true });
 
+    // 4b. Recent practice sessions (last 10 completed)
+    const { data: recentPractice, error: pracErr } = await supabaseAdmin
+      .from('practice_sessions')
+      .select(`
+        id, user_id, topic_id, started_at, ended_at,
+        topics ( id, name ),
+        practice_attempts ( id, correct )
+      `)
+      .order('started_at', { ascending: false })
+      .limit(10);
+
+    if (pracErr) console.warn('Observability: failed to fetch recent practice sessions', pracErr.message);
+
+    const recentPracticeSessions = (recentPractice || []).map(ps => {
+      const attempts = ps.practice_attempts || [];
+      const correct = attempts.filter(a => a.correct).length;
+      const acc = attempts.length > 0 ? Math.round((correct / attempts.length) * 100) : 0;
+      return {
+        id: ps.id,
+        user_id: ps.user_id,
+        topic_name: ps.topics?.name || 'Curriculum Practice',
+        total_questions: attempts.length,
+        correct_count: correct,
+        accuracy: acc,
+        started_at: ps.started_at,
+        ended_at: ps.ended_at
+      };
+    });
+
     // 5. Confidence telemetry
     const { count: confidenceCount } = await supabaseAdmin
       .from('confidence_assessments')
       .select('*', { count: 'exact', head: true });
+
+    // 5b. Deduplication telemetry
+    let deduplicationTelemetry = {
+      pending_count: 0,
+      exact_matches: 0,
+      high_confidence: 0,
+      potential: 0,
+      total_resolved: 0
+    };
+
+    try {
+      const { data: dups, error: dupErr } = await supabaseAdmin
+        .from('question_duplicates')
+        .select('id, status, match_type');
+      if (!dupErr && dups) {
+        for (const d of dups) {
+          if (d.status === 'PENDING') {
+            deduplicationTelemetry.pending_count++;
+            if (d.match_type === 'EXACT') deduplicationTelemetry.exact_matches++;
+            else if (d.match_type === 'HIGH_CONFIDENCE') deduplicationTelemetry.high_confidence++;
+            else deduplicationTelemetry.potential++;
+          } else if (d.status === 'RESOLVED') {
+            deduplicationTelemetry.total_resolved++;
+          }
+        }
+      }
+    } catch (dErr) {
+      console.warn('Observability: failed to fetch deduplication counts', dErr.message);
+    }
+
+    // 5c. Syllabus Readiness & Coverage Telemetry
+    let syllabusTelemetry = {
+      total_topics: 0,
+      zero_coverage: 0,
+      low_coverage: 0,
+      ready_topics: 0,
+      readiness_percentage: 0
+    };
+
+    try {
+      const { data: allTopics, error: topErr } = await supabaseAdmin
+        .from('topics')
+        .select('id');
+      if (!topErr && allTopics) {
+        syllabusTelemetry.total_topics = allTopics.length;
+        const topicCounts = {};
+        for (const q of questionsList) {
+          if (q.topic_id) topicCounts[q.topic_id] = (topicCounts[q.topic_id] || 0) + 1;
+        }
+        for (const t of allTopics) {
+          const count = topicCounts[t.id] || 0;
+          if (count === 0) syllabusTelemetry.zero_coverage++;
+          else if (count < 5) syllabusTelemetry.low_coverage++;
+          else syllabusTelemetry.ready_topics++;
+        }
+        syllabusTelemetry.readiness_percentage = syllabusTelemetry.total_topics > 0
+          ? Math.round(((syllabusTelemetry.total_topics - syllabusTelemetry.zero_coverage) / syllabusTelemetry.total_topics) * 100)
+          : 0;
+      }
+    } catch (sErr) {
+      console.warn('Observability: failed to calculate syllabus coverage', sErr.message);
+    }
 
     // 6. MongoDB Content pipeline telemetry (safe fallback)
     let contentPipeline = {
@@ -208,11 +299,14 @@ export const adminService = {
       },
       practice: {
         total_sessions: practiceSessionsCount || 0,
-        total_attempts: practiceAttemptsCount || 0
+        total_attempts: practiceAttemptsCount || 0,
+        recent_sessions: recentPracticeSessions
       },
       confidence: {
         total_ratings: confidenceCount || 0
       },
+      deduplication: deduplicationTelemetry,
+      syllabus: syllabusTelemetry,
       content_pipeline: contentPipeline,
       runtime,
       recent_questions: recentQuestions
@@ -318,7 +412,8 @@ export const adminService = {
         total_topics: totalTopicsCount,
         zero_coverage_topics: zeroCoverageCount,
         low_coverage_topics: lowCoverageCount,
-        total_questions: (questions || []).length
+        total_questions: (questions || []).length,
+        readiness_percentage: totalTopicsCount > 0 ? Math.round(((totalTopicsCount - zeroCoverageCount) / totalTopicsCount) * 100) : 0
       },
       subjects: annotatedSubjects
     };
