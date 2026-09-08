@@ -96,4 +96,25 @@ describe('TooPrep - Admin Management & Observability Tests', () => {
       assert.ok(Array.isArray(firstSubject.chapters));
     }
   });
+
+  it('provides student cohort roster and individual student dossiers', async () => {
+    const list = await adminService.getStudentsList();
+    assert.ok(typeof list.total === 'number');
+    assert.ok(Array.isArray(list.students));
+    if (list.students.length > 0) {
+      const first = list.students[0];
+      assert.ok(first.id);
+      assert.ok(first.email);
+      assert.ok(first.display_name);
+
+      const detail = await adminService.getStudentDetail(first.id);
+      assert.ok(detail.student);
+      assert.ok(detail.summary);
+      assert.equal(typeof detail.summary.total_solved, 'number');
+      assert.ok(Array.isArray(detail.knowledge_map));
+      assert.ok(Array.isArray(detail.evaluations));
+      assert.ok(Array.isArray(detail.practice_sessions));
+      assert.ok(detail.mistake_distribution);
+    }
+  });
 });

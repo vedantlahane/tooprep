@@ -25,5 +25,10 @@ router.post('/duplicates/:id/resolve', requireAdmin, adminController.resolveDupl
 router.post('/duplicates/:id/dismiss', requireAdmin, adminController.dismissDuplicate);
 router.post('/duplicates/:id/merge', requireAdmin, adminController.mergeDuplicates);
 
+// Student Cohort Observability & Management
+router.get('/students', requireAdmin, adminController.getStudentsList);
+router.get('/students/:id', requireAdmin, adminController.getStudentDetail);
+router.patch('/students/:id/role', requireAdmin, adminController.updateUserRole);
+
 export default router;
 

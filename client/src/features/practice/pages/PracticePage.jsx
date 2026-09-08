@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { practiceService } from '../services/practiceService';
@@ -16,7 +16,15 @@ import Icon, {
   BookOpen,
   ArrowRight,
   RotateCcw,
-  Timer
+  Timer,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  Bookmark,
+  Grid,
+  Check,
+  X
 } from '@/shared/components/Icon';
 
 export default function PracticePage() {
@@ -36,11 +44,13 @@ export default function PracticePage() {
   const [session, setSession] = useState(location.state?.session || null);
   const [questions, setQuestions] = useState(location.state?.questions || []);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState(null);
-  const [submitted, setSubmitted] = useState(false);
-  const [mistakeType, setMistakeType] = useState(null);
+
+  // Mercer Mettl / NTA style per-question state map:
+  // { [index]: { selectedAnswer, submitted, correct, correct_answer, result, mistakeType, isFlagged, timeSpent } }
+  const [questionStates, setQuestionStates] = useState({});
+  const [paletteOpen, setPaletteOpen] = useState(true);
+
   const [attempts, setAttempts] = useState([]);
-  const [showSolution, setShowSolution] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -119,8 +129,9 @@ export default function PracticePage() {
 
       const result = await practiceService.startPractice(targetTopicIds, null);
       setSession(result.session);
-      setQuestions(result.questions);
+      setQuestions(result.questions || []);
       setCurrentIndex(0);
+      setQuestionStates({});
       setAttempts([]);
       startTimeRef.current = Date.now();
     } catch (err) {
@@ -130,43 +141,103 @@ export default function PracticePage() {
     }
   };
 
-  const handleSubmitAnswer = async () => {
-    if (!selectedAnswer) return;
-    setLoading(true);
+  // Current Question accessor & per-question state helpers
+  const currentQuestion = questions[currentIndex];
+  const currentState = questionStates[currentIndex] || {};
+  const isCurrentSubmitted = Boolean(currentState.submitted);
+  const currentSelectedAnswer = currentState.selectedAnswer ?? null;
+  const isCurrentFlagged = Boolean(currentState.isFlagged);
+  const currentMistakeType = currentState.mistakeType ?? null;
 
-    const timeSpent = Math.round((Date.now() - startTimeRef.current) / 1000);
+  const handleSelectAnswer = (ans) => {
+    if (isCurrentSubmitted) return;
+    setQuestionStates(prev => ({
+      ...prev,
+      [currentIndex]: {
+        ...prev[currentIndex],
+        selectedAnswer: ans
+      }
+    }));
+  };
 
-    try {
-      const result = await practiceService.submitPracticeAttempt(session.id, {
-        question_id: questions[currentIndex].id,
-        selected_answer: selectedAnswer,
-        time_spent_seconds: timeSpent,
-        mistake_type: null
-      });
+  const handleToggleFlag = () => {
+    setQuestionStates(prev => ({
+      ...prev,
+      [currentIndex]: {
+        ...prev[currentIndex],
+        isFlagged: !prev[currentIndex]?.isFlagged
+      }
+    }));
+  };
 
-      setAttempts(prev => [...prev, { ...result, question: questions[currentIndex] }]);
-      setSubmitted(true);
+  const handleMistakeTypeChange = (type) => {
+    setQuestionStates(prev => ({
+      ...prev,
+      [currentIndex]: {
+        ...prev[currentIndex],
+        mistakeType: type
+      }
+    }));
+  };
 
-      // Auto-show solution in practice mode
-      questions[currentIndex].correct_answer = result.correct_answer;
-      setShowSolution(true);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+  const handleGoToQuestion = (targetIndex) => {
+    if (targetIndex >= 0 && targetIndex < questions.length) {
+      setCurrentIndex(targetIndex);
+      startTimeRef.current = Date.now();
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentIndex > 0) {
+      handleGoToQuestion(currentIndex - 1);
     }
   };
 
   const handleNext = () => {
     if (currentIndex < questions.length - 1) {
-      setCurrentIndex(prev => prev + 1);
-      setSelectedAnswer(null);
-      setSubmitted(false);
-      setShowSolution(false);
-      setMistakeType(null);
-      startTimeRef.current = Date.now();
+      handleGoToQuestion(currentIndex + 1);
     } else {
       completePractice();
+    }
+  };
+
+  const handleSubmitAnswer = async () => {
+    if (!currentSelectedAnswer || isCurrentSubmitted) return;
+    setLoading(true);
+
+    const timeSpent = Math.round((Date.now() - (startTimeRef.current || Date.now())) / 1000);
+
+    try {
+      const result = await practiceService.submitPracticeAttempt(session.id, {
+        question_id: currentQuestion.id,
+        selected_answer: currentSelectedAnswer,
+        time_spent_seconds: timeSpent,
+        mistake_type: null
+      });
+
+      // Update question's correct answer for solution reveal
+      currentQuestion.correct_answer = result.correct_answer;
+
+      setQuestionStates(prev => ({
+        ...prev,
+        [currentIndex]: {
+          ...prev[currentIndex],
+          submitted: true,
+          correct: result.correct,
+          correct_answer: result.correct_answer,
+          result,
+          timeSpent
+        }
+      }));
+
+      setAttempts(prev => {
+        const filtered = prev.filter(a => a.question_id !== currentQuestion.id);
+        return [...filtered, { ...result, question: currentQuestion }];
+      });
+    } catch (err) {
+      setError(err.message || 'Failed to record answer');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -193,6 +264,32 @@ export default function PracticePage() {
     }
   };
 
+  // Computed question palette stats
+  const paletteStats = useMemo(() => {
+    let answered = 0;
+    let correct = 0;
+    let incorrect = 0;
+    let flagged = 0;
+
+    questions.forEach((_, idx) => {
+      const st = questionStates[idx];
+      if (st?.isFlagged) flagged++;
+      if (st?.submitted) {
+        answered++;
+        if (st.correct) correct++;
+        else incorrect++;
+      }
+    });
+
+    return {
+      answered,
+      unanswered: questions.length - answered,
+      correct,
+      incorrect,
+      flagged
+    };
+  }, [questions, questionStates]);
+
   // ─── Screen 1: Setup & Multi-Curriculum Configuration Screen ───
   if (!session) {
     const hasSelection = selectedChapters.length > 0 || selectedTopics.length > 0 || Boolean(selectedSubject);
@@ -203,8 +300,8 @@ export default function PracticePage() {
           <div className="text-label-sm-mono uppercase tracking-[0.25em] text-primary text-xs">
             Training Facility &middot; Problem Drill
           </div>
-          <h1 className="text-4xl md:text-5xl font-extralight text-white tracking-tight lowercase mt-1">
-            practice mode
+          <h1 className="text-4xl md:text-5xl font-extralight text-white tracking-tight mt-1">
+            Practice Mode
           </h1>
           <p className="text-body-md text-white/60 font-light mt-2">
             Continuous self-paced drill. Select multiple chapters and topics to customize your problem set.
@@ -262,8 +359,8 @@ export default function PracticePage() {
           <div className="text-label-sm-mono uppercase tracking-[0.25em] text-primary text-xs">
             Drill Complete &middot; Performance Debrief
           </div>
-          <h1 className="text-4xl font-extralight text-white tracking-tight lowercase mt-1">
-            practice results
+          <h1 className="text-4xl font-extralight text-white tracking-tight mt-1">
+            Practice Results
           </h1>
         </div>
 
@@ -350,38 +447,126 @@ export default function PracticePage() {
     );
   }
 
-  // ─── Screen 3: Active Practice Drill ───
-  const currentQuestion = questions[currentIndex];
-
+  // ─── Screen 3: Active Practice Drill (Mercer Mettl / NTA JEE Style Navigation) ───
   return (
-    <div className="w-full max-w-4xl mr-auto animate-fade-in space-y-6 text-left">
-      {/* Telemetry status bar */}
+    <div className="w-full max-w-4xl mr-auto animate-fade-in space-y-5 text-left">
+      {/* ─── Top Telemetry & Controls Bar ─── */}
       <div className="flex items-center justify-between border-b border-white/10 pb-3 flex-wrap gap-2">
-        <div className="text-xs font-mono uppercase tracking-widest text-white/60">
-          Question <span className="text-primary font-bold">{currentIndex + 1}</span> of {questions.length}
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-mono uppercase tracking-widest text-white/60">
+            Question <span className="text-primary font-bold text-sm">{currentIndex + 1}</span> of {questions.length}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPaletteOpen(!paletteOpen)}
+            className="px-2.5 py-1 bg-surface-container border border-white/15 hover:border-primary text-white/80 hover:text-primary text-[11px] font-mono rounded-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="Toggle Question Palette"
+          >
+            <Grid className="w-3.5 h-3.5 text-primary" />
+            <span>Palette ({paletteStats.answered}/{questions.length})</span>
+            {paletteOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          </button>
         </div>
-        <div className="flex items-center gap-4">
+
+        <div className="flex items-center gap-3">
           <div className="text-xs font-mono uppercase tracking-widest text-white/60">
-            Score: <span className="text-primary font-bold">{attempts.filter(a => a.correct).length}</span>/{attempts.length}
+            Score: <span className="text-primary font-bold">{paletteStats.correct}</span>/{paletteStats.answered}
           </div>
-          {attempts.length > 0 && (
-            <button
-              type="button"
-              onClick={completePractice}
-              className="text-[10px] font-mono uppercase tracking-wider text-status-weak hover:text-white px-2.5 py-1 border border-status-weak/40 hover:border-white/50 transition-colors"
-              title="Finish session early with current score"
-            >
-              Finish Drill
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={completePractice}
+            className="text-[10px] font-mono uppercase tracking-wider text-status-weak hover:text-white px-2.5 py-1 border border-status-weak/40 hover:border-white/50 transition-colors cursor-pointer"
+            title="Finish session early with current score"
+          >
+            Finish Drill
+          </button>
         </div>
       </div>
+
+      {/* ─── Mercer Mettl / NTA Style Question Palette Drawer ─── */}
+      <AnimatePresence>
+        {paletteOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden border border-white/15 bg-surface-container/90 rounded-sm p-4 space-y-3"
+          >
+            <div className="flex items-center justify-between flex-wrap gap-2 text-[10px] font-mono uppercase tracking-wider">
+              <span className="text-white/60 font-bold">Question Palette (Click to jump):</span>
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <span className="flex items-center gap-1 text-white">
+                  <span className="w-2.5 h-2.5 rounded-xs ring-1 ring-primary bg-primary/30 inline-block" />
+                  <span>Current</span>
+                </span>
+                <span className="flex items-center gap-1 text-status-aligned">
+                  <span className="w-2.5 h-2.5 rounded-xs bg-status-aligned/40 border border-status-aligned inline-block" />
+                  <span>Correct ({paletteStats.correct})</span>
+                </span>
+                <span className="flex items-center gap-1 text-error">
+                  <span className="w-2.5 h-2.5 rounded-xs bg-error/40 border border-error inline-block" />
+                  <span>Incorrect ({paletteStats.incorrect})</span>
+                </span>
+                <span className="flex items-center gap-1 text-[#FF8C00]">
+                  <span className="w-2.5 h-2.5 rounded-xs bg-[#FF8C00]/40 border border-[#FF8C00] inline-block" />
+                  <span>Flagged ({paletteStats.flagged})</span>
+                </span>
+                <span className="flex items-center gap-1 text-white/40">
+                  <span className="w-2.5 h-2.5 rounded-xs bg-black/50 border border-white/10 inline-block" />
+                  <span>Unanswered ({paletteStats.unanswered})</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Questions Number Grid */}
+            <div className="grid grid-cols-5 sm:grid-cols-10 md:grid-cols-15 gap-1.5 pt-1">
+              {questions.map((_, idx) => {
+                const qNum = idx + 1;
+                const st = questionStates[idx];
+                const isCurrent = idx === currentIndex;
+                const isSubmitted = Boolean(st?.submitted);
+                const isCorrect = Boolean(st?.correct);
+                const isFlagged = Boolean(st?.isFlagged);
+
+                let cellClass = 'bg-black/50 border-white/10 text-white/50 hover:border-white/40';
+                if (isCurrent) {
+                  cellClass = 'bg-primary/25 border-primary text-primary font-bold ring-2 ring-primary ring-offset-1 ring-offset-black';
+                } else if (isSubmitted) {
+                  if (isCorrect) {
+                    cellClass = 'bg-status-aligned/20 border-status-aligned/60 text-status-aligned font-bold hover:bg-status-aligned/30';
+                  } else {
+                    cellClass = 'bg-error/20 border-error/60 text-error font-bold hover:bg-error/30';
+                  }
+                } else if (isFlagged) {
+                  cellClass = 'bg-[#FF8C00]/20 border-[#FF8C00] text-[#FF8C00] font-bold';
+                }
+
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleGoToQuestion(idx)}
+                    className={`relative py-2 px-1 text-center font-mono text-xs rounded-xs border transition-all cursor-pointer ${cellClass}`}
+                    title={`Question ${qNum}${isSubmitted ? (isCorrect ? ' (Correct)' : ' (Incorrect)') : ''}${isFlagged ? ' (Flagged for Review)' : ''}`}
+                  >
+                    <span>{qNum}</span>
+                    {isFlagged && (
+                      <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#FF8C00]" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Progress Bar */}
       <div className="w-full h-1 bg-surface-container rounded-full overflow-hidden">
         <div
           className="h-full bg-primary transition-all duration-300"
-          style={{ width: `${((currentIndex + (submitted ? 1 : 0)) / questions.length) * 100}%` }}
+          style={{ width: `${((paletteStats.answered) / (questions.length || 1)) * 100}%` }}
         />
       </div>
 
@@ -391,30 +576,32 @@ export default function PracticePage() {
         </div>
       )}
 
-      {/* Question Card with Directional Physics */}
+      {/* ─── Question Card with Directional Animation ─── */}
       <AnimatePresence mode="wait">
         <motion.div
           key={currentQuestion?.id || currentIndex}
-          initial={{ opacity: 0, x: 24 }}
+          initial={{ opacity: 0, x: 16 }}
           animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -24 }}
-          transition={{ duration: 0.2, ease: 'easeOut' }}
+          exit={{ opacity: 0, x: -16 }}
+          transition={{ duration: 0.18, ease: 'easeOut' }}
         >
           <QuestionCard
             question={currentQuestion}
-            selectedAnswer={selectedAnswer}
-            onSelectAnswer={!submitted ? setSelectedAnswer : undefined}
-            showResult={submitted}
-            showSolution={showSolution}
-            disabled={submitted}
+            selectedAnswer={currentSelectedAnswer}
+            onSelectAnswer={!isCurrentSubmitted ? handleSelectAnswer : undefined}
+            showResult={isCurrentSubmitted}
+            showSolution={isCurrentSubmitted}
+            disabled={isCurrentSubmitted}
             questionNumber={currentIndex + 1}
+            markedForReview={isCurrentFlagged}
+            onMarkForReview={handleToggleFlag}
           />
         </motion.div>
       </AnimatePresence>
 
-      {/* Post-submission Mistake Selector */}
+      {/* ─── Post-submission Mistake Reflection Selector ─── */}
       <AnimatePresence>
-        {submitted && !attempts[attempts.length - 1]?.correct && (
+        {isCurrentSubmitted && !currentState.correct && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
@@ -425,34 +612,78 @@ export default function PracticePage() {
               <AlertTriangle className="w-3.5 h-3.5" />
               <span>Categorize This Mistake (Metacognitive Reflection)</span>
             </div>
-            <MistakeTypeSelector value={mistakeType} onChange={setMistakeType} />
+            <MistakeTypeSelector value={currentMistakeType} onChange={handleMistakeTypeChange} />
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Action Controls */}
-      <div className="pt-2">
-        {!submitted ? (
-          <motion.button
-            whileHover={!selectedAnswer || loading ? {} : { scale: 1.01 }}
-            whileTap={!selectedAnswer || loading ? {} : { scale: 0.98 }}
-            onClick={handleSubmitAnswer}
-            disabled={!selectedAnswer || loading}
-            className="w-full py-3.5 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest rounded-sm hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-primary/20 cursor-pointer"
+      {/* ─── Bottom Mercer Mettl Navigation Controls ─── */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-white/10">
+        {/* Left: Previous & Mark for Review */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handlePrevious}
+            disabled={currentIndex === 0}
+            className="px-4 py-3 bg-surface-container border border-white/15 hover:border-white/50 text-white text-xs font-mono uppercase tracking-wider rounded-sm disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors cursor-pointer"
           >
-            {loading ? 'Submitting...' : 'Submit & Reveal Solution'}
-          </motion.button>
-        ) : (
+            <ChevronLeft className="w-4 h-4" />
+            <span>Previous</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleToggleFlag}
+            className={`px-3.5 py-3 border text-xs font-mono uppercase tracking-wider rounded-sm flex items-center gap-1.5 transition-colors cursor-pointer ${
+              isCurrentFlagged
+                ? 'bg-[#FF8C00]/20 border-[#FF8C00] text-[#FF8C00] font-bold'
+                : 'bg-surface-container border-white/15 text-white/60 hover:text-white hover:border-white/40'
+            }`}
+            title="Mark this question to review later"
+          >
+            <Bookmark className={`w-3.5 h-3.5 ${isCurrentFlagged ? 'fill-current' : ''}`} />
+            <span className="hidden sm:inline">{isCurrentFlagged ? 'Flagged' : 'Mark for Review'}</span>
+          </button>
+        </div>
+
+        {/* Right: Submit Answer & Next */}
+        <div className="flex items-center gap-2">
+          {!isCurrentSubmitted ? (
+            <motion.button
+              whileHover={!currentSelectedAnswer || loading ? {} : { scale: 1.01 }}
+              whileTap={!currentSelectedAnswer || loading ? {} : { scale: 0.98 }}
+              onClick={handleSubmitAnswer}
+              disabled={!currentSelectedAnswer || loading}
+              className="flex-1 sm:flex-none px-6 py-3 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest rounded-sm hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-primary/20 cursor-pointer"
+            >
+              {loading ? 'Submitting...' : 'Submit & Reveal'}
+            </motion.button>
+          ) : (
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-surface-container border border-white/10 rounded-xs text-[11px] font-mono">
+              {currentState.correct ? (
+                <span className="text-status-aligned flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Correct</span>
+                </span>
+              ) : (
+                <span className="text-error flex items-center gap-1">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  <span>Solution Revealed</span>
+                </span>
+              )}
+            </div>
+          )}
+
           <motion.button
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleNext}
-            className="w-full py-3.5 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest rounded-sm hover:brightness-110 transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-primary/20 cursor-pointer"
+            className="flex-1 sm:flex-none px-5 py-3 bg-surface-container border border-primary/40 hover:border-primary text-primary hover:text-white text-xs font-mono uppercase tracking-wider rounded-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
           >
-            <span>{currentIndex < questions.length - 1 ? 'Next Question' : 'Complete Practice Session'}</span>
-            <ArrowRight className="w-4 h-4" />
+            <span>{currentIndex < questions.length - 1 ? 'Next Question' : 'Complete Drill'}</span>
+            <ChevronRight className="w-4 h-4" />
           </motion.button>
-        )}
+        </div>
       </div>
     </div>
   );

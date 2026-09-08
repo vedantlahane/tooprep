@@ -131,8 +131,8 @@ export default function PerformanceTrendPage() {
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
             Trends &middot; Accuracy &amp; Score Trajectory
           </div>
-          <h1 className="text-3xl md:text-4xl font-extralight text-white tracking-tight lowercase">
-            performance trends
+          <h1 className="text-3xl md:text-4xl font-extralight text-white tracking-tight">
+            Performance Trends
           </h1>
           <p className="text-sm text-white/50 font-mono mt-1">
             Longitudinal trajectory tracking: Monitor empirical improvement across multiple evaluation attempts.
@@ -151,7 +151,7 @@ export default function PerformanceTrendPage() {
       {topicsWithTrends.length === 0 ? (
         <div className="text-center py-16 acrylic-glass border border-white/10 rounded-sm">
           <TrendingUp className="w-14 h-14 text-primary block opacity-60 mb-4 mx-auto" />
-          <h3 className="text-xl font-light text-white mb-2 lowercase">no retest trends yet</h3>
+          <h3 className="text-xl font-light text-white mb-2">No retest trends yet</h3>
           <p className="text-sm text-white/50 max-w-md mx-auto mb-6 font-mono">
             Retake evaluations on the same topic to generate accuracy progression charts and trajectory metrics.
           </p>

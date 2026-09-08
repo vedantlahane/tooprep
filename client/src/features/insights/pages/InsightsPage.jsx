@@ -88,7 +88,7 @@ export default function InsightsPage() {
       <div className="w-full max-w-4xl mr-auto animate-fade-in py-12 text-left">
         <div className="acrylic-glass border border-white/10 p-12 text-left rounded-sm">
           <BarChart3 className="w-16 h-16 text-primary mb-6 opacity-60" />
-          <h3 className="text-2xl font-light text-white mb-2 lowercase">no calibration telemetry yet</h3>
+          <h3 className="text-2xl font-light text-white mb-2">No calibration telemetry yet</h3>
           <p className="text-sm text-white/50 mb-8 max-w-md font-mono">
             Rate your confidence on topics in the Knowledge Map and take your first timed evaluation to generate calibration signals.
           </p>
@@ -112,8 +112,8 @@ export default function InsightsPage() {
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
             Metacognitive Calibration &middot; Analysis
           </div>
-          <h1 className="text-3xl md:text-4xl font-extralight text-white tracking-tight lowercase">
-            metacognitive insights
+          <h1 className="text-3xl md:text-4xl font-extralight text-white tracking-tight">
+            Metacognitive Insights
           </h1>
           <p className="text-sm text-white/50 font-mono mt-1">
             Real-time diagnostic comparing perceived self-confidence against verified exam performance.

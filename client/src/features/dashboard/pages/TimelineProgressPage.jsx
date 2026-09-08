@@ -157,8 +157,8 @@ export default function TimelineProgressPage() {
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
             Exam Readiness &middot; Countdown Timeline
           </div>
-          <h1 className="text-3xl sm:text-4xl font-extralight text-white tracking-tight lowercase">
-            prep timeline
+          <h1 className="text-3xl sm:text-4xl font-extralight text-white tracking-tight">
+            Prep Timeline
           </h1>
           <p className="text-sm text-white/50 font-mono mt-1">
             Weekly milestones and urgent calibration deadlines targeted for JEE {examYear}.

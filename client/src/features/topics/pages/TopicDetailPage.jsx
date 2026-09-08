@@ -152,7 +152,7 @@ export default function TopicDetailPage() {
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
             {topic.chapters?.subjects?.name} &middot; {topic.chapters?.name}
           </div>
-          <h1 className="text-3xl sm:text-4xl font-extralight text-white tracking-tight lowercase">
+          <h1 className="text-3xl sm:text-4xl font-extralight text-white tracking-tight">
             {topic.name}
           </h1>
           <p className="text-sm text-white/50 font-mono mt-1">

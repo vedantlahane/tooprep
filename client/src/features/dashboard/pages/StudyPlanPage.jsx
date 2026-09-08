@@ -119,8 +119,8 @@ export default function StudyPlanPage() {
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
             Daily Preparation Roadmap
           </div>
-          <h1 className="text-3xl md:text-4xl font-extralight text-white tracking-tight lowercase">
-            daily study plan
+          <h1 className="text-3xl md:text-4xl font-extralight text-white tracking-tight">
+            Daily Study Plan
           </h1>
           <p className="text-sm text-white/50 font-mono mt-1">
             Adaptive sequence targeted directly at eliminating overconfidence gaps and filling untested syllabus areas.

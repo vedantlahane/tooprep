@@ -13,11 +13,13 @@ import Icon, {
   LogOut,
   Sliders,
   Sparkles,
-  Copy
+  Copy,
+  Users
 } from './Icon';
 
 const ADMIN_PIVOT_ITEMS = [
   { path: '/admin', label: 'overview', icon: Activity },
+  { path: '/admin/students', label: 'students', icon: Users },
   { path: '/admin/questions', label: 'question bank', icon: BookOpen },
   { path: '/admin/duplicates', label: 'deduplication', icon: Copy },
   { path: '/admin/curriculum', label: 'curriculum matrix', icon: LayoutGrid },
@@ -90,7 +92,7 @@ export default function AdminLayout({ children }) {
               {profile?.display_name ? profile.display_name.charAt(0).toUpperCase() : (user?.email?.charAt(0).toUpperCase() || 'A')}
             </div>
             <span className="text-[11px] text-white/80 hidden md:inline truncate max-w-[100px]">
-              {profile?.display_name || user?.email?.split('@')[0] || 'admin'}
+              {profile?.display_name || user?.email?.split('@')[0] || 'Admin'}
             </span>
           </div>
 

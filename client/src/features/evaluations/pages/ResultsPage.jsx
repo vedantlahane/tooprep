@@ -139,8 +139,8 @@ export default function ResultsPage() {
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
             Evaluation Debrief &middot; Performance Analysis
           </div>
-          <h1 className="text-3xl md:text-4xl font-extralight text-white tracking-tight lowercase">
-            evaluation results
+          <h1 className="text-3xl md:text-4xl font-extralight text-white tracking-tight">
+            Evaluation Results
           </h1>
           <p className="text-sm text-white/50 font-mono mt-1">
             Empirical accuracy analysis vs. perceived self-confidence baseline.

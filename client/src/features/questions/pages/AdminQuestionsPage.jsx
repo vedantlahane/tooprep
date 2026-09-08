@@ -426,6 +426,40 @@ export default function AdminQuestionsPage() {
     downloadAnchor.remove();
   };
 
+  const handleExportCsv = () => {
+    const subset = selectedQuestionIds.length > 0
+      ? questions.filter(q => selectedQuestionIds.includes(q.id))
+      : questions;
+    const headers = ['id', 'subject', 'chapter', 'topic', 'difficulty', 'source_type', 'exam_year', 'verified', 'question_text', 'correct_answer'];
+    const csvRows = [
+      headers.join(','),
+      ...subset.map(q => {
+        const row = [
+          q.id || '',
+          `"${(q.topics?.chapters?.subjects?.name || '').replace(/"/g, '""')}"`,
+          `"${(q.topics?.chapters?.name || '').replace(/"/g, '""')}"`,
+          `"${(q.topics?.name || '').replace(/"/g, '""')}"`,
+          q.difficulty || '',
+          q.source_type || '',
+          q.exam_year || '',
+          q.verified ? 'true' : 'false',
+          `"${(q.question_text || '').replace(/"/g, '""')}"`,
+          q.correct_answer || ''
+        ];
+        return row.join(',');
+      })
+    ];
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute('href', url);
+    downloadAnchor.setAttribute('download', `tooprep-questions-export-${Date.now()}.csv`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+    URL.revokeObjectURL(url);
+  };
+
   const selectClass =
     'w-full px-4 py-3 border border-outline-variant bg-surface-dim text-body-md text-on-surface outline-none focus:border-primary uppercase transition-colors text-xs font-mono';
 
@@ -441,7 +475,7 @@ export default function AdminQuestionsPage() {
           <p className="text-label-sm-mono uppercase tracking-[0.2em] text-primary text-xs">
             Question Operations
           </p>
-          <h2 className="text-display text-on-surface mt-1 font-light lowercase">
+          <h2 className="text-display text-on-surface mt-1 font-light">
             Question Bank Manager
           </h2>
           <p className="text-body-md text-on-surface-variant font-light mt-1">
@@ -584,13 +618,20 @@ export default function AdminQuestionsPage() {
             </select>
           </div>
 
-          <div className="flex items-end">
+          <div className="flex items-end gap-2">
             <button
               onClick={handleExportJson}
-              className="w-full py-2 border border-white/15 hover:border-primary text-white text-xs font-mono uppercase tracking-widest flex items-center justify-center gap-2 transition-colors"
+              className="flex-1 py-2 border border-white/15 hover:border-primary text-white text-xs font-mono uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors"
               title="Export filtered questions as JSON"
             >
-              <span>Export {selectedQuestionIds.length > 0 ? `Selected (${selectedQuestionIds.length})` : 'All'} JSON</span>
+              <span>JSON {selectedQuestionIds.length > 0 ? `(${selectedQuestionIds.length})` : ''}</span>
+            </button>
+            <button
+              onClick={handleExportCsv}
+              className="flex-1 py-2 border border-white/15 hover:border-primary text-white text-xs font-mono uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors"
+              title="Export filtered questions as CSV spreadsheet"
+            >
+              <span>CSV {selectedQuestionIds.length > 0 ? `(${selectedQuestionIds.length})` : ''}</span>
             </button>
           </div>
         </div>

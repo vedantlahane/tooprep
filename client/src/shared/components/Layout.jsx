@@ -23,6 +23,7 @@ import Icon, {
   Grid,
   ChevronDown,
   Shield,
+  Users,
   X
 } from './Icon';
 import PWAInstallBanner from './PWAInstallBanner';
@@ -102,7 +103,7 @@ export default function Layout({ children }) {
             <span className="text-primary font-bold tracking-widest text-[11px] uppercase">TOOPREP</span>
             <span className="text-white/30 font-light">&middot;</span>
             <span className="text-white/70 uppercase text-[11px] tracking-widest group-hover:text-white transition-colors">
-              JEE 2026
+              {profile?.target_exam_year ? `JEE ${profile.target_exam_year}` : 'JEE PREP'}
             </span>
           </Link>
 
@@ -142,8 +143,8 @@ export default function Layout({ children }) {
             <div className="w-5 h-5 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center text-primary text-[10px] font-bold">
               {profile?.display_name ? profile.display_name.charAt(0).toUpperCase() : (user?.email?.charAt(0).toUpperCase() || 'U')}
             </div>
-            <span className="text-[11px] font-sans lowercase hidden md:inline truncate max-w-[90px]">
-              {profile?.display_name || user?.email?.split('@')[0] || 'student'}
+            <span className="text-[11px] font-sans font-medium hidden md:inline truncate max-w-[100px]">
+              {profile?.display_name || user?.email?.split('@')[0] || 'Student'}
             </span>
           </Link>
 
@@ -192,7 +193,7 @@ export default function Layout({ children }) {
                     <Shield className="w-3.5 h-3.5" />
                     <span>Administrative Command Center</span>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 text-xs font-mono">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5 text-xs font-mono">
                     <button
                       onClick={() => { navigate('/admin'); setMenuOpen(false); }}
                       className="p-3 bg-surface-container hover:bg-surface-bright rounded-xs border border-status-weak/40 hover:border-status-weak transition-colors text-left flex items-center gap-2.5 cursor-pointer"
@@ -201,6 +202,17 @@ export default function Layout({ children }) {
                       <div>
                         <div className="font-semibold text-white">Observability</div>
                         <div className="text-[10px] text-white/40">Mission Control</div>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => { navigate('/admin/students'); setMenuOpen(false); }}
+                      className="p-3 bg-surface-container hover:bg-surface-bright rounded-xs border border-[#FF8C00]/40 hover:border-[#FF8C00] transition-colors text-left flex items-center gap-2.5 cursor-pointer"
+                    >
+                      <Users className="w-4 h-4 text-[#FF8C00] shrink-0" />
+                      <div>
+                        <div className="font-semibold text-white">Students</div>
+                        <div className="text-[10px] text-white/40">Observability</div>
                       </div>
                     </button>
 

@@ -140,8 +140,8 @@ export default function SubjectMasteryPage() {
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
             Subject Mastery &middot; Diagnostic Hierarchy
           </div>
-          <h1 className="text-3xl sm:text-4xl font-extralight text-white tracking-tight lowercase">
-            subject mastery
+          <h1 className="text-3xl sm:text-4xl font-extralight text-white tracking-tight">
+            Subject Mastery
           </h1>
           <p className="text-sm text-white/50 font-mono mt-1">
             Chapter-level curriculum depth and metacognitive alignment across subjects.
@@ -159,7 +159,7 @@ export default function SubjectMasteryPage() {
       {subjectMastery.length === 0 ? (
         <div className="text-center py-20 border border-white/10 rounded-sm bg-surface-container">
           <GraduationCap className="w-16 h-16 text-primary block opacity-50 mb-4 mx-auto" />
-          <h3 className="text-xl font-light text-white mb-2 lowercase">no diagnostic data yet</h3>
+          <h3 className="text-xl font-light text-white mb-2">No diagnostic data yet</h3>
           <p className="text-sm font-mono text-white/50">Start practicing or evaluate topics to see your subject mastery breakdown.</p>
         </div>
       ) : (

@@ -97,7 +97,7 @@ export default function AdminOverviewPage() {
               </span>
             )}
           </div>
-          <h1 className="text-display text-on-surface mt-1 font-light lowercase">
+          <h1 className="text-display text-on-surface mt-1 font-light">
             System Observability
           </h1>
           <p className="text-body-md text-on-surface-variant font-light mt-1">
@@ -289,19 +289,28 @@ export default function AdminOverviewPage() {
           </div>
 
           {/* Tile 4: Mango Orange Student Cohort Tile */}
-          <div className="p-6 bg-gradient-to-br from-[#FF8C00]/20 via-[#FF8C00]/5 to-surface-dim border-2 border-[#FF8C00]/40 hover:border-[#FF8C00] transition-all group flex flex-col justify-between">
+          <div
+            onClick={() => navigate('/admin/students')}
+            className="cursor-pointer p-6 bg-gradient-to-br from-[#FF8C00]/20 via-[#FF8C00]/5 to-surface-dim border-2 border-[#FF8C00]/40 hover:border-[#FF8C00] transition-all group flex flex-col justify-between"
+          >
             <div>
               <div className="flex justify-between items-start">
                 <span className="text-xs font-mono text-[#FF8C00] uppercase tracking-widest font-bold flex items-center gap-1.5">
                   <Users className="w-4 h-4 text-[#FF8C00]" />
                   <span>Student Candidates</span>
                 </span>
-                <span className="text-[10px] font-mono text-white/50 uppercase">Active Cohort</span>
+                <span className="text-[10px] font-mono text-[#FF8C00] uppercase font-bold flex items-center gap-1">
+                  <span>Observability</span>
+                  <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                </span>
               </div>
 
               <div className="mt-4">
                 <span className="text-6xl font-extralight text-white font-mono">
                   {telemetry.students.total_profiles}
+                </span>
+                <span className="text-xs font-mono text-white/50 block mt-1">
+                  registered candidate profiles
                 </span>
               </div>
             </div>
@@ -424,12 +433,26 @@ export default function AdminOverviewPage() {
         </div>
       )}
 
-      {/* ─── 5-Module Quick Operations Command Strip ─── */}
+      {/* ─── 6-Module Quick Operations Command Strip ─── */}
       <div className="border border-white/15 bg-surface-container p-6 space-y-4">
         <h2 className="text-xs font-mono text-primary uppercase tracking-widest font-bold">
           Quick Administrative Navigation
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs font-mono">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-xs font-mono">
+          <button
+            onClick={() => navigate('/admin/students')}
+            className="p-4 bg-black border border-white/15 hover:border-[#FF8C00] text-left transition-colors flex items-center justify-between group"
+          >
+            <div>
+              <div className="font-bold text-white flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5 text-[#FF8C00]" />
+                <span>Student Roster</span>
+              </div>
+              <div className="text-[10px] text-white/50 mt-0.5">Observability & gap audit</div>
+            </div>
+            <ArrowRight className="w-4 h-4 text-[#FF8C00] group-hover:translate-x-1 transition-transform" />
+          </button>
+
           <button
             onClick={() => navigate('/admin/questions')}
             className="p-4 bg-black border border-white/15 hover:border-primary text-left transition-colors flex items-center justify-between group"
@@ -541,8 +564,12 @@ export default function AdminOverviewPage() {
           <div className="divide-y divide-white/10 text-xs font-mono">
             {telemetry?.evaluations?.recent_evaluations?.length > 0 ? (
               telemetry.evaluations.recent_evaluations.map((ev) => (
-                <div key={ev.id} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div className="flex items-center gap-3">
+                <div
+                  key={ev.id}
+                  onClick={() => ev.user_id && navigate(`/admin/students?student=${ev.user_id}`)}
+                  className="py-3 px-3 -mx-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-white/5 transition-colors cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3 flex-wrap">
                     <span className={`px-2 py-0.5 border text-[10px] font-bold ${
                       ev.accuracy >= 70
                         ? 'bg-status-aligned/20 border-status-aligned/40 text-status-aligned'
@@ -552,14 +579,19 @@ export default function AdminOverviewPage() {
                     }`}>
                       {ev.accuracy}%
                     </span>
+                    <span className="text-primary font-bold group-hover:underline flex items-center gap-1">
+                      <span>{ev.student_name || 'Student Candidate'}</span>
+                    </span>
+                    <span className="text-white/30">&middot;</span>
                     <span className="text-white font-medium">{ev.topic_name}</span>
                     <span className="text-white/40 text-[11px]">
                       ({ev.correct_count}/{ev.total_questions} correct)
                     </span>
                   </div>
 
-                  <div className="text-white/50 text-[11px]">
-                    {new Date(ev.started_at).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  <div className="flex items-center gap-2 text-white/50 text-[11px]">
+                    <span>{new Date(ev.started_at).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-white/30 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
                   </div>
                 </div>
               ))
@@ -574,8 +606,12 @@ export default function AdminOverviewPage() {
           <div className="divide-y divide-white/10 text-xs font-mono">
             {telemetry?.practice?.recent_sessions?.length > 0 ? (
               telemetry.practice.recent_sessions.map((ps) => (
-                <div key={ps.id} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div className="flex items-center gap-3">
+                <div
+                  key={ps.id}
+                  onClick={() => ps.user_id && navigate(`/admin/students?student=${ps.user_id}`)}
+                  className="py-3 px-3 -mx-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-white/5 transition-colors cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3 flex-wrap">
                     <span className={`px-2 py-0.5 border text-[10px] font-bold ${
                       ps.accuracy >= 70
                         ? 'bg-status-aligned/20 border-status-aligned/40 text-status-aligned'
@@ -585,14 +621,19 @@ export default function AdminOverviewPage() {
                     }`}>
                       {ps.accuracy}%
                     </span>
+                    <span className="text-[#FF8C00] font-bold group-hover:underline flex items-center gap-1">
+                      <span>{ps.student_name || 'Student Candidate'}</span>
+                    </span>
+                    <span className="text-white/30">&middot;</span>
                     <span className="text-white font-medium">{ps.topic_name}</span>
                     <span className="text-white/40 text-[11px]">
                       ({ps.correct_count}/{ps.total_questions} solved)
                     </span>
                   </div>
 
-                  <div className="text-white/50 text-[11px]">
-                    {new Date(ps.started_at).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  <div className="flex items-center gap-2 text-white/50 text-[11px]">
+                    <span>{new Date(ps.started_at).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-white/30 group-hover:text-[#FF8C00] group-hover:translate-x-0.5 transition-all" />
                   </div>
                 </div>
               ))

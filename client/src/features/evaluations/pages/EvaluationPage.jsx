@@ -159,8 +159,8 @@ export default function EvaluationPage() {
           <div className="text-label-sm-mono uppercase tracking-[0.25em] text-primary text-xs">
             Exam Simulation &middot; Timed Calibration
           </div>
-          <h1 className="text-4xl md:text-5xl font-extralight text-white tracking-tight lowercase mt-1">
-            mock evaluation
+          <h1 className="text-4xl md:text-5xl font-extralight text-white tracking-tight mt-1">
+            Mock Evaluation
           </h1>
           <p className="text-body-md text-white/60 font-light mt-2">
             Simulate real exam conditions. Solutions and correct answers are withheld until submission to accurately benchmark your calibration gap.

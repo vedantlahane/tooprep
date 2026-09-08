@@ -116,6 +116,49 @@ export const adminController = {
       console.error('POST /api/admin/duplicates/:id/merge error:', err);
       return res.status(err.statusCode || 500).json({ error: err.message || 'Server error' });
     }
+  },
+
+  /**
+   * GET /api/admin/students — List student cohort with aggregated metrics.
+   */
+  async getStudentsList(req, res) {
+    try {
+      const { search, target_year, sort } = req.query;
+      const data = await adminService.getStudentsList({ search, target_year, sort });
+      return res.json(data);
+    } catch (err) {
+      console.error('GET /api/admin/students error:', err);
+      return res.status(err.statusCode || 500).json({ error: err.message || 'Server error' });
+    }
+  },
+
+  /**
+   * GET /api/admin/students/:id — Deep Student Dossier.
+   */
+  async getStudentDetail(req, res) {
+    try {
+      const { id } = req.params;
+      const data = await adminService.getStudentDetail(id);
+      return res.json(data);
+    } catch (err) {
+      console.error('GET /api/admin/students/:id error:', err);
+      return res.status(err.statusCode || 500).json({ error: err.message || 'Server error' });
+    }
+  },
+
+  /**
+   * PATCH /api/admin/students/:id/role — Grant or revoke admin privileges.
+   */
+  async updateUserRole(req, res) {
+    try {
+      const { id } = req.params;
+      const { is_admin } = req.body || {};
+      const data = await adminService.updateUserRole(id, { is_admin });
+      return res.json({ success: true, profile: data });
+    } catch (err) {
+      console.error('PATCH /api/admin/students/:id/role error:', err);
+      return res.status(err.statusCode || 500).json({ error: err.message || 'Server error' });
+    }
   }
 };
 

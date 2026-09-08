@@ -394,7 +394,7 @@ export default function DashboardPage() {
           <div className="w-16 h-16 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
         </div>
         <div className="text-label-sm-mono text-primary uppercase tracking-[0.3em] text-xs">
-          Loading TooPrep Excel Matrix // 130 Topics...
+          Loading TooPrep Excel Matrix // {data?.length > 0 ? `${data.length} Topics...` : 'Curriculum Topics...'}
         </div>
       </div>
     );
@@ -405,8 +405,8 @@ export default function DashboardPage() {
       {/* ─── Application Title & Summary Header ─── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-white/10 pb-3">
         <div>
-          <h1 className="text-2xl md:text-3xl font-light text-white tracking-tight lowercase">
-            knowledge map
+          <h1 className="text-2xl md:text-3xl font-light text-white tracking-tight">
+            Knowledge Map
           </h1>
           <div className="text-xs text-white/60 flex items-center gap-2 sm:gap-3 mt-1 flex-wrap">
             <span>{summary.total} topics</span>

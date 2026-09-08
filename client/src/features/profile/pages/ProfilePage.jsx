@@ -82,8 +82,8 @@ export default function ProfilePage() {
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
             Student Profile
           </div>
-          <h1 className="text-3xl md:text-4xl font-extralight text-white tracking-tight lowercase">
-            student profile
+          <h1 className="text-3xl md:text-4xl font-extralight text-white tracking-tight">
+            Student Profile
           </h1>
           <p className="text-sm text-white/50 font-mono mt-1">
             Exam target trajectory, personal credentials, and system administration.
@@ -94,7 +94,7 @@ export default function ProfilePage() {
           onClick={() => navigate('/')}
           className="flex items-center gap-2 px-4 py-2 bg-surface-container border border-white/10 hover:border-primary text-white/80 hover:text-white text-xs font-mono uppercase tracking-wider rounded-sm transition-colors"
         >
-          open knowledge map
+          Open Knowledge Map
         </button>
       </div>
 
@@ -108,7 +108,7 @@ export default function ProfilePage() {
 
           <div className="mt-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div>
-              <h3 className="text-2xl font-light text-white lowercase">{profile?.display_name || 'Student'}</h3>
+              <h3 className="text-2xl font-light text-white">{profile?.display_name || 'Student'}</h3>
               <p className="text-xs font-mono text-white/50 mt-1">{user?.email}</p>
               {profile?.target_exam_year && (
                 <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 bg-primary/10 border border-primary/30 text-primary rounded-xs text-xs font-mono uppercase tracking-wider">
@@ -180,7 +180,7 @@ export default function ProfilePage() {
           <History className="w-8 h-8 text-primary mb-6 group-hover:scale-110 transition-transform" />
           <div>
             <div className="text-xs font-mono text-primary uppercase tracking-widest mb-1">Activity Log</div>
-            <h3 className="text-xl font-light text-white lowercase">Session History</h3>
+            <h3 className="text-xl font-light text-white">Session History</h3>
             <p className="text-xs text-white/50 font-mono mt-1">Review past evaluations, practice drills, and longitudinal trends.</p>
           </div>
         </div>
@@ -192,7 +192,7 @@ export default function ProfilePage() {
           <Play className="w-8 h-8 text-primary mb-6 group-hover:scale-110 transition-transform" />
           <div>
             <div className="text-xs font-mono text-primary uppercase tracking-widest mb-1">Foundation</div>
-            <h3 className="text-xl font-light text-white lowercase">Practice Drill</h3>
+            <h3 className="text-xl font-light text-white">Practice Drill</h3>
             <p className="text-xs text-white/50 font-mono mt-1">Untimed question sets with instant step-by-step LaTeX solution reveal.</p>
           </div>
         </div>
@@ -204,7 +204,7 @@ export default function ProfilePage() {
           <Timer className="w-8 h-8 text-primary mb-6 group-hover:scale-110 transition-transform" />
           <div>
             <div className="text-xs font-mono text-primary uppercase tracking-widest mb-1">Diagnostic</div>
-            <h3 className="text-xl font-light text-white lowercase">Timed Evaluation</h3>
+            <h3 className="text-xl font-light text-white">Timed Evaluation</h3>
             <p className="text-xs text-white/60 font-mono mt-1">Simulated test conditions to scientifically calibrate your confidence gap.</p>
           </div>
         </div>

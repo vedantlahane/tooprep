@@ -171,7 +171,7 @@ export default function AdminCurriculumPage() {
           <p className="text-xs font-semibold uppercase tracking-wider text-primary">
             Curriculum Coverage
           </p>
-          <h1 className="text-display text-on-surface mt-1 font-light lowercase">
+          <h1 className="text-display text-on-surface mt-1 font-light">
             Question Coverage Matrix
           </h1>
           <p className="text-body-md text-on-surface-variant font-light mt-1">
@@ -330,7 +330,7 @@ export default function AdminCurriculumPage() {
                   <span className={`w-2.5 h-2.5 rounded-full ${
                     subj.name === 'Physics' ? 'bg-[#00BFFF]' : subj.name === 'Chemistry' ? 'bg-[#FF8C00]' : 'bg-[#107C10]'
                   }`}></span>
-                  <h2 className="text-lg font-light text-white lowercase tracking-wide">{subj.name}</h2>
+                  <h2 className="text-lg font-light text-white tracking-wide">{subj.name}</h2>
                 </div>
                 <span className="text-xs font-mono text-white/50">
                   {subj.total_questions} Questions in Subject

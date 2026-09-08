@@ -305,8 +305,8 @@ export default function QuestionsPage() {
           <div className="text-xs text-primary font-semibold uppercase tracking-wider">
             Question Archive &middot; Verified Curriculum Pool
           </div>
-          <h1 className="text-3xl md:text-5xl font-extralight text-white tracking-tight lowercase mt-1">
-            question bank
+          <h1 className="text-3xl md:text-5xl font-extralight text-white tracking-tight mt-1">
+            Question Bank
           </h1>
           <p className="text-body-md text-white/60 font-light mt-1">
             Browse official JEE Main PYQ papers across multiple chapters and curriculum topics.

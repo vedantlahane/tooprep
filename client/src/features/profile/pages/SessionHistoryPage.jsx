@@ -133,8 +133,8 @@ export default function SessionHistoryPage() {
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
             History &middot; Evaluation &amp; Practice Log
           </div>
-          <h1 className="text-3xl md:text-4xl font-extralight text-white tracking-tight lowercase">
-            session history
+          <h1 className="text-3xl md:text-4xl font-extralight text-white tracking-tight">
+            Session History
           </h1>
           <p className="text-sm text-white/50 font-mono mt-1">
             Chronological record of all timed evaluations and untimed drill sessions.
@@ -166,7 +166,7 @@ export default function SessionHistoryPage() {
       {allSessions.length === 0 ? (
         <div className="text-center py-16 acrylic-glass border border-white/10 rounded-sm">
           <History className="w-14 h-14 text-primary block opacity-60 mb-4 mx-auto" />
-          <h3 className="text-xl font-light text-white mb-2 lowercase">no sessions recorded yet</h3>
+          <h3 className="text-xl font-light text-white mb-2">No sessions recorded yet</h3>
           <p className="text-sm text-white/50 max-w-md mx-auto mb-6 font-mono">
             Start a practice drill or take a timed evaluation to track your historical attempts here.
           </p>

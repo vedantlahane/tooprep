@@ -74,7 +74,8 @@ import {
   Server,
   Image,
   Save,
-  GitMerge
+  GitMerge,
+  ExternalLink
 } from 'lucide-react';
 
 const ICON_MAP = {
@@ -254,5 +255,6 @@ export {
   Server,
   Image,
   Save,
-  GitMerge
+  GitMerge,
+  ExternalLink
 };

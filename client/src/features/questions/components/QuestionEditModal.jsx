@@ -284,8 +284,8 @@ export default function QuestionEditModal({
                   <span className="text-white/40">[{question.canonical_question_id}]</span>
                 )}
               </div>
-              <h2 className="text-xl font-light text-white lowercase">
-                {isEditMode ? 'modify question & solution' : 'publish question to bank'}
+              <h2 className="text-xl font-light text-white">
+                {isEditMode ? 'Modify Question & Solution' : 'Publish Question to Bank'}
               </h2>
             </div>
 

@@ -26,6 +26,23 @@ export const adminService = {
 
   mergeDuplicates: (id, { target_id, source_id, merged_fields = {} }) => {
     return request('POST', `/admin/duplicates/${id}/merge`, { target_id, source_id, merged_fields });
+  },
+
+  // Student Observability & Management APIs
+  getStudents: ({ search = '', target_year = '', sort = 'last_active' } = {}) => {
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    if (target_year && target_year !== 'ALL') params.append('target_year', target_year);
+    if (sort) params.append('sort', sort);
+    return request('GET', `/admin/students?${params.toString()}`);
+  },
+
+  getStudentDetail: (id) => {
+    return request('GET', `/admin/students/${id}`);
+  },
+
+  updateUserRole: (id, is_admin) => {
+    return request('PATCH', `/admin/students/${id}/role`, { is_admin });
   }
 };
 
