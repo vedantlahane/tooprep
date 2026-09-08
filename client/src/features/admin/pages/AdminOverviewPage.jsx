@@ -153,7 +153,7 @@ export default function AdminOverviewPage() {
       </div>
 
       {error && (
-        <div className="p-4 border-l-4 border-error bg-error/10 text-error text-xs font-mono">
+        <div className="p-4 border border-error/30 bg-error/10 text-error text-xs font-mono">
           {error}
         </div>
       )}

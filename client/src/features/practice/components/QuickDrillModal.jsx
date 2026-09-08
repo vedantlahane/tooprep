@@ -167,7 +167,7 @@ export default function QuickDrillModal({ topicId, topicName, isOpen, onClose, o
               />
 
               {submitted && questions[currentIndex]?.correct_answer && (
-                <div className="p-4 bg-status-aligned/10 border-l-4 border-status-aligned rounded-r-sm">
+                <div className="p-4 bg-status-aligned/10 border border-status-aligned/40">
                   <div className="text-label-sm-mono text-status-aligned uppercase tracking-widest mb-2">Correct Answer</div>
                   <div className="text-body-md text-on-surface font-mono">
                     {questions[currentIndex].correct_answer}
@@ -214,7 +214,7 @@ export default function QuickDrillModal({ topicId, topicName, isOpen, onClose, o
                 </div>
               </div>
 
-              <div className="p-4 bg-primary/10 border-l-4 border-primary rounded-r-sm text-left">
+              <div className="p-4 bg-primary/10 border border-primary/40 text-left">
                 <div className="text-label-sm-mono text-primary uppercase tracking-widest mb-2">Next Step</div>
                 {summary.accuracy >= 70 ? (
                   <p className="text-body-md text-on-surface">

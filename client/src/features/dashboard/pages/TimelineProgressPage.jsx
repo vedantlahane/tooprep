@@ -128,7 +128,7 @@ export default function TimelineProgressPage() {
   if (error) {
     return (
       <div className="w-full max-w-4xl mr-auto py-10 text-left">
-        <div className="p-4 bg-error/10 border-l-4 border-error text-error rounded-r-md">
+        <div className="p-4 bg-error/10 border border-error/30 text-error">
           {error}
         </div>
       </div>
@@ -139,7 +139,7 @@ export default function TimelineProgressPage() {
     return (
       <div className="w-full max-w-4xl mr-auto py-10 text-left">
         <p className="text-body-lg text-on-surface-variant">Set your exam year in your profile to see the timeline.</p>
-        <button onClick={() => navigate('/profile')} className="mt-4 px-6 py-2 bg-primary text-white font-mono uppercase text-xs tracking-wider font-semibold rounded-sm">
+        <button onClick={() => navigate('/profile')} className="mt-4 px-6 py-2 bg-primary text-white font-mono uppercase text-xs tracking-wider font-semibold rounded-none">
           Go to Profile
         </button>
       </div>
@@ -182,13 +182,14 @@ export default function TimelineProgressPage() {
         </div>
       </div>
 
-      {/* ─── Top Telemetry Live Tiles (4-Column Continuum Strip) ─── */}
+      {/* ─── Top Telemetry Live Tiles (Uniform 1px Borders with Accent Pips) ─── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Countdown Tile */}
-        <div className={`p-5 border-l-4 ${
-          urgency === 'critical' ? 'border-l-error' : urgency === 'high' ? 'border-l-status-weak' : 'border-l-primary'
-        } border-t border-r border-b border-white/10 bg-black flex flex-col justify-between`}>
-          <div className="text-[11px] font-mono text-white/50 uppercase tracking-widest mb-1">JEE {examYear} Countdown</div>
+        <div className="p-5 border border-white/10 hover:border-white/20 bg-black flex flex-col justify-between transition-colors">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[11px] font-mono text-white/50 uppercase tracking-widest">JEE {examYear} Countdown</span>
+            <span className={`w-2 h-2 ${urgency === 'critical' ? 'bg-error' : urgency === 'high' ? 'bg-status-weak' : 'bg-primary'}`}></span>
+          </div>
           <div>
             <div className="text-4xl sm:text-5xl font-extralight font-mono text-white tracking-tight">{daysLeft}</div>
             <div className="text-xs font-mono text-white/50 uppercase tracking-widest mt-1">days left &middot; ~{weeksLeft} wks</div>
@@ -196,8 +197,11 @@ export default function TimelineProgressPage() {
         </div>
 
         {/* Overall Readiness Tile */}
-        <div className="p-5 border-l-4 border-l-primary border-t border-r border-b border-white/10 bg-black flex flex-col justify-between">
-          <div className="text-[11px] font-mono text-white/50 uppercase tracking-widest mb-1">Syllabus Readiness</div>
+        <div className="p-5 border border-white/10 hover:border-white/20 bg-black flex flex-col justify-between transition-colors">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[11px] font-mono text-white/50 uppercase tracking-widest">Syllabus Readiness</span>
+            <span className="w-2 h-2 bg-primary"></span>
+          </div>
           <div>
             <div className="flex items-baseline gap-2">
               <span className="text-4xl font-light font-mono text-primary">{stats.readiness}%</span>
@@ -213,8 +217,11 @@ export default function TimelineProgressPage() {
         </div>
 
         {/* At-Risk Gaps Tile */}
-        <div className="p-5 border-l-4 border-l-status-overconfident border-t border-r border-b border-white/10 bg-black flex flex-col justify-between">
-          <div className="text-[11px] font-mono text-white/50 uppercase tracking-widest mb-1">At-Risk Topics</div>
+        <div className="p-5 border border-white/10 hover:border-white/20 bg-black flex flex-col justify-between transition-colors">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[11px] font-mono text-white/50 uppercase tracking-widest">At-Risk Topics</span>
+            <span className="w-2 h-2 bg-status-overconfident"></span>
+          </div>
           <div>
             <div className="text-4xl font-light font-mono text-status-overconfident">{stats.atRisk}</div>
             <div className="text-xs font-mono text-white/50 mt-1">
@@ -224,8 +231,11 @@ export default function TimelineProgressPage() {
         </div>
 
         {/* Untested Ground Tile */}
-        <div className="p-5 border-l-4 border-l-white/40 border-t border-r border-b border-white/10 bg-black flex flex-col justify-between">
-          <div className="text-[11px] font-mono text-white/50 uppercase tracking-widest mb-1">Awaiting Evidence</div>
+        <div className="p-5 border border-white/10 hover:border-white/20 bg-black flex flex-col justify-between transition-colors">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[11px] font-mono text-white/50 uppercase tracking-widest">Awaiting Evidence</span>
+            <span className="w-2 h-2 bg-white/40"></span>
+          </div>
           <div>
             <div className="text-4xl font-light font-mono text-white">{stats.needWork}</div>
             <div className="text-xs font-mono text-white/50 mt-1">
@@ -251,69 +261,63 @@ export default function TimelineProgressPage() {
 
           {weeklyPlan.length > 0 ? (
             <div className="space-y-4">
-              {weeklyPlan.map((phase, idx) => {
-                const phaseBorder = phase.color === 'error' ? 'border-l-error' :
-                  phase.color === 'primary' ? 'border-l-primary' :
-                  'border-l-status-aligned';
-
-                return (
-                  <div
-                    key={idx}
-                    className={`border-l-4 ${phaseBorder} border-t border-r border-b border-white/10 p-5 bg-black space-y-3.5`}
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-3">
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2 ${
-                          phase.color === 'error' ? 'bg-status-overconfident/15 text-status-overconfident' :
-                          phase.color === 'primary' ? 'bg-primary/15 text-primary' :
-                          'bg-status-aligned/15 text-status-aligned'
-                        }`}>
-                          <Icon name={phase.icon} size={20} />
-                        </div>
-                        <div>
-                          <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest">
-                            Milestone &middot; Week {phase.week}
-                          </div>
-                          <h4 className="text-xl font-light text-white tracking-tight">{phase.focus}</h4>
-                        </div>
+              {weeklyPlan.map((phase, idx) => (
+                <div
+                  key={idx}
+                  className="border border-white/10 hover:border-white/20 p-5 bg-black space-y-3.5 transition-colors"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 ${
+                        phase.color === 'error' ? 'bg-status-overconfident/15 text-status-overconfident' :
+                        phase.color === 'primary' ? 'bg-primary/15 text-primary' :
+                        'bg-status-aligned/15 text-status-aligned'
+                      }`}>
+                        <Icon name={phase.icon} size={20} />
                       </div>
-
-                      <div className="sm:text-right">
-                        <div className="text-2xl font-light font-mono text-white">{phase.target}</div>
-                        <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest">Target Topics</div>
+                      <div>
+                        <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest">
+                          Milestone &middot; Week {phase.week}
+                        </div>
+                        <h4 className="text-xl font-light text-white tracking-tight">{phase.focus}</h4>
                       </div>
                     </div>
 
-                    {/* Topic Chips */}
-                    <div className="space-y-1.5">
-                      <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest">Target Curriculum:</div>
-                      <div className="flex flex-wrap gap-2">
-                        {phase.topics.slice(0, 10).map(topic => (
-                          <button
-                            key={topic.topic_id}
-                            onClick={() => navigate(`/topics/${topic.topic_id}`)}
-                            className="px-2.5 py-1 bg-black border border-white/15 hover:border-primary text-xs font-mono text-white/70 hover:text-white transition-colors cursor-pointer"
-                          >
-                            {topic.topic_name}
-                          </button>
-                        ))}
-                        {phase.topics.length > 10 && (
-                          <span className="px-2.5 py-1 text-xs font-mono text-white/40 border border-transparent">
-                            +{phase.topics.length - 10} more
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Phase Directive Note */}
-                    <div className="pt-2 text-xs font-mono text-white/60 border-t border-white/5 leading-relaxed">
-                      {idx === 0 && `Spend roughly ${Math.ceil(weeksLeft / weeklyPlan.length)} days remediating ${phase.focus.toLowerCase()} through targeted mock evaluations.`}
-                      {idx === 1 && `Expand syllabus perimeter into untested topics with diagnostic test benchmarks.`}
-                      {idx === 2 && `Final sprint: polish verified topics, eliminate speed drag, and simulate full exam sets.`}
+                    <div className="sm:text-right">
+                      <div className="text-2xl font-light font-mono text-white">{phase.target}</div>
+                      <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest">Target Topics</div>
                     </div>
                   </div>
-                );
-              })}
+
+                  {/* Topic Chips */}
+                  <div className="space-y-1.5">
+                    <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest">Target Curriculum:</div>
+                    <div className="flex flex-wrap gap-2">
+                      {phase.topics.slice(0, 10).map(topic => (
+                        <button
+                          key={topic.topic_id}
+                          onClick={() => navigate(`/topics/${topic.topic_id}`)}
+                          className="px-2.5 py-1 bg-black border border-white/15 hover:border-primary text-xs font-mono text-white/70 hover:text-white transition-colors cursor-pointer"
+                        >
+                          {topic.topic_name}
+                        </button>
+                      ))}
+                      {phase.topics.length > 10 && (
+                        <span className="px-2.5 py-1 text-xs font-mono text-white/40 border border-transparent">
+                          +{phase.topics.length - 10} more
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Phase Directive Note */}
+                  <div className="pt-2 text-xs font-mono text-white/60 border-t border-white/5 leading-relaxed">
+                    {idx === 0 && `Spend roughly ${Math.ceil(weeksLeft / weeklyPlan.length)} days remediating ${phase.focus.toLowerCase()} through targeted mock evaluations.`}
+                    {idx === 1 && `Expand syllabus perimeter into untested topics with diagnostic test benchmarks.`}
+                    {idx === 2 && `Final sprint: polish verified topics, eliminate speed drag, and simulate full exam sets.`}
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="p-10 border border-white/10 bg-black text-center space-y-3">
@@ -330,7 +334,7 @@ export default function TimelineProgressPage() {
         <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-20">
           {/* Readiness Milestone Alert */}
           {stats.readiness >= 80 && (
-            <div className="border-l-4 border-l-status-aligned border-t border-r border-b border-white/10 p-5 bg-black space-y-2">
+            <div className="border border-status-aligned/40 bg-status-aligned/[0.03] p-5 space-y-2">
               <div className="flex items-center gap-2 text-status-aligned font-mono text-xs uppercase tracking-widest font-bold">
                 <PartyPopper className="w-4 h-4" />
                 <span>Elite Alignment Milestone</span>
@@ -342,7 +346,7 @@ export default function TimelineProgressPage() {
           )}
 
           {stats.readiness < 50 && (
-            <div className="border-l-4 border-l-error border-t border-r border-b border-white/10 p-5 bg-black space-y-2">
+            <div className="border border-error/40 bg-error/[0.03] p-5 space-y-2">
               <div className="flex items-center gap-2 text-error font-mono text-xs uppercase tracking-widest font-bold">
                 <AlertTriangle className="w-4 h-4" />
                 <span>Intensive Calibration Required</span>

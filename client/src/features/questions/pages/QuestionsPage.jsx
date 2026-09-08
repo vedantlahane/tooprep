@@ -154,7 +154,7 @@ const QuestionBrowserCard = memo(function QuestionBrowserCard({ q, onPracticeTop
       </div>
 
       {showAnswer && (
-        <div className="mt-3 p-5 border-l-2 border-primary bg-white/[0.02] space-y-3 animate-slide-down">
+        <div className="mt-3 p-5 border border-primary/30 bg-white/[0.02] space-y-3 animate-slide-down">
           {!hasAnswer ? (
             <p className="text-xs font-mono text-white/50 italic font-light">
               Answer is withheld for evaluation integrity. Complete a practice drill on this topic to view full solution steps.
@@ -425,7 +425,7 @@ export default function QuestionsPage() {
       </div>
 
       {error && (
-        <div className="p-4 bg-error/10 border-l-4 border-error text-error text-xs font-mono rounded-r-sm">
+        <div className="p-4 bg-error/10 border border-error/30 text-error text-xs font-mono">
           {error}
         </div>
       )}

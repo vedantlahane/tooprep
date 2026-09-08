@@ -226,7 +226,8 @@ const TableRow = memo(function TableRow({
       {expanded && (
         <tr className="border-b border-primary/40 bg-black/60">
           <td colSpan={10} className="p-4 sm:p-5">
-            <div className="border-l-4 border-l-primary pl-4 space-y-4 text-left">
+            <div className="border border-white/10 p-4 space-y-4 text-left relative">
+              <span className="absolute top-3 right-3 w-2 h-2 bg-primary" />
               {/* Question Text */}
               <div>
                 <span className="text-[10px] uppercase tracking-widest text-primary font-mono font-bold block mb-1">
@@ -297,7 +298,7 @@ const TableRow = memo(function TableRow({
                   Step-by-Step Solution
                 </span>
                 {hasSolution ? (
-                  <div className="p-3.5 bg-status-aligned/5 border border-status-aligned/30 border-l-4 border-l-status-aligned">
+                  <div className="p-3.5 bg-status-aligned/5 border border-status-aligned/30">
                     <div className="text-body-md text-on-surface font-light leading-relaxed">
                       <MathText text={q.solution_text} />
                     </div>

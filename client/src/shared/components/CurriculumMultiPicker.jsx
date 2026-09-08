@@ -202,7 +202,7 @@ export default function CurriculumMultiPicker({
               }}
               className={`w-full text-left p-2.5 text-xs font-mono transition-all border-b border-white/5 cursor-pointer flex items-center justify-between ${
                 !selectedSubject
-                  ? 'border-l-2 border-l-primary bg-primary/10 text-white font-semibold pl-3'
+                  ? 'bg-primary/20 text-white font-semibold'
                   : 'text-white/70 hover:bg-white/5 hover:text-white'
               }`}
             >
@@ -228,7 +228,7 @@ export default function CurriculumMultiPicker({
                   }}
                   className={`w-full text-left p-2.5 text-xs font-mono transition-all border-b border-white/5 cursor-pointer flex items-center justify-between ${
                     isSelected
-                      ? 'border-l-2 border-l-primary bg-primary/10 text-white font-semibold pl-3'
+                      ? 'bg-primary/20 text-white font-semibold'
                       : 'text-white/70 hover:bg-white/5 hover:text-white'
                   }`}
                 >
@@ -299,7 +299,7 @@ export default function CurriculumMultiPicker({
                     key={chapterId}
                     className={`flex items-center justify-between p-2.5 text-xs font-mono transition-all cursor-pointer select-none border-b border-white/5 ${
                       isSelected
-                        ? 'border-l-2 border-l-primary bg-primary/10 text-white font-medium pl-3'
+                        ? 'bg-primary/15 text-white font-medium'
                         : 'bg-transparent text-white/70 hover:bg-white/5 hover:text-white'
                     }`}
                   >
@@ -379,7 +379,7 @@ export default function CurriculumMultiPicker({
                     key={t.id}
                     className={`flex items-center justify-between p-2.5 text-xs font-mono transition-all cursor-pointer select-none border-b border-white/5 ${
                       isSelected
-                        ? 'border-l-2 border-l-primary bg-primary/10 text-white font-medium pl-3'
+                        ? 'bg-primary/15 text-white font-medium'
                         : 'bg-transparent text-white/70 hover:bg-white/5 hover:text-white'
                     }`}
                   >

@@ -411,7 +411,7 @@ export default function QuestionEditModal({
           {/* Scrollable Form Body */}
           <div className="p-6 overflow-y-auto space-y-6 flex-1">
             {error && (
-              <div className="p-3 bg-error/15 border-l-4 border-error text-error text-xs font-mono">
+              <div className="p-3 bg-error/15 border border-error/30 text-error text-xs font-mono">
                 {error}
               </div>
             )}
@@ -659,7 +659,7 @@ export default function QuestionEditModal({
               )}
 
               {viewMode !== 'edit' && solutionText && (
-                <div className="p-3.5 bg-primary/5 border-l-4 border-primary">
+                <div className="p-3.5 bg-primary/5 border border-primary/30">
                   <div className="text-[10px] font-mono text-primary uppercase tracking-widest mb-1 font-bold flex items-center gap-1">
                     <Sparkles className="w-3 h-3" />
                     <span>Rendered Solution</span>

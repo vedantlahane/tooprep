@@ -136,7 +136,7 @@ export default function StudyPlanPage() {
       </div>
 
       {error && (
-        <div className="p-4 bg-error/10 border-l-4 border-error text-error text-xs font-mono">
+        <div className="p-4 bg-error/10 border border-error/30 text-error text-xs font-mono">
           {error}
         </div>
       )}
@@ -192,13 +192,19 @@ export default function StudyPlanPage() {
               return (
                 <div
                   key={task.title}
-                  className={`p-5 border-l-4 transition-all text-left ${
-                    task.tone === 'error' ? 'border-status-overconfident bg-status-overconfident/5' :
-                    task.tone === 'primary' ? 'border-primary bg-primary/5' :
-                    task.tone === 'tertiary' ? 'border-status-aligned bg-status-aligned/5' :
-                    'border-white/30 bg-white/[0.02]'
+                  className={`p-5 border transition-all text-left relative ${
+                    task.tone === 'error' ? 'border-status-overconfident/40 bg-status-overconfident/[0.03]' :
+                    task.tone === 'primary' ? 'border-primary/40 bg-primary/[0.03]' :
+                    task.tone === 'tertiary' ? 'border-status-aligned/40 bg-status-aligned/[0.03]' :
+                    'border-white/10 bg-white/[0.02]'
                   }`}
                 >
+                  <span className={`absolute top-3 right-3 w-2 h-2 ${
+                    task.tone === 'error' ? 'bg-status-overconfident' :
+                    task.tone === 'primary' ? 'bg-primary' :
+                    task.tone === 'tertiary' ? 'bg-status-aligned' :
+                    'bg-white/30'
+                  }`} />
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                     <div className="flex items-start gap-3.5">
                       <div className={`p-2 shrink-0 mt-0.5 ${
@@ -250,7 +256,7 @@ export default function StudyPlanPage() {
 
             <div className="space-y-2">
               {topPriority.length === 0 ? (
-                <p className="text-xs font-mono text-white/40 p-4 border-l-2 border-white/20 bg-white/[0.01]">
+                <p className="text-xs font-mono text-white/40 p-4 border border-white/10 bg-white/[0.01]">
                   No overconfidence gaps detected. Knowledge calibration is healthy.
                 </p>
               ) : topPriority.map(topic => (
@@ -299,7 +305,7 @@ export default function StudyPlanPage() {
 
             <div className="space-y-2">
               {untested.length === 0 ? (
-                <p className="text-xs font-mono text-white/40 p-4 border-l-2 border-white/20 bg-white/[0.01]">
+                <p className="text-xs font-mono text-white/40 p-4 border border-white/10 bg-white/[0.01]">
                   All syllabus topics have at least one test attempt recorded.
                 </p>
               ) : untested.map(topic => (

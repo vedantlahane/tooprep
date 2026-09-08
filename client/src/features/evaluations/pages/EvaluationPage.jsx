@@ -168,7 +168,7 @@ export default function EvaluationPage() {
         </div>
 
         {error && (
-          <div className="p-4 bg-error/10 border-l-4 border-error text-error text-xs font-mono rounded-r-sm">
+          <div className="p-4 bg-error/10 border border-error/30 text-error text-xs font-mono">
             {error}
           </div>
         )}
@@ -240,7 +240,7 @@ export default function EvaluationPage() {
             </div>
 
             {/* Examination Protocol Notice */}
-            <div className="p-4 border-l-2 border-error bg-error/[0.04] space-y-1.5">
+            <div className="p-4 border border-error/30 bg-error/[0.04] space-y-1.5">
               <div className="text-xs font-mono uppercase tracking-wider text-error font-bold flex items-center gap-1.5">
                 <AlertTriangle className="w-3.5 h-3.5" />
                 <span>Examination Protocol</span>

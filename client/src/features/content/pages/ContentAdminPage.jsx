@@ -1189,7 +1189,7 @@ function CandidateCard({
                 Potential Duplicates in Bank
               </div>
               {similarQuestions.map((sim, i) => (
-                <div key={i} className="text-xs text-on-surface-variant border-l-2 border-status-weak pl-3 overflow-x-auto">
+                <div key={i} className="text-xs text-on-surface-variant border border-status-weak/30 p-2 overflow-x-auto">
                   <span className="font-mono text-status-weak mr-2 font-bold">{(sim.score * 100).toFixed(0)}% Match:</span>
                   <MathText text={sim.question.question_text || sim.question.content?.question_text} />
                 </div>

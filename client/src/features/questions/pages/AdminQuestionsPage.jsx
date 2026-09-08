@@ -67,7 +67,7 @@ const AdminQuestionCard = memo(function AdminQuestionCard({ q, isSelected, onTog
 
   return (
     <div className={`border-b border-white/10 pb-6 pt-4 space-y-3 transition-all text-left ${
-      isSelected ? 'bg-primary/[0.04] border-l-2 border-l-primary pl-3' : ''
+      isSelected ? 'bg-primary/[0.04] px-3 border border-primary/30' : ''
     }`}>
       {/* Header Bar */}
       <div className="flex items-center gap-2 pb-2 border-b border-white/5 flex-wrap text-xs font-mono">
@@ -202,7 +202,7 @@ const AdminQuestionCard = memo(function AdminQuestionCard({ q, isSelected, onTog
               {showSolution ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
             {showSolution && (
-              <div className="p-4 border-t border-white/10 bg-white/[0.01] border-l-2 border-l-primary space-y-2">
+              <div className="p-4 border-t border-white/10 bg-white/[0.01] border border-primary/30 space-y-2">
                 <div className="text-sm text-white/90 font-light leading-relaxed">
                   <MathText text={q.solution_text} />
                 </div>
@@ -728,7 +728,7 @@ export default function AdminQuestionsPage() {
       </div>
 
       {error && (
-        <div className="p-4 border-l-4 border-error bg-error/10 text-error text-body-md font-mono">{error}</div>
+        <div className="p-4 border border-error/30 bg-error/10 text-error text-body-md font-mono">{error}</div>
       )}
 
       {loading && (

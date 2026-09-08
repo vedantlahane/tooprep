@@ -107,7 +107,7 @@ export default function AuthPage() {
         </h2>
 
         {DEMO_MODE && (
-          <div className="mb-6 p-4 bg-primary/20 border-l-4 border-primary text-body-md text-on-surface">
+          <div className="mb-6 p-4 bg-primary/10 border border-primary/40 text-body-md text-on-surface">
             demo auth is active.
           </div>
         )}

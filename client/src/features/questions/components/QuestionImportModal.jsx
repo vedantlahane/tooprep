@@ -277,7 +277,7 @@ export default function QuestionImportModal({
           </div>
 
           {error && (
-            <div className="p-3 bg-error/15 border-l-4 border-error text-error text-xs font-mono animate-fade-in">
+            <div className="p-3 bg-error/15 border border-error/30 text-error text-xs font-mono animate-fade-in">
               {error}
             </div>
           )}

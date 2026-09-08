@@ -193,7 +193,7 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   onClick={() => navigate('/admin')}
-                  className="p-4 border-l-4 border-l-status-weak border-t border-r border-b border-white/10 bg-black hover:bg-white/[0.02] transition-colors text-left group flex items-start gap-3 cursor-pointer"
+                  className="p-4 border border-white/10 hover:border-primary/60 bg-black hover:bg-white/[0.02] transition-colors text-left group flex items-start gap-3 cursor-pointer"
                 >
                   <Activity className="w-5 h-5 text-status-weak mt-0.5 group-hover:scale-110 transition-transform shrink-0" />
                   <div>
@@ -204,7 +204,7 @@ export default function ProfilePage() {
 
                 <button
                   onClick={() => navigate('/admin/questions')}
-                  className="p-4 border-l-4 border-l-primary border-t border-r border-b border-white/10 bg-black hover:bg-white/[0.02] transition-colors text-left group flex items-start gap-3 cursor-pointer"
+                  className="p-4 border border-white/10 hover:border-primary/60 bg-black hover:bg-white/[0.02] transition-colors text-left group flex items-start gap-3 cursor-pointer"
                 >
                   <BookOpen className="w-5 h-5 text-primary mt-0.5 group-hover:scale-110 transition-transform shrink-0" />
                   <div>
@@ -215,7 +215,7 @@ export default function ProfilePage() {
 
                 <button
                   onClick={() => navigate('/admin/curriculum')}
-                  className="p-4 border-l-4 border-l-primary border-t border-r border-b border-white/10 bg-black hover:bg-white/[0.02] transition-colors text-left group flex items-start gap-3 cursor-pointer"
+                  className="p-4 border border-white/10 hover:border-primary/60 bg-black hover:bg-white/[0.02] transition-colors text-left group flex items-start gap-3 cursor-pointer"
                 >
                   <LayoutGrid className="w-5 h-5 text-primary mt-0.5 group-hover:scale-110 transition-transform shrink-0" />
                   <div>
@@ -226,7 +226,7 @@ export default function ProfilePage() {
 
                 <button
                   onClick={() => navigate('/admin/content')}
-                  className="p-4 border-l-4 border-l-primary border-t border-r border-b border-white/10 bg-black hover:bg-white/[0.02] transition-colors text-left group flex items-start gap-3 cursor-pointer"
+                  className="p-4 border border-white/10 hover:border-primary/60 bg-black hover:bg-white/[0.02] transition-colors text-left group flex items-start gap-3 cursor-pointer"
                 >
                   <UploadCloud className="w-5 h-5 text-primary mt-0.5 group-hover:scale-110 transition-transform shrink-0" />
                   <div>
@@ -254,9 +254,9 @@ export default function ProfilePage() {
         <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-20">
           {/* Biggest Gap Metacognitive Alert Tile */}
           {biggestGap && biggestGap.gap !== undefined && (
-            <div className={`p-5 border-l-4 ${
-              biggestGap.status === 'OVERCONFIDENT' ? 'border-l-status-overconfident' : 'border-l-status-weak'
-            } border-t border-r border-b border-white/10 bg-black space-y-2`}>
+            <div className={`p-5 border ${
+              biggestGap.status === 'OVERCONFIDENT' ? 'border-status-overconfident/40 bg-status-overconfident/[0.03]' : 'border-status-weak/40 bg-status-weak/[0.03]'
+            } bg-black space-y-2`}>
               <div className="text-[11px] font-mono text-status-overconfident uppercase tracking-widest font-bold">
                 Metacognitive Gap Alert
               </div>
@@ -282,7 +282,7 @@ export default function ProfilePage() {
           <div className="space-y-3">
             <div
               onClick={() => navigate('/history')}
-              className="cursor-pointer bg-black border-l-4 border-l-white/30 border-t border-r border-b border-white/10 hover:border-primary p-5 flex items-start gap-4 transition-all group"
+              className="cursor-pointer bg-black border border-white/10 hover:border-primary p-5 flex items-start gap-4 transition-all group"
             >
               <History className="w-7 h-7 text-primary mt-0.5 group-hover:scale-110 transition-transform shrink-0" />
               <div>
@@ -294,7 +294,7 @@ export default function ProfilePage() {
 
             <div
               onClick={() => navigate('/practice')}
-              className="cursor-pointer bg-black border-l-4 border-l-primary border-t border-r border-b border-white/10 hover:border-primary p-5 flex items-start gap-4 transition-all group"
+              className="cursor-pointer bg-black border border-white/10 hover:border-primary p-5 flex items-start gap-4 transition-all group"
             >
               <Play className="w-7 h-7 text-primary mt-0.5 group-hover:scale-110 transition-transform shrink-0" />
               <div>
@@ -306,7 +306,7 @@ export default function ProfilePage() {
 
             <div
               onClick={() => navigate('/evaluate')}
-              className="cursor-pointer bg-black border-l-4 border-l-primary border-t border-r border-b border-white/10 hover:border-primary p-5 flex items-start gap-4 transition-all group"
+              className="cursor-pointer bg-black border border-white/10 hover:border-primary p-5 flex items-start gap-4 transition-all group"
             >
               <Timer className="w-7 h-7 text-primary mt-0.5 group-hover:scale-110 transition-transform shrink-0" />
               <div>

@@ -158,13 +158,13 @@ export default function SessionHistoryPage() {
       </div>
 
       {error && (
-        <div className="p-4 bg-error/10 border-l-4 border-error text-error text-xs font-mono">
+        <div className="p-4 bg-error/10 border border-error/30 text-error text-xs font-mono">
           {error}
         </div>
       )}
 
       {allSessions.length === 0 ? (
-        <div className="text-left py-12 border-l-2 border-white/20 bg-white/[0.01] p-8 space-y-4">
+        <div className="text-left py-12 border border-white/10 bg-white/[0.01] p-8 space-y-4">
           <History className="w-10 h-10 text-primary opacity-60" />
           <h3 className="text-xl font-light text-white">No sessions recorded yet</h3>
           <p className="text-xs text-white/50 max-w-md font-mono">

@@ -1114,7 +1114,7 @@ export default function AdminPipelinePage() {
                             </div>
 
                             {station.thoughtLogs.map((log, i) => (
-                              <div key={i} className="p-2 bg-black border-l-2 border-primary border border-white/10 space-y-1">
+                              <div key={i} className="p-2 bg-black border border-white/10 space-y-1">
                                 <div className="flex items-center justify-between text-[9px]">
                                   <span className="text-primary font-bold">{log.agent}</span>
                                   <span className="text-white/40">{log.time}</span>

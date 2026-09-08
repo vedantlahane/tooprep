@@ -154,7 +154,7 @@ export default function SubjectMasteryPage() {
   if (error) {
     return (
       <div className="w-full max-w-4xl mr-auto py-10 text-left">
-        <div className="p-4 bg-error/10 border-l-4 border-error text-error">
+        <div className="p-4 bg-error/10 border border-error/30 text-error">
           {error}
         </div>
       </div>
@@ -195,11 +195,14 @@ export default function SubjectMasteryPage() {
         </div>
       </div>
 
-      {/* ─── Platform-Wide KPI Live Tiles (Pure Black Canvas) ─── */}
+      {/* ─── Platform-Wide KPI Live Tiles (Uniform 1px Borders with Accent Pips) ─── */}
       {platformSummary && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="p-5 border-l-4 border-l-primary border-t border-r border-b border-white/10 bg-black flex flex-col justify-between">
-            <div className="text-[11px] font-mono text-white/50 uppercase tracking-widest mb-2">Overall Mastery</div>
+          <div className="p-5 border border-white/10 hover:border-white/20 bg-black flex flex-col justify-between transition-colors">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-mono text-white/50 uppercase tracking-widest">Overall Mastery</span>
+              <span className="w-2 h-2 bg-primary"></span>
+            </div>
             <div className="flex items-baseline gap-2">
               <div className={`text-4xl font-light font-mono ${
                 platformSummary.avgMastery >= 70 ? 'text-status-aligned' : platformSummary.avgMastery >= 40 ? 'text-status-weak' : 'text-error'
@@ -218,8 +221,11 @@ export default function SubjectMasteryPage() {
             </div>
           </div>
 
-          <div className="p-5 border-l-4 border-l-status-aligned border-t border-r border-b border-white/10 bg-black flex flex-col justify-between">
-            <div className="text-[11px] font-mono text-white/50 uppercase tracking-widest mb-2">Strongest Subject</div>
+          <div className="p-5 border border-white/10 hover:border-white/20 bg-black flex flex-col justify-between transition-colors">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-mono text-white/50 uppercase tracking-widest">Strongest Subject</span>
+              <span className="w-2 h-2 bg-status-aligned"></span>
+            </div>
             <div>
               <div className="text-2xl font-light text-status-aligned truncate">
                 {platformSummary.strongest.subjectName}
@@ -230,8 +236,11 @@ export default function SubjectMasteryPage() {
             </div>
           </div>
 
-          <div className="p-5 border-l-4 border-l-error border-t border-r border-b border-white/10 bg-black flex flex-col justify-between">
-            <div className="text-[11px] font-mono text-white/50 uppercase tracking-widest mb-2">Needs Priority Focus</div>
+          <div className="p-5 border border-white/10 hover:border-white/20 bg-black flex flex-col justify-between transition-colors">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-mono text-white/50 uppercase tracking-widest">Needs Priority Focus</span>
+              <span className="w-2 h-2 bg-error"></span>
+            </div>
             <div>
               <div className="text-2xl font-light text-error truncate">
                 {platformSummary.weakest.subjectName}
@@ -242,8 +251,11 @@ export default function SubjectMasteryPage() {
             </div>
           </div>
 
-          <div className="p-5 border-l-4 border-l-white/40 border-t border-r border-b border-white/10 bg-black flex flex-col justify-between">
-            <div className="text-[11px] font-mono text-white/50 uppercase tracking-widest mb-2">Syllabus Scope</div>
+          <div className="p-5 border border-white/10 hover:border-white/20 bg-black flex flex-col justify-between transition-colors">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-mono text-white/50 uppercase tracking-widest">Syllabus Scope</span>
+              <span className="w-2 h-2 bg-white/40"></span>
+            </div>
             <div>
               <div className="text-3xl font-light font-mono text-white">
                 {platformSummary.totalTopics}
@@ -288,15 +300,14 @@ export default function SubjectMasteryPage() {
             <div className="space-y-4">
               {subjectMastery.map((subject) => {
                 const isExpanded = expandedSubject === subject.subjectName;
-                const statusBorder = subject.mastery >= 70 ? 'border-l-status-aligned' : subject.mastery >= 40 ? 'border-l-status-weak' : 'border-l-error';
                 const statusText = subject.mastery >= 70 ? 'text-status-aligned' : subject.mastery >= 40 ? 'text-status-weak' : 'text-error';
 
                 return (
-                  <div key={subject.subjectName} className="border border-white/10 bg-black">
+                  <div key={subject.subjectName} className="border border-white/10 hover:border-white/20 bg-black transition-colors">
                     {/* Flat Subject Row Button */}
                     <button
                       onClick={() => setExpandedSubject(isExpanded ? null : subject.subjectName)}
-                      className={`w-full p-5 sm:p-6 flex items-center justify-between hover:bg-white/[0.02] transition-colors text-left border-l-4 ${statusBorder} cursor-pointer`}
+                      className="w-full p-5 sm:p-6 flex items-center justify-between hover:bg-white/[0.02] transition-colors text-left cursor-pointer"
                     >
                       <div className="flex-1 min-w-0 pr-4">
                         <div className="flex items-center gap-3 mb-2 flex-wrap">
@@ -341,19 +352,22 @@ export default function SubjectMasteryPage() {
                     {isExpanded && (
                       <div className="border-t border-white/10 divide-y divide-white/10 bg-black">
                         {subject.chapterStats.map((chapter) => {
-                          const chBorder = chapter.priority === 'critical' ? 'border-l-error' :
-                            chapter.priority === 'high' ? 'border-l-status-overconfident' :
-                            chapter.priority === 'medium' ? 'border-l-status-weak' : 'border-l-status-aligned';
+                          const pipColor = chapter.priority === 'critical' ? 'bg-error' :
+                            chapter.priority === 'high' ? 'bg-status-overconfident' :
+                            chapter.priority === 'medium' ? 'bg-status-weak' : 'bg-status-aligned';
 
                           return (
-                            <div key={chapter.chapterName} className={`p-4 sm:p-5 border-l-4 ${chBorder} hover:bg-white/[0.01] transition-colors space-y-3`}>
+                            <div key={chapter.chapterName} className="p-4 sm:p-5 hover:bg-white/[0.01] transition-colors space-y-3">
                               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
-                                <div>
-                                  <h4 className="text-base font-normal text-white">{chapter.chapterName}</h4>
-                                  <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] font-mono text-white/50 uppercase tracking-wider">
-                                    <span>{chapter.aligned}/{chapter.total} topics aligned</span>
-                                    {chapter.avgAccuracy !== null && <span>&middot; Acc: {chapter.avgAccuracy}%</span>}
-                                    {chapter.avgConfidence && <span>&middot; Conf: {chapter.avgConfidence}/10</span>}
+                                <div className="flex items-start gap-2.5">
+                                  <span className={`w-1.5 h-1.5 ${pipColor} mt-2 shrink-0`}></span>
+                                  <div>
+                                    <h4 className="text-base font-normal text-white">{chapter.chapterName}</h4>
+                                    <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] font-mono text-white/50 uppercase tracking-wider">
+                                      <span>{chapter.aligned}/{chapter.total} topics aligned</span>
+                                      {chapter.avgAccuracy !== null && <span>&middot; Acc: {chapter.avgAccuracy}%</span>}
+                                      {chapter.avgConfidence && <span>&middot; Conf: {chapter.avgConfidence}/10</span>}
+                                    </div>
                                   </div>
                                 </div>
 
@@ -474,11 +488,14 @@ export default function SubjectMasteryPage() {
                   {priorityChapters.map((ch) => (
                     <div
                       key={ch.chapterName}
-                      className="p-3 border-l-4 border-l-status-overconfident border-t border-r border-b border-white/10 hover:bg-white/[0.02] transition-colors"
+                      className="p-3 border border-white/10 hover:border-white/20 bg-black transition-colors"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest">{ch.subjectName}</div>
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <span className="w-1.5 h-1.5 bg-status-overconfident shrink-0"></span>
+                            <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest">{ch.subjectName}</span>
+                          </div>
                           <div className="text-sm font-medium text-white truncate">{ch.chapterName}</div>
                         </div>
                         <span className="text-xs font-mono font-bold text-status-overconfident shrink-0">

@@ -415,8 +415,9 @@ export default function LandingPage() {
               {/* 3 Metro Panels for the 3 States */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-xs">
                 {/* Overconfident Panel */}
-                <div className="bg-neutral-950 border-l-4 border-[#FF2E55] p-5 space-y-3">
-                  <div className="flex items-center justify-between">
+                <div className="bg-neutral-950 border border-[#FF2E55]/40 p-5 space-y-3 relative">
+                  <span className="absolute top-3 right-3 w-2 h-2 bg-[#FF2E55]" />
+                  <div className="flex items-center justify-between pr-4">
                     <span className="text-[#FF2E55] font-bold text-sm uppercase">1. Overconfident</span>
                     <span className="text-[#FF2E55] text-[10px] bg-[#FF2E55]/15 px-2 py-0.5">Gap ≤ -20%</span>
                   </div>
@@ -429,8 +430,9 @@ export default function LandingPage() {
                 </div>
 
                 {/* Aligned Panel */}
-                <div className="bg-neutral-950 border-l-4 border-[#107C10] p-5 space-y-3">
-                  <div className="flex items-center justify-between">
+                <div className="bg-neutral-950 border border-[#107C10]/40 p-5 space-y-3 relative">
+                  <span className="absolute top-3 right-3 w-2 h-2 bg-[#107C10]" />
+                  <div className="flex items-center justify-between pr-4">
                     <span className="text-[#107C10] font-bold text-sm uppercase">2. Aligned</span>
                     <span className="text-[#107C10] text-[10px] bg-[#107C10]/15 px-2 py-0.5">|Gap| &lt; 20%</span>
                   </div>
@@ -443,8 +445,9 @@ export default function LandingPage() {
                 </div>
 
                 {/* Underconfident Panel */}
-                <div className="bg-neutral-950 border-l-4 border-[#00BFFF] p-5 space-y-3">
-                  <div className="flex items-center justify-between">
+                <div className="bg-neutral-950 border border-[#00BFFF]/40 p-5 space-y-3 relative">
+                  <span className="absolute top-3 right-3 w-2 h-2 bg-[#00BFFF]" />
+                  <div className="flex items-center justify-between pr-4">
                     <span className="text-[#00BFFF] font-bold text-sm uppercase">3. Underconfident</span>
                     <span className="text-[#00BFFF] text-[10px] bg-[#00BFFF]/15 px-2 py-0.5">Gap ≥ +20%</span>
                   </div>

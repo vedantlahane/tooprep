@@ -140,7 +140,8 @@ export default function InsightsPage() {
 
       {/* Educational Guide Card (Toggleable) */}
       {showLegend && (
-        <div className="border-l-2 border-primary bg-white/[0.02] p-5 text-left space-y-4">
+        <div className="border border-white/15 bg-white/[0.02] p-5 text-left space-y-4 relative">
+          <span className="absolute top-3 right-3 w-2 h-2 bg-primary" />
           <div className="flex items-center gap-2 text-xs font-mono text-primary uppercase tracking-widest font-bold">
             <Info className="w-4 h-4" />
             Metacognitive Calibration Framework
@@ -149,19 +150,19 @@ export default function InsightsPage() {
             In competitive exams like JEE, knowing <em>what you do not know</em> is as crucial as knowing formulas. Overconfidence leads to negative marking on tricky questions, while underconfidence causes wasted time and unattempted easy questions.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs font-mono pt-1">
-            <div className="p-3 border-l-2 border-status-overconfident bg-status-overconfident/5">
+            <div className="p-3 border border-status-overconfident/40 bg-status-overconfident/5">
               <div className="text-status-overconfident font-bold uppercase mb-1">OVERCONFIDENT (&lt; -15%)</div>
               <p className="text-white/60 font-sans text-[11px]">High self-rating (7-10) but low mock score (&lt;50%). High risk of negative marks. Action: Reset with foundation drill.</p>
             </div>
-            <div className="p-3 border-l-2 border-status-weak bg-status-weak/5">
+            <div className="p-3 border border-status-weak/40 bg-status-weak/5">
               <div className="text-status-weak font-bold uppercase mb-1">WEAK ALIGNED (&lt; 50%)</div>
               <p className="text-white/60 font-sans text-[11px]">Low confidence matching low score. Accurate self-awareness. Action: Review theory before testing.</p>
             </div>
-            <div className="p-3 border-l-2 border-status-underconfident bg-status-underconfident/5">
+            <div className="p-3 border border-status-underconfident/40 bg-status-underconfident/5">
               <div className="text-status-underconfident font-bold uppercase mb-1">UNDERCONFIDENT (&gt; +15%)</div>
               <p className="text-white/60 font-sans text-[11px]">Low self-rating but high mock score (&gt;70%). Imposter syndrome. Action: Take timed mocks to build trust.</p>
             </div>
-            <div className="p-3 border-l-2 border-status-aligned bg-status-aligned/5">
+            <div className="p-3 border border-status-aligned/40 bg-status-aligned/5">
               <div className="text-status-aligned font-bold uppercase mb-1">ALIGNED (±15%)</div>
               <p className="text-white/60 font-sans text-[11px]">Perceived mastery matches empirical test data. Healthy calibration. Action: Maintain periodic review.</p>
             </div>
@@ -221,17 +222,17 @@ export default function InsightsPage() {
                   </div>
                   
                   <div className="grid grid-cols-3 gap-2 text-center text-xs font-mono pt-1">
-                    <div className="p-2 bg-white/[0.01] border-l-2 border-white/20 text-left">
+                    <div className="p-2 bg-white/[0.01] border border-white/10 text-left">
                       <div className="text-[9px] text-white/40 uppercase">Accuracy</div>
                       <div className={`font-bold ${acc >= 70 ? 'text-status-aligned' : acc >= 40 ? 'text-status-weak' : 'text-status-overconfident'}`}>
                         {s.avgAccuracyNum !== null ? `${acc}%` : '—'}
                       </div>
                     </div>
-                    <div className="p-2 bg-white/[0.01] border-l-2 border-status-overconfident text-left">
+                    <div className="p-2 bg-white/[0.01] border border-status-overconfident/30 text-left">
                       <div className="text-[9px] text-white/40 uppercase">Overconfident</div>
                       <div className="font-bold text-status-overconfident">{s.overconfident}</div>
                     </div>
-                    <div className="p-2 bg-white/[0.01] border-l-2 border-status-aligned text-left">
+                    <div className="p-2 bg-white/[0.01] border border-status-aligned/30 text-left">
                       <div className="text-[9px] text-white/40 uppercase">Aligned</div>
                       <div className="font-bold text-status-aligned">{s.aligned}</div>
                     </div>

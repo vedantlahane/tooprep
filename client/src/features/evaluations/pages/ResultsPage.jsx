@@ -172,12 +172,12 @@ export default function ResultsPage() {
         <div className="lg:col-span-7 xl:col-span-8 space-y-6 min-w-0">
           {/* Recommendation Banner */}
           {recommendation && (
-            <div className={`p-6 border-l-4 text-left ${
+            <div className={`p-6 border text-left ${
               recommendation.tone === 'error'
-                ? 'border-error bg-error/10 text-error'
+                ? 'border-error/40 bg-error/10 text-error'
                 : recommendation.tone === 'primary'
-                  ? 'border-primary bg-primary/5 text-primary'
-                  : 'border-status-aligned bg-status-aligned/10 text-status-aligned'
+                  ? 'border-primary/40 bg-primary/5 text-primary'
+                  : 'border-status-aligned/40 bg-status-aligned/10 text-status-aligned'
             }`}>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="space-y-1 max-w-2xl">
@@ -197,7 +197,7 @@ export default function ResultsPage() {
 
           {/* Unattempted Warning */}
           {summary && summary.attempt_rate < 100 && (
-            <div className="px-4 py-3 bg-error/10 border-l-4 border-error text-error text-xs font-mono flex items-center gap-3">
+            <div className="px-4 py-3 bg-error/10 border border-error/30 text-error text-xs font-mono flex items-center gap-3">
               <AlertTriangle className="w-4 h-4 flex-shrink-0" />
               <span>You left {summary.total_questions - summary.answered} questions unattempted. In JEE Main, unattempted questions score 0 — pace yourself to at least review all solvable questions.</span>
             </div>
@@ -249,14 +249,14 @@ export default function ResultsPage() {
                     </div>
 
                     {/* Answer Comparison */}
-                    <div className="flex flex-wrap gap-4 text-xs font-mono p-3 bg-white/[0.02] border-l-2 border-error">
+                    <div className="flex flex-wrap gap-4 text-xs font-mono p-3 bg-white/[0.02] border border-white/10">
                       <span className="text-error">Your answer: <strong>{m.selected_answer || 'Skipped'}</strong></span>
                       <span className="text-status-aligned">Correct answer: <strong>{m.correct_answer}</strong></span>
                     </div>
 
                     {/* Step-by-step Solution */}
                     {m.solution_text && (
-                      <div className="p-4 bg-white/[0.01] border-l-2 border-primary space-y-2 mt-3">
+                      <div className="p-4 bg-white/[0.01] border border-primary/30 space-y-2 mt-3">
                         <div className="text-xs font-mono text-primary font-bold tracking-widest uppercase">VERIFIED STEP-BY-STEP DERIVATION</div>
                         <div className="text-sm text-white/80 leading-relaxed font-light max-w-3xl">
                           <MathText text={m.solution_text} />
@@ -278,7 +278,7 @@ export default function ResultsPage() {
               </button>
             </div>
           ) : (
-            <div className="p-8 border-l-4 border-status-aligned bg-status-aligned/5 text-left space-y-2">
+            <div className="p-8 border border-status-aligned/40 bg-status-aligned/5 text-left space-y-2">
               <div className="flex items-center gap-2 text-status-aligned font-mono text-xs uppercase tracking-widest font-bold">
                 <CheckCircle2 className="w-5 h-5" />
                 Flawless Evaluation
@@ -406,7 +406,7 @@ export default function ResultsPage() {
           )}
 
           {confidenceSubmitted && (
-            <div className="p-4 bg-status-aligned/10 border-l-4 border-status-aligned text-xs text-white flex items-center gap-3 font-mono">
+            <div className="p-4 bg-status-aligned/10 border border-status-aligned/40 text-xs text-white flex items-center gap-3 font-mono">
               <CheckCircle2 className="w-4 h-4 text-status-aligned shrink-0" />
               <span>Confidence recalibrated to <strong>{newConfidence}/10</strong>. Knowledge map updated.</span>
             </div>

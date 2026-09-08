@@ -310,7 +310,7 @@ export default function PracticePage() {
         </div>
 
         {error && (
-          <div className="p-4 bg-error/10 border-l-4 border-error text-error text-xs font-mono rounded-r-sm">
+          <div className="p-4 bg-error/10 border border-error/30 text-error text-xs font-mono">
             {error}
           </div>
         )}
@@ -436,7 +436,7 @@ export default function PracticePage() {
           </div>
         )}
 
-        <div className="p-4 border-l-2 border-white/20 text-xs text-white/60 font-light leading-relaxed">
+        <div className="p-4 border border-white/15 bg-white/[0.01] text-xs text-white/60 font-light leading-relaxed">
           <strong>Next step:</strong> Practice accuracy trains your instincts. To officially benchmark and update your Knowledge Map confidence gap, take a timed evaluation.
         </div>
 
@@ -588,7 +588,7 @@ export default function PracticePage() {
       </div>
 
       {error && (
-        <div className="p-4 bg-error/10 border-l-4 border-error text-error text-xs font-mono rounded-r-sm">
+        <div className="p-4 bg-error/10 border border-error/30 text-error text-xs font-mono">
           {error}
         </div>
       )}

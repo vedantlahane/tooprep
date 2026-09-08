@@ -115,7 +115,7 @@ export default function PerformanceTrendPage() {
   if (error) {
     return (
       <div className="w-full max-w-4xl mr-auto py-10 text-left">
-        <div className="p-4 bg-error/10 border-l-4 border-error text-error text-xs font-mono rounded-r-sm">
+        <div className="p-4 bg-error/10 border border-error/30 text-error text-xs font-mono">
           {error}
         </div>
       </div>
@@ -149,7 +149,7 @@ export default function PerformanceTrendPage() {
       </div>
 
       {topicsWithTrends.length === 0 ? (
-        <div className="text-left py-12 border-l-2 border-white/20 bg-white/[0.01] p-8 space-y-4">
+        <div className="text-left py-12 border border-white/10 bg-white/[0.01] p-8 space-y-4">
           <TrendingUp className="w-10 h-10 text-primary opacity-60" />
           <h3 className="text-xl font-light text-white">No retest trends yet</h3>
           <p className="text-xs text-white/50 max-w-md font-mono">
@@ -303,7 +303,7 @@ export default function PerformanceTrendPage() {
 
                   {/* Trend Banner */}
                   {selectedTopicData.improvement && (
-                    <div className="mt-4 p-3.5 border-l-4 border-status-aligned bg-status-aligned/5 flex items-center gap-3 text-left">
+                    <div className="mt-4 p-3.5 border border-status-aligned/40 bg-status-aligned/5 flex items-center gap-3 text-left">
                       <TrendingUp className="w-5 h-5 text-status-aligned shrink-0" />
                       <div>
                         <div className="text-xs font-mono text-status-aligned uppercase tracking-wider font-bold">Positive Longitudinal Trajectory</div>

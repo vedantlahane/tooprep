@@ -162,7 +162,8 @@ export default function TopicDetailPage() {
       </div>
 
       {/* Recommendation Block */}
-      <div className="border-l-4 border-primary/60 bg-white/[0.02] p-5">
+      <div className="border border-white/15 bg-white/[0.02] p-5 relative">
+        <span className="absolute top-3 right-3 w-2 h-2 bg-primary" />
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-xs font-mono uppercase tracking-widest text-primary font-bold">Study Recommendation</h3>
           <span className={`text-xs font-mono uppercase tracking-widest font-bold ${getStatusColor(topic.status)}`}>
@@ -233,7 +234,7 @@ export default function TopicDetailPage() {
                 </svg>
               </div>
             ) : (
-              <p className="text-xs font-mono text-white/40 py-4 border-l-2 border-white/10 bg-white/[0.01]">
+              <p className="text-xs font-mono text-white/40 py-4 border border-white/10 bg-white/[0.01]">
                 Complete at least 2 timed evaluations on this topic to generate an empirical trajectory chart.
               </p>
             )}
@@ -281,7 +282,7 @@ export default function TopicDetailPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-xs font-mono text-white/40 py-4 border-l-2 border-white/10 bg-white/[0.01]">
+              <p className="text-xs font-mono text-white/40 py-4 border border-white/10 bg-white/[0.01]">
                 No evaluations recorded yet. Complete a timed evaluation to track results here.
               </p>
             )}
@@ -362,7 +363,8 @@ export default function TopicDetailPage() {
 
           {/* Baseline Confidence Input */}
           {showConfidenceInput && (
-            <div className="border-l-4 border-primary bg-white/[0.02] p-5 space-y-4">
+            <div className="border border-primary/40 bg-white/[0.02] p-5 space-y-4 relative">
+              <span className="absolute top-3 right-3 w-2 h-2 bg-primary" />
               <div>
                 <h3 className="text-base font-light text-white">Rate Baseline Confidence</h3>
                 <p className="text-xs text-white/60 font-mono mt-0.5">

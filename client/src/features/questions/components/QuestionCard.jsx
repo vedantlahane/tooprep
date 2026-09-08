@@ -170,7 +170,7 @@ export default function QuestionCard({
             animate={{ opacity: 1, height: 'auto', y: 0 }}
             exit={{ opacity: 0, height: 0, y: -8 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="mt-6 p-5 md:p-6 bg-white/[0.02] border-l-2 border-primary border-t-0 border-r-0 border-b-0 space-y-3"
+            className="mt-6 p-5 md:p-6 bg-white/[0.02] border border-primary/30 space-y-3"
           >
             <div className="flex items-center gap-2 text-[11px] font-mono text-primary font-bold uppercase tracking-widest">
               <Sparkles className="w-3.5 h-3.5 text-primary" />
