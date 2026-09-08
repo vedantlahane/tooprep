@@ -78,7 +78,9 @@ import {
   ExternalLink,
   Download,
   Table,
-  LayoutList
+  LayoutList,
+  Terminal,
+  Cpu
 } from 'lucide-react';
 
 const ICON_MAP = {
@@ -262,5 +264,7 @@ export {
   ExternalLink,
   Download,
   Table,
-  LayoutList
+  LayoutList,
+  Terminal,
+  Cpu
 };
