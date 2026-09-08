@@ -19,7 +19,8 @@ import Icon, {
   Copy,
   Layers,
   ShieldAlert,
-  Target
+  Target,
+  GitMerge
 } from '@/shared/components/Icon';
 
 export default function AdminOverviewPage() {
@@ -156,6 +157,37 @@ export default function AdminOverviewPage() {
           {error}
         </div>
       )}
+
+      {/* ─── Mission Critical Visual Pipeline Banner ─── */}
+      <div
+        onClick={() => navigate('/admin/pipeline')}
+        className="p-5 bg-gradient-to-r from-primary/20 via-surface-container to-surface-dim border-2 border-primary/50 hover:border-primary transition-all cursor-pointer group flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl"
+      >
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-primary/20 border border-primary/50 flex items-center justify-center text-primary group-hover:scale-105 transition-transform shrink-0">
+            <GitMerge className="w-6 h-6 text-primary" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono text-primary uppercase tracking-widest font-bold">
+                End-to-End Visual Architecture
+              </span>
+              <span className="w-2 h-2 rounded-full bg-status-aligned animate-pulse" />
+            </div>
+            <h3 className="text-lg text-white font-light mt-0.5">
+              Interactive Dataflow & PDF Ingestion Pipeline
+            </h3>
+            <p className="text-xs font-mono text-white/50 mt-0.5">
+              Trace uploaded PDFs through OCR, bond vector extraction, candidate parsing, deduplication, and student mock exam analytics.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-xs font-mono uppercase tracking-widest font-bold group-hover:brightness-110 shrink-0 transition-all">
+          <span>Open Visual Pipeline</span>
+          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+        </div>
+      </div>
 
       {/* ─── Windows Phone Metro Start Screen Live Tiles Grid ─── */}
       {telemetry && (

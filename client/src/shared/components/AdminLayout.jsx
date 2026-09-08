@@ -14,11 +14,13 @@ import Icon, {
   Sliders,
   Sparkles,
   Copy,
-  Users
+  Users,
+  GitMerge
 } from './Icon';
 
 const ADMIN_PIVOT_ITEMS = [
   { path: '/admin', label: 'overview', icon: Activity },
+  { path: '/admin/pipeline', label: 'pipeline flow', icon: GitMerge },
   { path: '/admin/students', label: 'students', icon: Users },
   { path: '/admin/questions', label: 'question bank', icon: BookOpen },
   { path: '/admin/duplicates', label: 'deduplication', icon: Copy },

@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useRef, memo } from 'react';
+import { Link } from 'react-router-dom';
 import { contentService } from '../services/contentService';
 import { topicsService } from '@/features/topics/services/topicsService';
 import MathText from '@/features/questions/components/MathText';
@@ -24,7 +25,8 @@ import {
   ChevronRight,
   PanelLeftClose,
   PanelLeftOpen,
-  Crop
+  Crop,
+  GitMerge
 } from 'lucide-react';
 
 const REJECTION_PRESETS = [
@@ -1298,11 +1300,22 @@ export default function ContentAdminPage() {
   return (
     <div className="w-full max-w-full overflow-x-hidden space-y-6 pb-28 text-on-surface">
       {/* Title & Hub Header */}
-      <div>
-        <h2 className="text-2xl sm:text-3xl text-on-surface font-light lowercase tracking-tight">content ops</h2>
-        <p className="text-on-surface-variant text-sm font-light mt-0.5">
-          High-fidelity exam paper ingestion, TeX verification, diagram extraction, and curriculum positioning.
-        </p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-2xl sm:text-3xl text-on-surface font-light lowercase tracking-tight">content ops</h2>
+          <p className="text-on-surface-variant text-sm font-light mt-0.5">
+            High-fidelity exam paper ingestion, TeX verification, diagram extraction, and curriculum positioning.
+          </p>
+        </div>
+
+        <Link
+          to={selectedJob ? `/admin/pipeline?jobId=${selectedJob.job_id}` : '/admin/pipeline'}
+          className="px-3.5 py-2 bg-primary/10 border border-primary/40 hover:bg-primary hover:text-white text-primary text-xs font-mono uppercase tracking-widest font-bold flex items-center gap-2 transition-all shrink-0 cursor-pointer"
+          title="Inspect end-to-end visual pipeline & live job flight tracking"
+        >
+          <GitMerge className="w-4 h-4" />
+          <span>Track in Visual Pipeline</span>
+        </Link>
       </div>
 
       {/* AMOLED Metric Live Tiles */}

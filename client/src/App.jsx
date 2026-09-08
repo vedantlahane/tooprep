@@ -22,6 +22,7 @@ import ContentAdminPage from '@/features/content/pages/ContentAdminPage';
 import QuestionsPage from '@/features/questions/pages/QuestionsPage';
 import AdminQuestionsPage from '@/features/questions/pages/AdminQuestionsPage';
 import AdminOverviewPage from '@/features/admin/pages/AdminOverviewPage';
+import AdminPipelinePage from '@/features/admin/pages/AdminPipelinePage';
 import AdminStudentsPage from '@/features/admin/pages/AdminStudentsPage';
 import AdminCurriculumPage from '@/features/admin/pages/AdminCurriculumPage';
 import AdminDuplicatesPage from '@/features/admin/pages/AdminDuplicatesPage';
@@ -186,6 +187,16 @@ function App() {
               <AdminRoute>
                 <AdminLayout>
                   <AdminOverviewPage />
+                </AdminLayout>
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/pipeline"
+            element={
+              <AdminRoute>
+                <AdminLayout>
+                  <AdminPipelinePage />
                 </AdminLayout>
               </AdminRoute>
             }
