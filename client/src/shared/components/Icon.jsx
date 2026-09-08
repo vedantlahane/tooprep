@@ -80,7 +80,12 @@ import {
   Table,
   LayoutList,
   Terminal,
-  Cpu
+  Cpu,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  Move,
+  Network
 } from 'lucide-react';
 
 const ICON_MAP = {
@@ -266,5 +271,10 @@ export {
   Table,
   LayoutList,
   Terminal,
-  Cpu
+  Cpu,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  Move,
+  Network
 };

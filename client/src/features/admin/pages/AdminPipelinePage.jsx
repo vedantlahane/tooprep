@@ -31,20 +31,25 @@ import Icon, {
   ChevronRight,
   Eye,
   Terminal,
-  Cpu
+  Cpu,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  Move,
+  Network
 } from '@/shared/components/Icon';
 
-// 8 Core Pipeline Stations Definition with Under-The-Hood AI Thoughts & Engine Metadata
+// 9 Core Pipeline Stations (DAG Nodes) with Under-The-Hood AI Thoughts & Engine Metadata
 const PIPELINE_STATIONS = [
   {
     id: 'storage',
-    number: 1,
+    number: '1',
     title: 'PDF Ingestion & Storage',
     subtitle: 'Upload, Checksum & S3 Staging',
     icon: UploadCloud,
     accentColor: '#00BFFF',
     stageName: 'CREATED',
-    nodeType: 'INGESTION_STORAGE',
+    nodeType: 'TRIGGER_SOURCE',
     engineTag: 'Supabase Storage + S3 Digest',
     latency: '180ms',
     inputPort: 'raw_pdf_binary',
@@ -88,7 +93,7 @@ const PIPELINE_STATIONS = [
   },
   {
     id: 'ocr',
-    number: 2,
+    number: '2',
     title: 'LlamaParse OCR Engine',
     subtitle: 'Deep Multimodal Vision & Math AST',
     icon: Brain,
@@ -145,7 +150,7 @@ const PIPELINE_STATIONS = [
   },
   {
     id: 'diagrams',
-    number: 3,
+    number: '3',
     title: 'Diagram & Bond Cropper',
     subtitle: 'PyMuPDF Vector & Raster Clustering',
     icon: Sparkles,
@@ -195,20 +200,20 @@ const PIPELINE_STATIONS = [
   },
   {
     id: 'segmentation',
-    number: 4,
+    number: '4',
     title: 'Candidate Segmentation',
     subtitle: 'Question Delimiters & Choices Parser',
     icon: FileText,
     accentColor: '#00BFFF',
     stageName: 'VALIDATING',
-    nodeType: 'HEURISTIC_PARSER',
+    nodeType: 'ASSEMBLER_PARSER',
     engineTag: 'Regex Lexer + Topic Heuristic',
     latency: '95ms',
-    inputPort: 'markdown_pages & topics',
+    inputPort: 'markdown_pages & diagrams',
     outputPort: 'candidate_questions[]',
     services: ['question-extraction.js', 'candidateParser.js', 'Curriculum Mapping Heuristics'],
     description: 'Rule-based parsers and layout heuristics slice the continuous markdown into individual question candidate records. It extracts choices (A, B, C, D), infers answer keys from appended answer blocks, maps initial syllabus topic recommendations, and stages drafts.',
-    inputs: ['Markdown Page Array', 'Curriculum Topic Taxonomy (Physics/Chem/Math)'],
+    inputs: ['Markdown Page Array', 'Cropped Diagrams Map', 'Curriculum Topic Taxonomy (Physics/Chem/Math)'],
     outputs: ['Candidate Questions Array (MongoDB)', 'Parsed Choices (A, B, C, D)', 'Auto-Detected Answer Key', 'Suggested Topic ID'],
     targetRoute: '/admin/content',
     targetRouteLabel: 'Review Candidates',
@@ -245,21 +250,21 @@ const PIPELINE_STATIONS = [
   },
   {
     id: 'deduplication',
-    number: 5,
+    number: '5',
     title: 'Deduplication Gate',
     subtitle: 'Trigram Dice Similarity Engine',
     icon: Copy,
     accentColor: '#FF2E55',
     stageName: 'VALIDATING',
-    nodeType: 'FUZZY_DEDUP',
+    nodeType: 'CONDITION_IF',
     engineTag: 'Bigram/Trigram Dice Engine',
     latency: '85ms',
     inputPort: 'candidate_text',
-    outputPort: 'similarity_score & match_type',
+    outputPort: 'Unique: d < 0.80 | Duplicate: d ≥ 0.80',
     services: ['deduplication.service.js', 'question_duplicates table', 'Dice Coefficient Algorithm'],
     description: 'Every extracted question is evaluated against the existing repository. Mathematical formulas and whitespace are normalized, and Dice coefficient bigram matching checks for exact 100% duplicate questions or OCR phrasing variations, preventing repetitive syllabus bloat.',
     inputs: ['Candidate Question Text', 'Live Question Bank Corpus (Supabase)'],
-    outputs: ['Similarity Score (0.00 to 1.00)', 'Match Classification (EXACT / HIGH_CONFIDENCE / POTENTIAL)', 'Duplicate Resolution Flag'],
+    outputs: ['Similarity Score (0.00 to 1.00)', 'Match Classification (EXACT / HIGH_CONFIDENCE / POTENTIAL)', 'Branch Routing: Unique vs Duplicate'],
     targetRoute: '/admin/duplicates',
     targetRouteLabel: 'Audit Duplicates',
     thoughtLogs: [
@@ -289,13 +294,49 @@ const PIPELINE_STATIONS = [
         agent: 'Deduplication Certifier',
         badge: 'CERTIFIED_UNIQUE',
         badgeColor: 'border-status-aligned text-status-aligned',
-        thought: 'Similarity 0.124 is well below 0.80 threshold. Question certified unique. Duplicate flag set to CLEAN (No duplicate created).'
+        thought: 'Similarity 0.124 is well below 0.80 threshold. Question certified unique. Routing payload along TRUE branch to Faculty Review.'
+      }
+    ]
+  },
+  {
+    id: 'quarantine',
+    number: '5B',
+    title: 'Duplicate Quarantine',
+    subtitle: 'Cluster Review & Merge Queue',
+    icon: AlertTriangle,
+    accentColor: '#FF8C00',
+    stageName: 'QUARANTINED',
+    nodeType: 'MERGE_QUEUE',
+    engineTag: 'Deduplication Audit Queue',
+    latency: 'On Demand',
+    inputPort: 'flagged_candidates[]',
+    outputPort: 'merged_canonical_id',
+    services: ['deduplication.service.js', 'AdminDuplicatesPage.jsx', 'question_duplicates table'],
+    description: 'Questions flagged with similarity d ≥ 0.80 are isolated into the Quarantine and Merge Queue. Platform administrators review identical questions side-by-side to either discard redundant entries or merge variations into a single high-quality canonical question.',
+    inputs: ['Flagged Question Candidates', 'High Similarity Score (≥ 0.80)'],
+    outputs: ['Merged Canonical Question', 'Discarded Duplicate Flag', 'Audit Resolution Log'],
+    targetRoute: '/admin/duplicates',
+    targetRouteLabel: 'Open Duplicates Hub',
+    thoughtLogs: [
+      {
+        time: '+10ms',
+        agent: 'Quarantine Filter',
+        badge: 'DUPLICATE_ROUTED',
+        badgeColor: 'border-amber-400 text-amber-400',
+        thought: 'Deduplication threshold exceeded: similarity 0.94 against Question `q_49102`. Diverting payload from publication stream into Quarantine Review Queue.'
+      },
+      {
+        time: '+25ms',
+        agent: 'Cluster Engine',
+        badge: 'CLUSTER_MATCH',
+        badgeColor: 'border-amber-400 text-amber-400',
+        thought: 'Created duplicate pair `{ source: cand_04, target: q_49102, dice: 0.94 }`. Awaiting administrator merge or discard action.'
       }
     ]
   },
   {
     id: 'review',
-    number: 6,
+    number: '6',
     title: 'Faculty Review & Quality Gate',
     subtitle: 'Human Verification & Explanation Audit',
     icon: CheckCircle2,
@@ -345,13 +386,13 @@ const PIPELINE_STATIONS = [
   },
   {
     id: 'sync',
-    number: 7,
+    number: '7',
     title: 'Dual-Store Persistence',
     subtitle: 'PostgreSQL Row + Qdrant Vector Point',
     icon: Server,
     accentColor: '#00BFFF',
     stageName: 'COMPLETED',
-    nodeType: 'VECTOR_DATABASE',
+    nodeType: 'PARALLEL_SYNC',
     engineTag: 'PostgreSQL 15 + Qdrant v1.7',
     latency: '110ms',
     inputPort: 'verified_question_dto',
@@ -395,13 +436,13 @@ const PIPELINE_STATIONS = [
   },
   {
     id: 'telemetry',
-    number: 8,
+    number: '8',
     title: 'Live Practice & Telemetry Loop',
     subtitle: 'Exam Engine & Confidence Gap Calibration',
     icon: Activity,
     accentColor: '#107C10',
     stageName: 'LIVE',
-    nodeType: 'COGNITIVE_ANALYTICS',
+    nodeType: 'FEEDBACK_LOOP',
     engineTag: 'Confidence Gap Algorithm + Telemetry',
     latency: 'Continuous',
     inputPort: 'student_attempts[]',
@@ -443,6 +484,32 @@ const PIPELINE_STATIONS = [
       }
     ]
   }
+];
+
+// Default 2D spatial coordinates for n8n DAG canvas
+const DEFAULT_NODE_POSITIONS = {
+  storage: { x: 40, y: 220 },
+  ocr: { x: 370, y: 70 },
+  diagrams: { x: 370, y: 370 },
+  segmentation: { x: 720, y: 220 },
+  deduplication: { x: 1070, y: 220 },
+  review: { x: 1440, y: 100 },
+  quarantine: { x: 1440, y: 370 },
+  sync: { x: 1800, y: 100 },
+  telemetry: { x: 2160, y: 100 }
+};
+
+// n8n Graph Edges Definition (Wires connecting nodes)
+const GRAPH_EDGES = [
+  { id: 'e1', from: 'storage', to: 'ocr', label: 'PDF Stream', color: '#8A2BE2', fromPort: 'out', toPort: 'in' },
+  { id: 'e2', from: 'storage', to: 'diagrams', label: 'Vector Primitives', color: '#FF8C00', fromPort: 'out', toPort: 'in' },
+  { id: 'e3', from: 'ocr', to: 'segmentation', label: 'KaTeX & AST', color: '#8A2BE2', fromPort: 'out', toPort: 'in' },
+  { id: 'e4', from: 'diagrams', to: 'segmentation', label: 'Cropped 300DPI PNGs', color: '#FF8C00', fromPort: 'out', toPort: 'in' },
+  { id: 'e5', from: 'segmentation', to: 'deduplication', label: 'Candidate DTOs', color: '#00BFFF', fromPort: 'out', toPort: 'in' },
+  { id: 'e6', from: 'deduplication', to: 'review', label: 'Unique (d < 0.80)', color: '#107C10', fromPort: 'unique', toPort: 'in', condition: 'unique' },
+  { id: 'e7', from: 'deduplication', to: 'quarantine', label: 'Duplicate (d ≥ 0.80)', color: '#FF2E55', fromPort: 'duplicate', toPort: 'in', condition: 'duplicate' },
+  { id: 'e8', from: 'review', to: 'sync', label: 'Approved DTO', color: '#00BFFF', fromPort: 'out', toPort: 'in' },
+  { id: 'e9', from: 'sync', to: 'telemetry', label: 'Live Question Bank', color: '#107C10', fromPort: 'out', toPort: 'in' }
 ];
 
 // Interactive Simulation Step Previews
@@ -566,8 +633,8 @@ export default function AdminPipelinePage() {
   // Mode: 'live' (real jobs in system) vs 'simulation' (step-by-step walkthrough)
   const [activeMode, setActiveMode] = useState('live');
 
-  // Sheet layout style: 'sheet' (nodes with cable connections) vs 'linear'
-  const [sheetLayout, setSheetLayout] = useState('sheet');
+  // Sheet layout style: 'graph' (n8n node-and-edge graph) vs 'sheet' (grid) vs 'linear'
+  const [sheetLayout, setSheetLayout] = useState('graph');
 
   // Verbosity level for AI thoughts: 'detailed' (minute traces) vs 'summary'
   const [thoughtVerbosity, setThoughtVerbosity] = useState('detailed');
@@ -588,8 +655,20 @@ export default function AdminPipelinePage() {
   const [simStepIndex, setSimStepIndex] = useState(1); // Default to LlamaParse OCR for instant view
   const [simIsPlaying, setSimIsPlaying] = useState(false);
 
-  // Thought stream auto-scroll ref
+  // n8n Interactive Canvas State: Pan & Zoom
+  const [pan, setPan] = useState({ x: 40, y: 40 });
+  const [zoom, setZoom] = useState(0.85);
+  const [isPanning, setIsPanning] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  // Node Positions (Draggable on Canvas)
+  const [nodePositions, setNodePositions] = useState(DEFAULT_NODE_POSITIONS);
+  const [draggingNodeId, setDraggingNodeId] = useState(null);
+  const [nodeDragOffset, setNodeDragOffset] = useState({ x: 0, y: 0 });
+
+  // Refs
   const thoughtStreamRef = useRef(null);
+  const canvasContainerRef = useRef(null);
 
   // Fetch ingestion jobs and observability telemetry
   const loadData = useCallback(async () => {
@@ -660,7 +739,7 @@ export default function AdminPipelinePage() {
         }
         return prev + 1;
       });
-    }, 3500);
+    }, 3200);
     return () => clearInterval(timer);
   }, [simIsPlaying]);
 
@@ -692,6 +771,75 @@ export default function AdminPipelinePage() {
     setSearchParams({ jobId });
   };
 
+  // Reset node positions to default layout
+  const handleResetNodePositions = () => {
+    setNodePositions(DEFAULT_NODE_POSITIONS);
+    setPan({ x: 40, y: 40 });
+    setZoom(0.85);
+  };
+
+  // Canvas Pan & Zoom Handlers
+  const handleCanvasPointerDown = (e) => {
+    if (e.target.closest('[data-node-id]')) return;
+    setIsPanning(true);
+    setDragStart({
+      x: e.clientX - pan.x,
+      y: e.clientY - pan.y
+    });
+  };
+
+  const handleCanvasPointerMove = (e) => {
+    if (draggingNodeId) {
+      const containerRect = canvasContainerRef.current?.getBoundingClientRect();
+      if (!containerRect) return;
+
+      const newX = (e.clientX - containerRect.left - pan.x) / zoom - nodeDragOffset.x;
+      const newY = (e.clientY - containerRect.top - pan.y) / zoom - nodeDragOffset.y;
+
+      setNodePositions(prev => ({
+        ...prev,
+        [draggingNodeId]: {
+          x: Math.round(newX),
+          y: Math.round(newY)
+        }
+      }));
+    } else if (isPanning) {
+      setPan({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y
+      });
+    }
+  };
+
+  const handleCanvasPointerUp = () => {
+    setIsPanning(false);
+    setDraggingNodeId(null);
+  };
+
+  const handleCanvasWheel = (e) => {
+    e.preventDefault();
+    const zoomFactor = e.deltaY < 0 ? 1.08 : 0.92;
+    setZoom(z => Math.min(Math.max(z * zoomFactor, 0.4), 1.6));
+  };
+
+  const handleNodePointerDown = (e, nodeId) => {
+    e.stopPropagation();
+    setSelectedStationId(nodeId);
+
+    const containerRect = canvasContainerRef.current?.getBoundingClientRect();
+    if (!containerRect) return;
+
+    const currentPos = nodePositions[nodeId] || DEFAULT_NODE_POSITIONS[nodeId];
+    const mouseCanvasX = (e.clientX - containerRect.left - pan.x) / zoom;
+    const mouseCanvasY = (e.clientY - containerRect.top - pan.y) / zoom;
+
+    setDraggingNodeId(nodeId);
+    setNodeDragOffset({
+      x: mouseCanvasX - currentPos.x,
+      y: mouseCanvasY - currentPos.y
+    });
+  };
+
   // Filtered thoughts based on engineFilter
   const displayedThoughts = useMemo(() => {
     if (engineFilter === 'all') {
@@ -701,25 +849,78 @@ export default function AdminPipelinePage() {
     return target ? target.thoughtLogs : selectedStation.thoughtLogs;
   }, [engineFilter, selectedStation]);
 
+  // Compute cubic Bezier curves for all edges based on dynamic node positions
+  const computedEdges = useMemo(() => {
+    const NODE_WIDTH = 240;
+    const NODE_HEIGHT = 114;
+
+    return GRAPH_EDGES.map(edge => {
+      const sourcePos = nodePositions[edge.from] || DEFAULT_NODE_POSITIONS[edge.from];
+      const targetPos = nodePositions[edge.to] || DEFAULT_NODE_POSITIONS[edge.to];
+
+      if (!sourcePos || !targetPos) return null;
+
+      let x1 = sourcePos.x + NODE_WIDTH;
+      let y1 = sourcePos.y + NODE_HEIGHT / 2;
+
+      if (edge.fromPort === 'unique') {
+        y1 = sourcePos.y + 36;
+      } else if (edge.fromPort === 'duplicate') {
+        y1 = sourcePos.y + 78;
+      }
+
+      const x2 = targetPos.x;
+      const y2 = targetPos.y + NODE_HEIGHT / 2;
+
+      const dx = Math.max(Math.abs(x2 - x1) * 0.55, 60);
+      const path = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
+
+      const midX = (x1 + x2) / 2;
+      const midY = (y1 + y2) / 2;
+
+      let isActive = false;
+      if (activeMode === 'live') {
+        const toIdx = PIPELINE_STATIONS.findIndex(s => s.id === edge.to);
+        if (currentJobStageIndex >= toIdx) {
+          isActive = true;
+        }
+      } else if (activeMode === 'simulation') {
+        const currentSimStep = SIMULATION_STEPS[simStepIndex];
+        if (currentSimStep && (edge.to === currentSimStep.stageId || edge.from === currentSimStep.stageId)) {
+          isActive = true;
+        }
+      }
+
+      return {
+        ...edge,
+        x1, y1, x2, y2,
+        path,
+        midX, midY,
+        isActive
+      };
+    }).filter(Boolean);
+  }, [nodePositions, activeMode, currentJobStageIndex, simStepIndex]);
+
   return (
     <div className="w-full max-w-7xl min-w-0 mr-auto animate-fade-in space-y-6 pb-20 text-left">
       {/* ─── Mission Header & Mode Selector ─── */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 border-b border-white/10 pb-5">
         <div>
           <div className="flex items-center gap-3">
-            <p className="text-label-sm-mono uppercase tracking-[0.2em] text-primary text-xs">
-              System Architecture & Flow Observability
+            <p className="text-label-sm-mono uppercase tracking-[0.2em] text-primary text-xs flex items-center gap-1.5">
+              <Network className="w-3.5 h-3.5 text-primary" />
+              <span>DAG Workflow & Graph Observability</span>
             </p>
             <span className="flex items-center gap-1.5 px-2 py-0.5 bg-primary/10 border border-primary/30 text-primary text-[10px] font-mono uppercase tracking-widest">
               <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
-              <span>Live Node Sheet</span>
+              <span>n8n Canvas Engine</span>
             </span>
           </div>
           <h1 className="text-display text-on-surface mt-1 font-light">
-            Content & Exam Pipeline Observability
+            Content & Exam Pipeline Graph
           </h1>
           <p className="text-body-md text-on-surface-variant font-light mt-1">
-            Visual node-sheet and minute under-the-hood AI execution traces across LlamaParse OCR, vector bond extraction, candidate structuring, deduplication, and student exam loops.
+            Interactive node-and-edge workflow graph with Bezier curved connector wires, parallel branches, and live AI internal monologues.
           </p>
         </div>
 
@@ -733,7 +934,7 @@ export default function AdminPipelinePage() {
               }`}
             >
               <Activity className="w-3.5 h-3.5" />
-              <span>Live Job Tracker</span>
+              <span>Live Job Flight</span>
             </button>
             <button
               onClick={() => {
@@ -745,7 +946,7 @@ export default function AdminPipelinePage() {
               }`}
             >
               <Play className="w-3.5 h-3.5" />
-              <span>Interactive PDF Simulation</span>
+              <span>Execute Workflow</span>
             </button>
           </div>
 
@@ -788,14 +989,10 @@ export default function AdminPipelinePage() {
 
           {currentJob && (
             <div className="flex items-center gap-3 text-[11px] text-white/70">
-              <span>Pages: <strong className="text-white">{currentJob.progress?.total_pages || currentJob.progress?.processed_pages || '-'}</strong></span>
-              <span>•</span>
-              <span>Extracted Qs: <strong className="text-primary">{currentJob.progress?.questions_extracted ?? 0}</strong></span>
-              <span>•</span>
-              <span className={`px-2 py-0.5 border font-bold uppercase ${
-                currentJob.stage === 'AWAITING_REVIEW'
-                  ? 'bg-status-weak/20 border-status-weak text-status-weak'
-                  : currentJob.stage === 'COMPLETED'
+              <span>Pages: <strong className="text-white">{currentJob.progress?.total_pages || '?'}</strong></span>
+              <span>Questions: <strong className="text-white">{currentJob.question_count || currentJob.extracted_count || 0}</strong></span>
+              <span className={`px-2 py-0.5 border text-[10px] font-bold uppercase ${
+                currentJob.stage === 'COMPLETED'
                   ? 'bg-status-aligned/20 border-status-aligned text-status-aligned'
                   : currentJob.stage === 'FAILED'
                   ? 'bg-error/20 border-error text-error'
@@ -855,162 +1052,455 @@ export default function AdminPipelinePage() {
         </div>
       )}
 
-      {/* ─── Interactive Pipeline Node Canvas / Sheet ─── */}
-      <div className="p-6 bg-surface-dim border border-outline-variant space-y-4 relative overflow-hidden">
-        {/* Subtle Node Grid Blueprint Texture */}
-        <div className="absolute inset-0 bg-[radial-gradient(#00BFFF14_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none opacity-60" />
+      {/* ─── Interactive Workflow Graph Canvas Header & Viewport Switcher ─── */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs font-mono text-white/60 border-b border-white/10 pb-3">
+        <div className="flex items-center gap-2.5">
+          <GitMerge className="w-4 h-4 text-primary" />
+          <span className="text-white uppercase font-bold tracking-wider">
+            {sheetLayout === 'graph' ? 'n8n Node & Edge Graph Canvas' : sheetLayout === 'sheet' ? 'Grid Nodes Sheet' : 'Linear Sequence'}
+          </span>
+          <span className="text-white/40 hidden md:inline">| 9 Nodes • 9 Bezier Edges • 2 Parallel Forks • 1 Deduplication IF-Gate</span>
+        </div>
 
-        <div className="flex items-center justify-between text-xs font-mono text-white/50 uppercase tracking-widest relative z-10">
-          <div className="flex items-center gap-2">
-            <Cpu className="w-4 h-4 text-primary" />
-            <span>Interactive Pipeline Node Canvas</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-[11px] text-primary hidden sm:inline">Click any node to reveal its inner AI thought stream</span>
-            <div className="flex items-center border border-white/20 bg-black">
+        {/* Canvas Controls Toolbar */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {sheetLayout === 'graph' && (
+            <div className="flex items-center border border-white/20 bg-surface-container p-0.5">
               <button
-                onClick={() => setSheetLayout('sheet')}
-                className={`px-2 py-0.5 text-[10px] uppercase ${sheetLayout === 'sheet' ? 'bg-primary text-white font-bold' : 'text-white/50'}`}
+                onClick={() => setZoom(z => Math.max(z - 0.15, 0.4))}
+                className="p-1 text-white/70 hover:text-white hover:bg-white/10 cursor-pointer"
+                title="Zoom Out"
               >
-                Nodes
+                <ZoomOut className="w-3.5 h-3.5" />
+              </button>
+              <span className="px-2 text-[10px] text-white/50 font-bold min-w-[42px] text-center">
+                {Math.round(zoom * 100)}%
+              </span>
+              <button
+                onClick={() => setZoom(z => Math.min(z + 0.15, 1.6))}
+                className="p-1 text-white/70 hover:text-white hover:bg-white/10 cursor-pointer"
+                title="Zoom In"
+              >
+                <ZoomIn className="w-3.5 h-3.5" />
               </button>
               <button
-                onClick={() => setSheetLayout('linear')}
-                className={`px-2 py-0.5 text-[10px] uppercase ${sheetLayout === 'linear' ? 'bg-primary text-white font-bold' : 'text-white/50'}`}
+                onClick={handleResetNodePositions}
+                className="px-2 py-0.5 text-[10px] text-primary hover:bg-primary/10 border-l border-white/15 uppercase font-bold cursor-pointer"
+                title="Auto-Align Nodes to Default DAG Grid"
               >
-                Linear
+                Auto-Align
               </button>
             </div>
+          )}
+
+          {/* Layout Mode Switcher */}
+          <div className="flex items-center border border-white/20 bg-black p-0.5">
+            <button
+              onClick={() => setSheetLayout('graph')}
+              className={`px-2.5 py-1 text-[10px] uppercase font-mono cursor-pointer flex items-center gap-1 ${sheetLayout === 'graph' ? 'bg-primary text-white font-bold' : 'text-white/50'}`}
+            >
+              <Network className="w-3 h-3" />
+              <span>n8n Graph</span>
+            </button>
+            <button
+              onClick={() => setSheetLayout('sheet')}
+              className={`px-2.5 py-1 text-[10px] uppercase font-mono cursor-pointer ${sheetLayout === 'sheet' ? 'bg-primary text-white font-bold' : 'text-white/50'}`}
+            >
+              Grid
+            </button>
+            <button
+              onClick={() => setSheetLayout('linear')}
+              className={`px-2.5 py-1 text-[10px] uppercase font-mono cursor-pointer ${sheetLayout === 'linear' ? 'bg-primary text-white font-bold' : 'text-white/50'}`}
+            >
+              Linear
+            </button>
           </div>
         </div>
+      </div>
 
-        {/* Modular Nodes Layout Grid */}
-        <div className={`relative z-10 grid gap-4 ${
-          sheetLayout === 'sheet'
-            ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
-            : 'grid-cols-1'
-        }`}>
-          {PIPELINE_STATIONS.map((station, idx) => {
-            const IconComp = station.icon;
-            const isSelected = selectedStationId === station.id;
+      {/* ─── n8n-Style 2D Graph Canvas with Bezier Curved Wires ─── */}
+      {sheetLayout === 'graph' ? (
+        <div
+          ref={canvasContainerRef}
+          onPointerDown={handleCanvasPointerDown}
+          onPointerMove={handleCanvasPointerMove}
+          onPointerUp={handleCanvasPointerUp}
+          onWheel={handleCanvasWheel}
+          className="relative w-full h-[620px] bg-[#07090e] border-2 border-white/15 rounded-sm overflow-hidden select-none cursor-grab active:cursor-grabbing shadow-2xl"
+        >
+          {/* Subtle Blueprint Radial Grid Background Pattern */}
+          <div
+            className="absolute inset-0 pointer-events-none opacity-50"
+            style={{
+              backgroundImage: 'radial-gradient(#00BFFF25 1.5px, transparent 1.5px)',
+              backgroundSize: '24px 24px',
+              backgroundPosition: `${pan.x}px ${pan.y}px`
+            }}
+          />
 
-            // Live flight highlight logic
-            const isJobCurrent = activeMode === 'live' && currentJobStageIndex === idx;
-            const isJobPassed = activeMode === 'live' && currentJobStageIndex > idx;
-            const isJobFailed = activeMode === 'live' && (currentJob?.stage === 'FAILED' || currentJob?.stage === 'PAUSED') && currentJobStageIndex === idx;
+          {/* Canvas Floating Navigation HUD */}
+          <div className="absolute top-3 left-3 z-30 flex items-center gap-2 bg-black/80 backdrop-blur-md border border-white/15 px-3 py-1.5 text-[11px] font-mono text-white/70">
+            <span className="w-2 h-2 rounded-full bg-status-aligned animate-ping" />
+            <span>n8n DAG Workflow Canvas</span>
+            <span className="text-white/30">•</span>
+            <span className="text-primary font-bold">Drag canvas to pan • Drag nodes to move</span>
+          </div>
 
-            // Simulation step highlight
-            const isSimCurrent = activeMode === 'simulation' && simStepIndex === idx;
-            const isSimPassed = activeMode === 'simulation' && simStepIndex > idx;
+          {/* Transformable Canvas Surface */}
+          <div
+            style={{
+              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+              transformOrigin: '0 0',
+              width: '2500px',
+              height: '620px',
+              position: 'relative'
+            }}
+          >
+            {/* SVG Bezier Edges Layer */}
+            <svg
+              className="absolute inset-0 w-full h-full pointer-events-none z-10"
+              style={{ overflow: 'visible' }}
+            >
+              <defs>
+                <filter id="edge-glow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="3" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
 
-            const isHighlighted = isJobCurrent || isSimCurrent;
-            const isPassed = isJobPassed || isSimPassed;
+              {/* Render Cubic Bezier Curved Wires */}
+              {computedEdges.map((edge) => {
+                const isSelected = selectedStationId === edge.from || selectedStationId === edge.to;
+                const strokeColor = isSelected ? '#00BFFF' : edge.isActive ? edge.color : 'rgba(255, 255, 255, 0.18)';
+                const strokeWidth = isSelected ? 3.5 : edge.isActive ? 2.8 : 1.8;
 
-            return (
-              <div
-                key={station.id}
-                onClick={() => setSelectedStationId(station.id)}
-                className={`p-4 border-2 transition-all cursor-pointer relative flex flex-col justify-between rounded-sm backdrop-blur-sm group ${
-                  isSelected
-                    ? 'border-primary bg-black/90 shadow-xl shadow-primary/20 ring-2 ring-primary/80'
-                    : isHighlighted
-                    ? 'border-primary bg-primary/10 ring-2 ring-primary animate-pulse'
-                    : isPassed
-                    ? 'border-status-aligned/40 bg-black/70 hover:border-status-aligned'
-                    : 'border-white/10 bg-black/60 hover:border-white/30'
-                }`}
-              >
-                {/* Node Top Terminal Pin / In Port */}
-                <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/10 text-[10px] font-mono">
-                  <div className="flex items-center gap-1.5 text-white/50 truncate max-w-[140px]" title={`IN: ${station.inputPort}`}>
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    <span>IN: {station.inputPort}</span>
-                  </div>
-                  <span className="px-1.5 py-0.2 bg-white/5 border border-white/10 text-[9px] text-white/60 uppercase">
-                    {station.nodeType}
-                  </span>
-                </div>
+                return (
+                  <g key={edge.id}>
+                    {/* Background Thick Dark Wire Shadow */}
+                    <path
+                      d={edge.path}
+                      fill="none"
+                      stroke="#050608"
+                      strokeWidth={strokeWidth + 5}
+                      strokeLinecap="round"
+                    />
 
-                {/* Node Body */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-6 h-6 flex items-center justify-center rounded-sm font-mono text-xs font-bold ${
-                        isHighlighted
-                          ? 'bg-primary text-black'
-                          : isPassed
-                          ? 'bg-status-aligned text-black'
-                          : 'bg-white/10 text-white'
-                      }`}>
-                        {station.number}
+                    {/* Main Bezier Wire */}
+                    <path
+                      d={edge.path}
+                      fill="none"
+                      stroke={strokeColor}
+                      strokeWidth={strokeWidth}
+                      strokeLinecap="round"
+                      strokeDasharray={edge.isActive ? '8 6' : 'none'}
+                      className={edge.isActive ? 'animate-pulse' : ''}
+                      filter={isSelected || edge.isActive ? 'url(#edge-glow)' : undefined}
+                    />
+
+                    {/* Luminous Animated Flow Particle Travelling Along Wire */}
+                    {edge.isActive && (
+                      <circle r="4.5" fill={edge.color} filter="url(#edge-glow)">
+                        <animateMotion
+                          path={edge.path}
+                          dur="1.8s"
+                          repeatCount="indefinite"
+                        />
+                      </circle>
+                    )}
+
+                    {/* Edge Label Pill at Midpoint */}
+                    <g transform={`translate(${edge.midX}, ${edge.midY})`}>
+                      <rect
+                        x="-55"
+                        y="-11"
+                        width="110"
+                        height="22"
+                        rx="11"
+                        fill="#0b0d13"
+                        stroke={isSelected ? '#00BFFF' : edge.isActive ? edge.color : 'rgba(255,255,255,0.2)'}
+                        strokeWidth="1.2"
+                      />
+                      <text
+                        x="0"
+                        y="3.5"
+                        textAnchor="middle"
+                        fill={edge.isActive ? edge.color : 'rgba(255,255,255,0.7)'}
+                        fontSize="9"
+                        fontFamily="monospace"
+                        fontWeight="600"
+                      >
+                        {edge.label}
+                      </text>
+                    </g>
+                  </g>
+                );
+              })}
+            </svg>
+
+            {/* Render n8n Node Cards */}
+            {PIPELINE_STATIONS.map((station, idx) => {
+              const IconComp = station.icon;
+              const pos = nodePositions[station.id] || DEFAULT_NODE_POSITIONS[station.id] || { x: 40, y: 220 };
+              const isSelected = selectedStationId === station.id;
+
+              const isJobCurrent = activeMode === 'live' && currentJobStageIndex === idx;
+              const isJobPassed = activeMode === 'live' && currentJobStageIndex > idx;
+              const isJobFailed = activeMode === 'live' && (currentJob?.stage === 'FAILED' || currentJob?.stage === 'PAUSED') && currentJobStageIndex === idx;
+
+              const isSimCurrent = activeMode === 'simulation' && SIMULATION_STEPS[simStepIndex]?.stageId === station.id;
+              const isSimPassed = activeMode === 'simulation' && simStepIndex > idx;
+
+              const isHighlighted = isJobCurrent || isSimCurrent;
+              const isPassed = isJobPassed || isSimPassed;
+
+              return (
+                <div
+                  key={station.id}
+                  data-node-id={station.id}
+                  style={{
+                    position: 'absolute',
+                    left: `${pos.x}px`,
+                    top: `${pos.y}px`,
+                    width: '240px'
+                  }}
+                  onClick={() => setSelectedStationId(station.id)}
+                  className={`border-2 transition-all rounded-lg backdrop-blur-md z-20 select-none shadow-2xl ${
+                    isSelected
+                      ? 'border-primary bg-black/95 shadow-primary/30 ring-2 ring-primary/80 scale-[1.02]'
+                      : isHighlighted
+                      ? 'border-primary bg-primary/15 ring-2 ring-primary animate-pulse'
+                      : isPassed
+                      ? 'border-status-aligned/50 bg-[#0e1117]/95 hover:border-status-aligned'
+                      : 'border-white/15 bg-[#0e1117]/90 hover:border-white/40'
+                  }`}
+                >
+                  {/* Left Circular Input Handle Socket */}
+                  {station.id !== 'storage' && (
+                    <div
+                      className="absolute -left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#0a0c10] border-2 border-primary flex items-center justify-center cursor-crosshair z-30 shadow hover:scale-125 transition-transform"
+                      title={`Input: ${station.inputPort}`}
+                    >
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                    </div>
+                  )}
+
+                  {/* Right Circular Output Handle Socket */}
+                  {station.id === 'deduplication' ? (
+                    <>
+                      {/* Unique Path Socket (Top) */}
+                      <div
+                        className="absolute -right-2.5 top-[36px] -translate-y-1/2 w-4 h-4 rounded-full bg-[#0a0c10] border-2 border-status-aligned flex items-center justify-center cursor-crosshair z-30 shadow hover:scale-125 transition-transform"
+                        title="Output: Unique questions (< 0.80)"
+                      >
+                        <div className="w-1.5 h-1.5 rounded-full bg-status-aligned" />
                       </div>
-                      <IconComp className={`w-4 h-4 ${isHighlighted ? 'text-primary' : isPassed ? 'text-status-aligned' : 'text-white/70'}`} />
+                      {/* Duplicate Path Socket (Bottom) */}
+                      <div
+                        className="absolute -right-2.5 top-[78px] -translate-y-1/2 w-4 h-4 rounded-full bg-[#0a0c10] border-2 border-rose-500 flex items-center justify-center cursor-crosshair z-30 shadow hover:scale-125 transition-transform"
+                        title="Output: Duplicate candidates (≥ 0.80)"
+                      >
+                        <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                      </div>
+                    </>
+                  ) : station.id !== 'telemetry' ? (
+                    <div
+                      className="absolute -right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#0a0c10] border-2 border-primary flex items-center justify-center cursor-crosshair z-30 shadow hover:scale-125 transition-transform"
+                      title={`Output: ${station.outputPort}`}
+                    >
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                    </div>
+                  ) : null}
+
+                  {/* Node Header with Drag Handle */}
+                  <div
+                    onPointerDown={(e) => handleNodePointerDown(e, station.id)}
+                    className="p-3 bg-white/5 border-b border-white/10 rounded-t-lg flex items-center justify-between cursor-grab active:cursor-grabbing hover:bg-white/10 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 truncate">
+                      <div
+                        className="w-7 h-7 rounded flex items-center justify-center shrink-0 border"
+                        style={{
+                          backgroundColor: `${station.accentColor}18`,
+                          borderColor: `${station.accentColor}50`,
+                          color: station.accentColor
+                        }}
+                      >
+                        <IconComp className="w-4 h-4" />
+                      </div>
+                      <div className="truncate">
+                        <h4 className="text-xs font-semibold text-white truncate leading-tight">
+                          {station.title}
+                        </h4>
+                        <span className="text-[9px] font-mono text-white/50 block truncate">
+                          {station.nodeType}
+                        </span>
+                      </div>
                     </div>
 
-                    {/* Status Badge */}
-                    <span className="text-[10px] font-mono uppercase tracking-wider">
+                    <div className="flex items-center gap-1 shrink-0 ml-1">
                       {isHighlighted ? (
-                        <span className="text-primary font-bold flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
-                          Processing
-                        </span>
-                      ) : isJobFailed ? (
-                        <span className="text-error font-bold">Failed</span>
+                        <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
                       ) : isPassed ? (
-                        <span className="text-status-aligned font-bold flex items-center gap-0.5">
-                          <Check className="w-3 h-3" />
-                          Ready
-                        </span>
+                        <Check className="w-3.5 h-3.5 text-status-aligned" />
                       ) : (
-                        <span className="text-white/30">Standby</span>
+                        <span className="w-2 h-2 rounded-full bg-white/20" />
                       )}
-                    </span>
+                    </div>
                   </div>
 
-                  <div>
-                    <h4 className={`text-sm font-medium ${isSelected ? 'text-white' : 'text-white/90'}`}>
-                      {station.title}
-                    </h4>
-                    <p className="text-[11px] font-mono text-white/50 truncate mt-0.5">
+                  {/* Node Body with Engine Tag & Latency */}
+                  <div className="p-3 space-y-2 text-left">
+                    <p className="text-[11px] text-white/70 font-light line-clamp-1">
                       {station.subtitle}
                     </p>
-                  </div>
 
-                  {/* Engine Badge & Latency */}
-                  <div className="flex items-center justify-between text-[10px] font-mono pt-1 text-white/40 border-t border-white/5">
-                    <span className="truncate max-w-[120px]" title={station.engineTag}>
-                      ⚙️ {station.engineTag}
-                    </span>
-                    <span>{station.latency}</span>
-                  </div>
-                </div>
+                    <div className="flex items-center justify-between text-[9px] font-mono pt-1 text-white/40 border-t border-white/5">
+                      <span className="truncate max-w-[130px]" title={station.engineTag}>
+                        ⚙️ {station.engineTag}
+                      </span>
+                      <span className="text-white/60 font-semibold">{station.latency}</span>
+                    </div>
 
-                {/* Node Bottom Terminal Pin / Out Port */}
-                <div className="flex items-center justify-between pt-2 mt-2 border-t border-white/10 text-[10px] font-mono text-white/50">
-                  <div className="flex items-center gap-1.5 truncate max-w-[150px]" title={`OUT: ${station.outputPort}`}>
-                    <span className="w-1.5 h-1.5 rounded-full bg-status-aligned" />
-                    <span>OUT: {station.outputPort}</span>
-                  </div>
-                  {isSelected && (
-                    <span className="text-primary font-bold text-[9px] uppercase tracking-wider">
-                      [Active Node]
-                    </span>
-                  )}
-                </div>
-
-                {/* Circuit Connector Cable Arrow */}
-                {idx < PIPELINE_STATIONS.length - 1 && sheetLayout === 'sheet' && (
-                  <div className="hidden lg:block absolute -right-3 top-1/2 -translate-y-1/2 z-20 pointer-events-none">
-                    <div className="w-5 h-5 rounded-full bg-black border border-primary/40 flex items-center justify-center text-primary shadow-lg">
-                      <ChevronRight className="w-3 h-3" />
+                    {/* Active/Status pill */}
+                    <div className="flex items-center justify-between text-[9px] font-mono pt-0.5">
+                      <span className="text-white/40 uppercase">State:</span>
+                      <span className={`px-1.5 py-0.2 rounded uppercase font-bold text-[8px] ${
+                        isHighlighted
+                          ? 'bg-primary text-black'
+                          : isJobFailed
+                          ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
+                          : isPassed
+                          ? 'bg-status-aligned/20 text-status-aligned border border-status-aligned/40'
+                          : 'bg-white/5 text-white/40'
+                      }`}>
+                        {isHighlighted ? 'RUNNING' : isJobFailed ? 'FAILED' : isPassed ? 'SUCCESS' : 'STANDBY'}
+                      </span>
                     </div>
                   </div>
-                )}
-              </div>
-            );
-          })}
+                </div>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      ) : (
+        /* ─── Alternate Layout: Grid Nodes Sheet or Linear View ─── */
+        <div className="p-6 bg-surface-dim border border-outline-variant space-y-4 relative overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(#00BFFF14_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none opacity-60" />
+
+          <div className={`relative z-10 grid gap-4 ${
+            sheetLayout === 'sheet'
+              ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
+              : 'grid-cols-1'
+          }`}>
+            {PIPELINE_STATIONS.map((station, idx) => {
+              const IconComp = station.icon;
+              const isSelected = selectedStationId === station.id;
+
+              const isJobCurrent = activeMode === 'live' && currentJobStageIndex === idx;
+              const isJobPassed = activeMode === 'live' && currentJobStageIndex > idx;
+              const isJobFailed = activeMode === 'live' && (currentJob?.stage === 'FAILED' || currentJob?.stage === 'PAUSED') && currentJobStageIndex === idx;
+
+              const isSimCurrent = activeMode === 'simulation' && SIMULATION_STEPS[simStepIndex]?.stageId === station.id;
+              const isSimPassed = activeMode === 'simulation' && simStepIndex > idx;
+
+              const isHighlighted = isJobCurrent || isSimCurrent;
+              const isPassed = isJobPassed || isSimPassed;
+
+              return (
+                <div
+                  key={station.id}
+                  onClick={() => setSelectedStationId(station.id)}
+                  className={`p-4 border-2 transition-all cursor-pointer relative flex flex-col justify-between rounded-sm backdrop-blur-sm group ${
+                    isSelected
+                      ? 'border-primary bg-black/90 shadow-xl shadow-primary/20 ring-2 ring-primary/80'
+                      : isHighlighted
+                      ? 'border-primary bg-primary/10 ring-2 ring-primary animate-pulse'
+                      : isPassed
+                      ? 'border-status-aligned/40 bg-black/70 hover:border-status-aligned'
+                      : 'border-white/10 bg-black/60 hover:border-white/30'
+                  }`}
+                >
+                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/10 text-[10px] font-mono">
+                    <div className="flex items-center gap-1.5 text-white/50 truncate max-w-[140px]" title={`IN: ${station.inputPort}`}>
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      <span>IN: {station.inputPort}</span>
+                    </div>
+                    <span className="px-1.5 py-0.2 bg-white/5 border border-white/10 text-[9px] text-white/60 uppercase">
+                      {station.nodeType}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-6 h-6 flex items-center justify-center rounded-sm font-mono text-xs font-bold ${
+                          isHighlighted
+                            ? 'bg-primary text-black'
+                            : isPassed
+                            ? 'bg-status-aligned text-black'
+                            : 'bg-white/10 text-white'
+                        }`}>
+                          {station.number}
+                        </div>
+                        <IconComp className={`w-4 h-4 ${isHighlighted ? 'text-primary' : isPassed ? 'text-status-aligned' : 'text-white/70'}`} />
+                      </div>
+
+                      <span className="text-[10px] font-mono uppercase tracking-wider">
+                        {isHighlighted ? (
+                          <span className="text-primary font-bold flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
+                            Processing
+                          </span>
+                        ) : isJobFailed ? (
+                          <span className="text-error font-bold">Failed</span>
+                        ) : isPassed ? (
+                          <span className="text-status-aligned font-bold flex items-center gap-0.5">
+                            <Check className="w-3 h-3" />
+                            Ready
+                          </span>
+                        ) : (
+                          <span className="text-white/30">Standby</span>
+                        )}
+                      </span>
+                    </div>
+
+                    <div>
+                      <h4 className={`text-sm font-medium ${isSelected ? 'text-white' : 'text-white/90'}`}>
+                        {station.title}
+                      </h4>
+                      <p className="text-[11px] font-mono text-white/50 truncate mt-0.5">
+                        {station.subtitle}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[10px] font-mono pt-1 text-white/40 border-t border-white/5">
+                      <span className="truncate max-w-[120px]" title={station.engineTag}>
+                        ⚙️ {station.engineTag}
+                      </span>
+                      <span>{station.latency}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 mt-2 border-t border-white/10 text-[10px] font-mono text-white/50">
+                    <div className="flex items-center gap-1.5 truncate max-w-[150px]" title={`OUT: ${station.outputPort}`}>
+                      <span className="w-1.5 h-1.5 rounded-full bg-status-aligned" />
+                      <span>OUT: {station.outputPort}</span>
+                    </div>
+                    {isSelected && (
+                      <span className="text-primary font-bold text-[9px] uppercase tracking-wider">
+                        [Active Node]
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ─── Under-The-Hood AI Thinking & Execution Stream (Minute Details) ─── */}
       <div className="border-2 border-primary bg-black p-6 space-y-4 shadow-2xl relative">
@@ -1127,125 +1617,131 @@ export default function AdminPipelinePage() {
           key={simStepIndex}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="border-2 border-primary bg-black p-6 space-y-4 font-mono text-xs shadow-2xl"
+          className="border border-outline-variant bg-surface-container p-6 space-y-4"
         >
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
-            <div className="flex items-center gap-2 text-primary font-bold uppercase tracking-widest text-xs">
-              <Sparkles className="w-4 h-4 text-primary" />
-              <span>Live In-Flight Data Transformation Preview</span>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
+            <div>
+              <span className="text-label-sm-mono uppercase text-primary font-semibold text-[11px]">
+                Payload Inspection &bull; {SIMULATION_STEPS[simStepIndex].title}
+              </span>
+              <p className="text-white/70 text-xs mt-0.5">
+                {SIMULATION_STEPS[simStepIndex].caption}
+              </p>
             </div>
-            <span className="text-white/50 text-[11px]">
-              {SIMULATION_STEPS[simStepIndex].caption}
+            <span className="px-2 py-0.5 bg-white/5 border border-white/20 text-[10px] font-mono text-white/50 uppercase">
+              Step {simStepIndex + 1} / {SIMULATION_STEPS.length}
             </span>
           </div>
 
-          {/* JSON Payload Preview */}
+          {/* Payload Content Previews */}
           {SIMULATION_STEPS[simStepIndex].previewType === 'json' && (
-            <pre className="p-4 bg-surface-dim border border-white/10 text-primary overflow-x-auto text-[11px] leading-relaxed font-mono">
-              {SIMULATION_STEPS[simStepIndex].code}
-            </pre>
-          )}
-
-          {/* Math Text OCR Preview */}
-          {SIMULATION_STEPS[simStepIndex].previewType === 'math_markdown' && (
-            <div className="p-5 bg-surface-container border border-white/15 space-y-3">
-              <span className="text-white/50 text-[10px] uppercase tracking-widest block">Rendered KaTeX Math Formula</span>
-              <div className="text-body-lg text-on-surface font-light leading-relaxed">
-                <MathText text={SIMULATION_STEPS[simStepIndex].text} />
-              </div>
+            <div className="bg-black/90 p-4 border border-white/10 rounded-sm font-mono text-xs text-primary overflow-x-auto">
+              <pre>{SIMULATION_STEPS[simStepIndex].code}</pre>
             </div>
           )}
 
-          {/* Extracted Diagram Preview */}
-          {SIMULATION_STEPS[simStepIndex].previewType === 'diagram' && (
-            <div className="p-4 bg-surface-container border border-white/15 flex flex-col sm:flex-row items-center gap-5">
-              <div className="p-3 bg-white rounded border border-white/20 max-w-xs shadow-md">
-                <img
-                  src={SIMULATION_STEPS[simStepIndex].figureUrl}
-                  alt="Extracted Chemical Reaction Structure"
-                  className="max-h-40 object-contain mx-auto"
-                />
-              </div>
-              <div className="space-y-2">
-                <span className="text-status-aligned font-bold text-xs uppercase tracking-wider block">
-                  ✓ Vector Chemical Diagram Merged & Extracted
-                </span>
-                <p className="text-white/70 text-xs font-light">
-                  {SIMULATION_STEPS[simStepIndex].meta}
-                </p>
-                <div className="text-[11px] text-white/40">
-                  Target Injection: Automatic Markdown embedding into candidate question stem.
+          {SIMULATION_STEPS[simStepIndex].previewType === 'math_markdown' && (
+            <div className="space-y-3">
+              <div className="p-4 bg-surface-dim border border-white/10 rounded-sm space-y-3">
+                <div className="text-[11px] font-mono text-white/40 uppercase tracking-widest">
+                  Live KaTeX Markdown Render Output:
+                </div>
+                <div className="text-on-surface text-sm leading-relaxed">
+                  <MathText text={SIMULATION_STEPS[simStepIndex].text} />
                 </div>
               </div>
             </div>
           )}
 
-          {/* Deduplication Score Preview */}
-          {SIMULATION_STEPS[simStepIndex].previewType === 'dedup_badge' && (
-            <div className="p-5 bg-surface-container border border-white/15 flex items-center justify-between flex-wrap gap-4">
-              <div>
-                <span className="text-white/50 text-[10px] uppercase tracking-widest block mb-1">
-                  Trigram Similarity Score
-                </span>
-                <span className="text-4xl font-light text-status-aligned">
-                  {SIMULATION_STEPS[simStepIndex].score}
-                </span>
-                <p className="text-white/70 mt-1 text-xs font-light">
-                  {SIMULATION_STEPS[simStepIndex].explanation}
-                </p>
+          {SIMULATION_STEPS[simStepIndex].previewType === 'diagram' && (
+            <div className="flex flex-col md:flex-row items-center gap-6 p-4 bg-surface-dim border border-white/10 rounded-sm">
+              <div className="p-3 bg-white rounded shadow-md max-w-sm flex items-center justify-center">
+                <img
+                  src={SIMULATION_STEPS[simStepIndex].figureUrl}
+                  alt="Extracted Chemical Reaction Diagram"
+                  className="max-h-48 object-contain"
+                />
               </div>
-
-              <div className="px-4 py-2 bg-status-aligned/20 border border-status-aligned text-status-aligned font-bold uppercase tracking-widest text-xs">
-                {SIMULATION_STEPS[simStepIndex].status}
+              <div className="space-y-2 font-mono text-xs text-white/70">
+                <div className="text-primary font-bold text-sm">
+                  Composite Chemical Structure Clustered
+                </div>
+                <p className="text-white/60 leading-relaxed">
+                  {SIMULATION_STEPS[simStepIndex].meta}
+                </p>
+                <div className="flex items-center gap-2 pt-2">
+                  <span className="px-2 py-0.5 bg-status-aligned/20 border border-status-aligned text-status-aligned text-[10px]">
+                    Zero Bond Overwrite
+                  </span>
+                  <span className="px-2 py-0.5 bg-primary/20 border border-primary text-primary text-[10px]">
+                    24pt Spatial Cluster
+                  </span>
+                </div>
               </div>
             </div>
           )}
 
-          {/* Review Decision Preview */}
+          {SIMULATION_STEPS[simStepIndex].previewType === 'dedup_badge' && (
+            <div className="p-4 bg-surface-dim border border-white/10 rounded-sm space-y-3 font-mono">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl font-light text-status-aligned">
+                  {SIMULATION_STEPS[simStepIndex].score}
+                </span>
+                <div>
+                  <span className="px-2 py-0.5 bg-status-aligned/20 border border-status-aligned text-status-aligned text-xs font-bold">
+                    {SIMULATION_STEPS[simStepIndex].status}
+                  </span>
+                  <span className="text-xs text-white/50 ml-2">Dice Trigram Coefficient</span>
+                </div>
+              </div>
+              <p className="text-xs text-white/80 font-light">
+                {SIMULATION_STEPS[simStepIndex].explanation}
+              </p>
+            </div>
+          )}
+
           {SIMULATION_STEPS[simStepIndex].previewType === 'review_decision' && (
-            <div className="p-5 bg-surface-container border border-white/15 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-4 bg-surface-dim border border-white/10 rounded-sm grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-xs">
               <div>
-                <span className="text-white/50 uppercase text-[10px] block mb-1">Reviewed By</span>
+                <span className="text-white/40 block text-[10px]">REVIEWER</span>
                 <span className="text-white font-semibold">{SIMULATION_STEPS[simStepIndex].reviewer}</span>
               </div>
               <div>
-                <span className="text-white/50 uppercase text-[10px] block mb-1">Curriculum Placement</span>
+                <span className="text-white/40 block text-[10px]">ASSIGNED TOPIC</span>
                 <span className="text-primary font-semibold">{SIMULATION_STEPS[simStepIndex].topic}</span>
               </div>
               <div>
-                <span className="text-white/50 uppercase text-[10px] block mb-1">Verification Status</span>
+                <span className="text-white/40 block text-[10px]">DECISION</span>
                 <span className="text-status-aligned font-bold">{SIMULATION_STEPS[simStepIndex].status}</span>
               </div>
             </div>
           )}
 
-          {/* Student Telemetry Preview */}
           {SIMULATION_STEPS[simStepIndex].previewType === 'student_telemetry' && (
-            <div className="p-5 bg-surface-container border border-white/15 grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div className="p-4 bg-surface-dim border border-white/10 rounded-sm grid grid-cols-1 sm:grid-cols-4 gap-4 font-mono text-xs">
               <div>
-                <span className="text-white/50 uppercase text-[10px] block mb-1">Candidate</span>
+                <span className="text-white/40 block text-[10px]">STUDENT</span>
                 <span className="text-white font-semibold">{SIMULATION_STEPS[simStepIndex].studentName}</span>
               </div>
               <div>
-                <span className="text-white/50 uppercase text-[10px] block mb-1">Pre-Test Confidence</span>
-                <span className="text-status-weak font-semibold">{SIMULATION_STEPS[simStepIndex].confidenceRating}</span>
+                <span className="text-white/40 block text-[10px]">PRE-TEST CONFIDENCE</span>
+                <span className="text-amber-400 font-semibold">{SIMULATION_STEPS[simStepIndex].confidenceRating}</span>
               </div>
               <div>
-                <span className="text-white/50 uppercase text-[10px] block mb-1">Attempt Time</span>
-                <span className="text-white font-semibold">{SIMULATION_STEPS[simStepIndex].duration}</span>
+                <span className="text-white/40 block text-[10px]">RESULT</span>
+                <span className="text-status-aligned font-semibold">{SIMULATION_STEPS[simStepIndex].studentAnswer}</span>
               </div>
               <div>
-                <span className="text-white/50 uppercase text-[10px] block mb-1">Gap Engine Result</span>
-                <span className="text-status-aligned font-bold">{SIMULATION_STEPS[simStepIndex].gapClassification}</span>
+                <span className="text-white/40 block text-[10px]">CALIBRATION</span>
+                <span className="text-primary font-bold">{SIMULATION_STEPS[simStepIndex].gapClassification}</span>
               </div>
             </div>
           )}
         </motion.div>
       )}
 
-      {/* ─── Deep Station Diagnostic Inspector Panel ─── */}
-      <div className="border border-primary/40 bg-surface-container p-6 space-y-6">
-        {/* Diagnostic Header */}
+      {/* ─── Deep Station Technical Architecture & Diagnostic Inspector ─── */}
+      <div className="border border-outline-variant bg-surface-container p-6 space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary/15 border border-primary/40 flex items-center justify-center text-primary font-mono font-bold text-lg">
