@@ -123,7 +123,7 @@ export default function PerformanceTrendPage() {
   }
 
   return (
-    <div className="w-full max-w-6xl min-w-0 mr-auto animate-fade-in space-y-8 pb-16 text-left">
+    <div className="w-full min-w-0 animate-fade-in space-y-8 pb-16 text-left">
       {/* Header */}
       <div className="border-b border-white/10 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>

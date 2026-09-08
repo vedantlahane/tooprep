@@ -535,7 +535,7 @@ export default function AdminQuestionsPage() {
   const missingSolutionCount = questions.filter((q) => !q.solution_text || !q.solution_text.trim()).length;
 
   return (
-    <div className="w-full max-w-6xl min-w-0 mr-auto animate-fade-in space-y-6 pb-16 text-left">
+    <div className="w-full min-w-0 animate-fade-in space-y-6 pb-16 text-left">
       {/* Header and Create / Import Buttons */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/10 pb-5">
         <div>

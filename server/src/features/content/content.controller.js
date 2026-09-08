@@ -145,5 +145,25 @@ export const contentController = {
       const result = await contentService.cropPdfDiagram(req.params.jobId, pageNum, req.body.rect, dpi);
       return res.status(201).json(result);
     } catch (error) { return sendError(res, req, error); }
+  },
+  async deleteIngestionJob(req, res) {
+    try {
+      const result = await contentService.deleteIngestionJob(req.params.jobId, req.user.id);
+      return res.json(result);
+    } catch (error) { return sendError(res, req, error); }
+  },
+  async uploadSourcePdf(req, res) {
+    try {
+      const result = await contentService.uploadSourcePdf(req.params.jobId, req.file, req.user.id);
+      return res.status(201).json(result);
+    } catch (error) { return sendError(res, req, error); }
+  },
+  async getSourcePdf(req, res) {
+    try {
+      const buffer = await contentService.getSourcePdfBuffer(req.params.jobId);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="${req.params.jobId}.pdf"`);
+      return res.send(buffer);
+    } catch (error) { return sendError(res, req, error); }
   }
 };

@@ -298,7 +298,7 @@ export default function QuestionsPage() {
   }, [selectedSubject, selectedChapters, selectedTopics, selectedDifficulty, deferredSearchFilter]);
 
   return (
-    <div className="w-full max-w-6xl min-w-0 mr-auto space-y-6 pb-20 animate-fade-in text-left">
+    <div className="w-full min-w-0 space-y-6 pb-20 animate-fade-in text-left">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-white/10 pb-5">
         <div>

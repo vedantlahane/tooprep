@@ -43,8 +43,14 @@ import {
   Maximize2,
   ZoomIn,
   ZoomOut,
-  Tag
+  Tag,
+  Trash2
 } from 'lucide-react';
+import {
+  loadPdfDocument,
+  renderPdfPageToDataUrl,
+  cropImageByRelativeCoords
+} from '../lib/clientPdfRenderer';
 
 const REJECTION_PRESETS = [
   'Cover Page / Instructions',
@@ -411,6 +417,10 @@ function StudioPdfViewer({ jobId, pageNum, onNavigatePage, onDirectCrop, activeC
   const [startPoint, setStartPoint] = useState(null);
   const [cropping, setCropping] = useState(false);
   const [successToast, setSuccessToast] = useState('');
+  const [localPdfDoc, setLocalPdfDoc] = useState(null);
+  const [localPdfName, setLocalPdfName] = useState('');
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+  const [uploadPdfSuccess, setUploadPdfSuccess] = useState(false);
   const imgRef = useRef(null);
 
   // Load PDF page image
@@ -421,22 +431,74 @@ function StudioPdfViewer({ jobId, pageNum, onNavigatePage, onDirectCrop, activeC
     setError('');
     setSelection(null);
 
+    // If local PDF is already loaded in memory, render directly in browser
+    if (localPdfDoc) {
+      renderPdfPageToDataUrl(localPdfDoc, pageNum, 1.5)
+        .then(res => {
+          if (!active) return;
+          setDataUrl(res.dataUrl);
+          setPdfMeta({ width: res.width, height: res.height });
+          setLoading(false);
+        })
+        .catch(err => {
+          if (!active) return;
+          setError('Failed to render PDF page: ' + err.message);
+          setLoading(false);
+        });
+      return () => { active = false; };
+    }
+
+    // Attempt cloud server-side rendering
     contentService.renderPdfPage(jobId, pageNum, 150)
       .then(res => {
         if (!active) return;
-        setDataUrl(res.data_url);
-        setPdfMeta({ width: res.width || 595.3, height: res.height || 841.9 });
+        if (res.success === false) {
+          setError(res.error || 'Server rendering unavailable on this host');
+          setDataUrl(null);
+        } else {
+          setDataUrl(res.data_url);
+          setPdfMeta({ width: res.width || 595.3, height: res.height || 841.9 });
+        }
       })
       .catch(err => {
         if (!active) return;
-        setError(err.message || 'Failed to render PDF page');
+        setError(err.message || 'Server rendering unavailable on this host');
+        setDataUrl(null);
       })
       .finally(() => {
         if (active) setLoading(false);
       });
 
     return () => { active = false; };
-  }, [jobId, pageNum]);
+  }, [jobId, pageNum, localPdfDoc]);
+
+  const handleLocalPdfSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setLoading(true);
+      setError('');
+      setLocalPdfName(file.name);
+      const doc = await loadPdfDocument(file, `${jobId}_${file.name}`);
+      setLocalPdfDoc(doc);
+      const pageRes = await renderPdfPageToDataUrl(doc, pageNum, 1.5);
+      setDataUrl(pageRes.dataUrl);
+      setPdfMeta({ width: pageRes.width, height: pageRes.height });
+
+      // Automatically try syncing the PDF to the cloud job in background
+      try {
+        await contentService.uploadSourcePdf(jobId, file);
+        setUploadPdfSuccess(true);
+        setTimeout(() => setUploadPdfSuccess(false), 4000);
+      } catch (syncErr) {
+        console.warn('PDF cloud sync optional notification:', syncErr.message);
+      }
+    } catch (err) {
+      setError('Failed to load PDF file: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getRelativeCoords = (e) => {
     if (!imgRef.current) return null;
@@ -489,14 +551,36 @@ function StudioPdfViewer({ jobId, pageNum, onNavigatePage, onDirectCrop, activeC
   }, [selection, pdfMeta]);
 
   const executeCropToTarget = async (target) => {
-    if (!pdfPoints || !jobId) return;
+    if (!selection || !jobId) return;
     setCropping(true);
     try {
-      const res = await onDirectCrop(pdfPoints, target);
-      const targetLabel = target === 'stem' ? 'Question Stem' : `Option ${target.slice(3).toUpperCase()}`;
-      setSuccessToast(`✓ Cropped at 300 DPI into ${targetLabel}!`);
-      setSelection(null);
-      setTimeout(() => setSuccessToast(''), 3000);
+      let storedImage = null;
+
+      // 1. First attempt high-fidelity client-side canvas crop (instant, zero-server-dependency)
+      if (dataUrl) {
+        try {
+          const croppedDataUrl = await cropImageByRelativeCoords(dataUrl, selection);
+          const uploaded = await contentService.uploadImage(croppedDataUrl, `crop_${jobId}_p${pageNum}_${target}.png`);
+          storedImage = uploaded;
+        } catch (clientErr) {
+          console.warn('Client canvas crop fallback:', clientErr);
+        }
+      }
+
+      // 2. Fallback to server crop if client crop did not complete
+      if (!storedImage && pdfPoints) {
+        storedImage = await onDirectCrop(pdfPoints, target);
+      }
+
+      if (storedImage) {
+        if (typeof onDirectCrop === 'function') {
+          await onDirectCrop(pdfPoints || { x0: 0, y0: 0, x1: 0, y1: 0 }, target, storedImage.url);
+        }
+        const targetLabel = target === 'stem' ? 'Question Stem' : `Option ${target.slice(3).toUpperCase()}`;
+        setSuccessToast(`✓ Cropped into ${targetLabel}!`);
+        setSelection(null);
+        setTimeout(() => setSuccessToast(''), 3000);
+      }
     } catch (err) {
       setError(err.message || 'Crop failed');
     } finally {
@@ -629,7 +713,48 @@ function StudioPdfViewer({ jobId, pageNum, onNavigatePage, onDirectCrop, activeC
             )}
           </div>
         ) : (
-          <div className="text-white/40 text-xs font-mono">No page rendered.</div>
+          <div className="p-8 max-w-md text-center space-y-4 font-mono text-xs bg-surface-dim border border-white/15 rounded-sm shadow-2xl">
+            <div className="w-12 h-12 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center mx-auto text-primary">
+              <FileText className="w-6 h-6" />
+            </div>
+            <div>
+              <h4 className="text-white font-bold text-sm">Source PDF Not Rendered on Server</h4>
+              <p className="text-white/60 text-[11px] mt-1 font-sans leading-relaxed">
+                Cloud host does not have PyMuPDF rasterizer or PDF file is local. You can select your local PDF file to render pages and crop directly in the browser!
+              </p>
+            </div>
+
+            {/* Local PDF File Picker */}
+            <div className="space-y-2 pt-1">
+              <label className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-black hover:brightness-110 font-bold uppercase rounded-sm cursor-pointer transition-all text-xs shadow-lg">
+                <UploadCloud className="w-4 h-4" />
+                <span>Select Local PDF File</span>
+                <input
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  className="hidden"
+                  onChange={handleLocalPdfSelect}
+                />
+              </label>
+
+              {localPdfName && (
+                <div className="text-[11px] text-status-aligned flex items-center justify-center gap-1.5 pt-1">
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Loaded: {localPdfName}</span>
+                </div>
+              )}
+
+              {uploadPdfSuccess && (
+                <div className="text-[10px] text-status-aligned font-mono">
+                  ✓ Source PDF also uploaded to cloud storage!
+                </div>
+              )}
+            </div>
+
+            <div className="pt-3 border-t border-white/10 text-[10px] text-white/40">
+              ⚡ Browser PDF.js rendering &bull; Instant drag-to-crop enabled
+            </div>
+          </div>
         )}
 
         {/* Floating Quick Crop Action Pill Directly over Selection */}
@@ -1577,12 +1702,7 @@ export default function ContentAdminPage() {
     }
   };
 
-  // Studio Mode Direct Crop Handler
-  const handleStudioDirectCrop = async (rect, target) => {
-    if (!selectedJob) return;
-    const res = await contentService.cropPdfDiagram(selectedJob.job_id, studioPageNum, rect, 300);
-    return res;
-  };
+
 
   // Modal Cropper Handlers
   const handleOpenCropper = async (pageNum, qNum, candidateKey, onApply, defaultTarget = 'stem') => {
@@ -1646,6 +1766,64 @@ export default function ContentAdminPage() {
       cropperModal.onApply(target, res.url);
     }
     return res;
+  };
+
+  const handleStudioDirectCrop = async (rect, target, customUrl = null) => {
+    if (!selectedJob || !activeCandidate) return;
+    let imageUrl = customUrl;
+    if (!imageUrl) {
+      const res = await contentService.cropPdfDiagram(selectedJob.job_id, studioPageNum, rect, 300);
+      imageUrl = res?.url;
+    }
+    if (!imageUrl) return;
+
+    setCandidates(prev => prev.map(c => {
+      if (c.candidate_key !== activeCandidate.candidate_key) return c;
+      const draft = { ...(c.review_draft || c.suggested_draft || {}) };
+      if (target === 'stem') {
+        draft.question_text = (draft.question_text || '') + `\n\n![diagram](${imageUrl})\n`;
+      } else {
+        const optKey = target === 'optA' ? 'A' : target === 'optB' ? 'B' : target === 'optC' ? 'C' : 'D';
+        draft.options = (draft.options || []).map(o => {
+          if (o.key !== optKey) return o;
+          return { ...o, text: (o.text || '') + ` ![diagram](${imageUrl})` };
+        });
+      }
+      return { ...c, review_draft: draft };
+    }));
+    return { url: imageUrl };
+  };
+
+  const [deleteJobConfirm, setDeleteJobConfirm] = useState(null); // { jobId, jobName, loading: false }
+
+  const handlePromptDeleteJob = (jobId, jobName) => {
+    setDeleteJobConfirm({ jobId, jobName, loading: false });
+  };
+
+  const handleExecuteDeleteJob = async () => {
+    if (!deleteJobConfirm?.jobId) return;
+    try {
+      setDeleteJobConfirm(prev => ({ ...prev, loading: true }));
+      await contentService.deleteJob(deleteJobConfirm.jobId);
+      const deletedId = deleteJobConfirm.jobId;
+      setDeleteJobConfirm(null);
+      // Reload jobs
+      const res = await contentService.listJobs();
+      const safe = Array.isArray(res) ? res : (res?.jobs || []);
+      setJobs(safe);
+      if (selectedJob?.job_id === deletedId) {
+        if (safe.length > 0) {
+          chooseJob(safe[0]);
+        } else {
+          setSelectedJob(null);
+          setCandidates([]);
+          setLayoutMode('queue');
+        }
+      }
+    } catch (err) {
+      alert('Failed to delete job: ' + (err.message || 'Unknown error'));
+      setDeleteJobConfirm(prev => ({ ...prev, loading: false }));
+    }
   };
 
   // Keyboard Shortcuts Listener
@@ -1906,6 +2084,15 @@ export default function ContentAdminPage() {
             <span>Stage: <strong className="text-primary">{selectedJob.stage}</strong></span>
             <span>Total Qs: <strong className="text-white">{candidates.length}</strong></span>
             <span>Filtered: <strong className="text-white">{filteredCandidates.length}</strong></span>
+
+            <button
+              onClick={() => handlePromptDeleteJob(selectedJob.job_id, selectedJob.source?.filename || selectedJob.job_id)}
+              className="px-2 py-1 text-error hover:bg-error/15 border border-error/40 hover:border-error text-[10px] font-mono uppercase font-bold rounded-xs flex items-center gap-1 transition-colors cursor-pointer ml-2"
+              title="Permanently delete this ingestion job and candidates"
+            >
+              <Trash2 className="w-3 h-3" />
+              <span>Delete Job</span>
+            </button>
           </div>
         )}
       </div>
@@ -2159,14 +2346,26 @@ export default function ContentAdminPage() {
                   <div>Pages: {job.progress?.total_pages || '?'} &bull; Extracted: {job.progress?.questions_extracted || 0}</div>
                 </div>
                 <div className="pt-3 mt-3 border-t border-white/10 flex justify-between items-center text-xs font-mono text-primary">
-                  <span>Open in Studio &rarr;</span>
-                  <Link
-                    to={`/admin/pipeline?jobId=${job.job_id}`}
-                    onClick={e => e.stopPropagation()}
-                    className="text-white/40 hover:text-white"
+                  <div className="flex items-center gap-3">
+                    <span>Open in Studio &rarr;</span>
+                    <Link
+                      to={`/admin/pipeline?jobId=${job.job_id}`}
+                      onClick={e => e.stopPropagation()}
+                      className="text-white/40 hover:text-white"
+                    >
+                      Pipeline
+                    </Link>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePromptDeleteJob(job.job_id, job.source?.filename || job.job_id);
+                    }}
+                    className="p-1 text-white/40 hover:text-error hover:bg-error/15 rounded transition-colors cursor-pointer"
+                    title="Delete entire job and extracted candidates"
                   >
-                    View Pipeline
-                  </Link>
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             ))}
@@ -2342,6 +2541,54 @@ export default function ContentAdminPage() {
           onCrop={handleExecuteModalCrop}
           onNavigatePage={handleCropperNavigatePage}
         />
+      )}
+
+      {/* ─── DELETE COMPLETE JOB CONFIRMATION MODAL ─── */}
+      {deleteJobConfirm && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#0b0d13] border-2 border-error/50 p-6 rounded max-w-md w-full shadow-2xl font-mono text-xs space-y-4 animate-scale-up text-left">
+            <div className="flex items-center gap-2 text-error font-bold uppercase tracking-wider text-sm border-b border-error/30 pb-3">
+              <AlertTriangle className="w-5 h-5 text-error" />
+              <span>Delete Ingestion Job</span>
+            </div>
+
+            <p className="text-white/80 leading-relaxed font-sans text-xs">
+              Are you sure you want to permanently delete job{' '}
+              <strong className="text-white font-mono">{deleteJobConfirm.jobName}</strong>?
+            </p>
+
+            <div className="p-3 bg-error/10 border border-error/30 text-error text-[11px] rounded space-y-1">
+              <p className="font-bold">⚠️ Warning: Irreversible Action</p>
+              <p className="text-white/70">
+                This will delete the job, all its extracted candidate questions, and parser artifacts from the database.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
+              <button
+                type="button"
+                disabled={deleteJobConfirm.loading}
+                onClick={() => setDeleteJobConfirm(null)}
+                className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded uppercase font-bold cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleteJobConfirm.loading}
+                onClick={handleExecuteDeleteJob}
+                className="px-4 py-2 bg-error hover:bg-error/90 text-white font-bold rounded uppercase flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {deleteJobConfirm.loading ? (
+                  <Sparkles className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="w-3.5 h-3.5" />
+                )}
+                <span>{deleteJobConfirm.loading ? 'Deleting...' : 'Permanently Delete'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

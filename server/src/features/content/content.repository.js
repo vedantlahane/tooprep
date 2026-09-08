@@ -275,6 +275,21 @@ export const contentRepository = {
       { job_id: jobId, candidate_key: { $in: candidateKeys } },
       { $set: { ...changes, updated_at: new Date() } }
     );
+  },
+
+  async deleteJob(jobId) {
+    const { jobs, extractedCandidates, parsedDocuments } = await collections();
+    const [jobRes, candidatesRes, docRes] = await Promise.all([
+      jobs.deleteOne({ job_id: jobId }),
+      extractedCandidates.deleteMany({ job_id: jobId }),
+      parsedDocuments.deleteOne({ job_id: jobId })
+    ]);
+    return {
+      deletedJobCount: jobRes.deletedCount,
+      deletedCandidateCount: candidatesRes.deletedCount,
+      deletedDocumentCount: docRes.deletedCount
+    };
   }
 };
+
 

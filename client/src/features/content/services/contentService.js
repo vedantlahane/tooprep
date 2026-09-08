@@ -39,5 +39,12 @@ export const contentService = {
   renderPdfPage: (jobId, pageNum, dpi = 150) =>
     request('GET', `${base}/ingestion-jobs/${jobId}/pages/${pageNum}/render?dpi=${dpi}`),
   cropPdfDiagram: (jobId, pageNum, rect, dpi = 300) =>
-    request('POST', `${base}/ingestion-jobs/${jobId}/pages/${pageNum}/crop`, { rect, dpi })
+    request('POST', `${base}/ingestion-jobs/${jobId}/pages/${pageNum}/crop`, { rect, dpi }),
+  deleteJob: (jobId) =>
+    request('DELETE', `${base}/ingestion-jobs/${jobId}`),
+  uploadSourcePdf: (jobId, file) => {
+    const form = new FormData();
+    form.append('file', file);
+    return request('POST', `${base}/ingestion-jobs/${jobId}/source-pdf`, form);
+  }
 };

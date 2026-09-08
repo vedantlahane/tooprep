@@ -74,4 +74,17 @@ describe('TooPrep - Content Ops Bulk Operations Tests', () => {
       );
     });
   });
+
+  describe('deleteIngestionJob', () => {
+    it('rejects empty jobId with 400', async () => {
+      await assert.rejects(
+        async () => contentService.deleteIngestionJob('', 'user_1'),
+        (err) => {
+          assert.equal(err.statusCode, 400);
+          assert.match(err.message, /jobId is required/i);
+          return true;
+        }
+      );
+    });
+  });
 });

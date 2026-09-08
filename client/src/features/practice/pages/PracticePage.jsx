@@ -295,7 +295,7 @@ export default function PracticePage() {
     const hasSelection = selectedChapters.length > 0 || selectedTopics.length > 0 || Boolean(selectedSubject);
 
     return (
-      <div className="w-full max-w-5xl mr-auto animate-fade-in space-y-6 text-left">
+      <div className="w-full min-w-0 animate-fade-in space-y-6 text-left">
         <div>
           <div className="text-label-sm-mono uppercase tracking-[0.25em] text-primary text-xs">
             Training Facility &middot; Problem Drill
@@ -354,7 +354,7 @@ export default function PracticePage() {
   // ─── Screen 2: Session Completed Summary ───
   if (completed && summary) {
     return (
-      <div className="w-full max-w-3xl mr-auto animate-fade-in space-y-6 text-left">
+      <div className="w-full max-w-4xl mx-auto animate-fade-in space-y-6 text-left">
         <div>
           <div className="text-label-sm-mono uppercase tracking-[0.25em] text-primary text-xs">
             Drill Complete &middot; Performance Debrief
@@ -449,7 +449,7 @@ export default function PracticePage() {
 
   // ─── Screen 3: Active Practice Drill (Mercer Mettl / NTA JEE Style Navigation) ───
   return (
-    <div className="w-full max-w-4xl mr-auto animate-fade-in space-y-5 text-left">
+    <div className="w-full max-w-5xl mx-auto animate-fade-in space-y-5 text-left">
       {/* ─── Top Telemetry & Controls Bar ─── */}
       <div className="flex items-center justify-between border-b border-white/10 pb-3 flex-wrap gap-2">
         <div className="flex items-center gap-3">

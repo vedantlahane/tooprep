@@ -644,6 +644,9 @@ export default function AdminPipelinePage() {
 
   // Selected station node for deep inspection
   const [selectedStationId, setSelectedStationId] = useState('ocr');
+  const [showInspector, setShowInspector] = useState(true);
+  const [inspectorTab, setInspectorTab] = useState('overview'); // 'overview' | 'thoughts' | 'payload'
+  const [showBottomConsole, setShowBottomConsole] = useState(false);
 
   // Live ingestion jobs from backend
   const [jobs, setJobs] = useState([]);
@@ -825,6 +828,7 @@ export default function AdminPipelinePage() {
   const handleNodePointerDown = (e, nodeId) => {
     e.stopPropagation();
     setSelectedStationId(nodeId);
+    setShowInspector(true);
 
     const containerRect = canvasContainerRef.current?.getBoundingClientRect();
     if (!containerRect) return;
@@ -902,7 +906,7 @@ export default function AdminPipelinePage() {
   }, [nodePositions, activeMode, currentJobStageIndex, simStepIndex]);
 
   return (
-    <div className="w-full max-w-7xl min-w-0 mr-auto animate-fade-in space-y-6 pb-20 text-left">
+    <div className="w-full min-w-0 animate-fade-in space-y-6 pb-20 text-left">
       {/* ─── Mission Header & Mode Selector ─── */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 border-b border-white/10 pb-5">
         <div>
@@ -1266,7 +1270,10 @@ export default function AdminPipelinePage() {
                     top: `${pos.y}px`,
                     width: '240px'
                   }}
-                  onClick={() => setSelectedStationId(station.id)}
+                  onClick={() => {
+                    setSelectedStationId(station.id);
+                    setShowInspector(true);
+                  }}
                   className={`border-2 transition-all rounded-lg backdrop-blur-md z-20 select-none shadow-2xl ${
                     isSelected
                       ? 'border-primary bg-black/95 shadow-primary/30 ring-2 ring-primary/80 scale-[1.02]'
@@ -1384,6 +1391,280 @@ export default function AdminPipelinePage() {
               );
             })}
           </div>
+
+          {/* ─── On-Canvas Node Inspector Drawer (Directly on Canvas Overlay) ─── */}
+          <AnimatePresence>
+            {showInspector && selectedStation && (
+              <motion.aside
+                initial={{ opacity: 0, x: 40, scale: 0.98 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                exit={{ opacity: 0, x: 40, scale: 0.98 }}
+                transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                className="absolute right-3 top-3 bottom-3 w-[450px] max-w-[calc(100%-24px)] z-40 bg-[#07090ef2]/95 backdrop-blur-2xl border border-white/20 shadow-2xl rounded-sm flex flex-col overflow-hidden text-left"
+                onPointerDown={(e) => e.stopPropagation()}
+                onWheel={(e) => e.stopPropagation()}
+              >
+                {/* Inspector Header */}
+                <div className="p-3.5 bg-white/5 border-b border-white/10 flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-2.5 truncate">
+                    <div
+                      className="w-8 h-8 rounded flex items-center justify-center shrink-0 border"
+                      style={{
+                        backgroundColor: `${selectedStation.accentColor}18`,
+                        borderColor: `${selectedStation.accentColor}50`,
+                        color: selectedStation.accentColor
+                      }}
+                    >
+                      {(() => {
+                        const IconComponent = selectedStation.icon;
+                        return <IconComponent className="w-4 h-4" />;
+                      })()}
+                    </div>
+                    <div className="truncate">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono uppercase text-white/50">Station {selectedStation.number}</span>
+                        <span className="text-[9px] font-mono px-1.5 py-0.2 bg-white/10 text-white/70 rounded">
+                          {selectedStation.nodeType}
+                        </span>
+                      </div>
+                      <h3 className="text-sm font-semibold text-white truncate">{selectedStation.title}</h3>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => setShowInspector(false)}
+                      className="p-1.5 text-white/50 hover:text-white hover:bg-white/10 rounded cursor-pointer transition-colors"
+                      title="Close Inspector"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Tab Switcher Header */}
+                <div className="flex border-b border-white/10 bg-black/50 text-[10px] font-mono uppercase shrink-0">
+                  <button
+                    onClick={() => setInspectorTab('overview')}
+                    className={`flex-1 py-2 text-center font-bold tracking-wider transition-colors border-b-2 cursor-pointer ${
+                      inspectorTab === 'overview'
+                        ? 'border-primary text-primary bg-primary/10'
+                        : 'border-transparent text-white/50 hover:text-white'
+                    }`}
+                  >
+                    Overview
+                  </button>
+                  <button
+                    onClick={() => setInspectorTab('thoughts')}
+                    className={`flex-1 py-2 text-center font-bold tracking-wider transition-colors border-b-2 cursor-pointer flex items-center justify-center gap-1.5 ${
+                      inspectorTab === 'thoughts'
+                        ? 'border-primary text-primary bg-primary/10'
+                        : 'border-transparent text-white/50 hover:text-white'
+                    }`}
+                  >
+                    <span>AI Thoughts</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-status-aligned animate-pulse" />
+                  </button>
+                  <button
+                    onClick={() => setInspectorTab('payload')}
+                    className={`flex-1 py-2 text-center font-bold tracking-wider transition-colors border-b-2 cursor-pointer ${
+                      inspectorTab === 'payload'
+                        ? 'border-primary text-primary bg-primary/10'
+                        : 'border-transparent text-white/50 hover:text-white'
+                    }`}
+                  >
+                    Payload
+                  </button>
+                </div>
+
+                {/* Inspector Scrollable Body */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 font-sans text-xs">
+                  {/* TAB 1: OVERVIEW & CONTRACTS */}
+                  {inspectorTab === 'overview' && (
+                    <div className="space-y-4 animate-fade-in">
+                      {/* Station Role & Description */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-primary font-bold">
+                            Pipeline Station Role
+                          </span>
+                          <span className="text-[10px] font-mono text-white/40">
+                            {selectedStation.stageName}
+                          </span>
+                        </div>
+                        <p className="text-white/85 leading-relaxed text-xs font-light bg-black/40 p-3 rounded border border-white/10">
+                          {selectedStation.description}
+                        </p>
+                      </div>
+
+                      {/* Contract Ports: Inputs & Outputs */}
+                      <div className="grid grid-cols-2 gap-2 font-mono text-[11px]">
+                        <div className="p-2.5 bg-white/5 border border-white/10 rounded space-y-1.5">
+                          <span className="text-[10px] uppercase text-white/50 font-bold block">Input Port</span>
+                          <ul className="space-y-1 text-white/80 text-[10px]">
+                            {selectedStation.inputs.map((inp, idx) => (
+                              <li key={idx} className="truncate">• {inp}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="p-2.5 bg-white/5 border border-white/10 rounded space-y-1.5">
+                          <span className="text-[10px] uppercase text-white/50 font-bold block">Output Port</span>
+                          <ul className="space-y-1 text-status-aligned text-[10px]">
+                            {selectedStation.outputs.map((out, idx) => (
+                              <li key={idx} className="truncate">✓ {out}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+
+                      {/* Engine Specs Bar */}
+                      <div className="p-2.5 bg-black/60 border border-white/10 rounded font-mono text-[11px] space-y-1.5">
+                        <div className="flex items-center justify-between text-white/60">
+                          <span>Engine:</span>
+                          <span className="text-white font-semibold">{selectedStation.engineTag}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-white/60">
+                          <span>Latency:</span>
+                          <span className="text-status-aligned font-bold">{selectedStation.latency}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-white/60">
+                          <span>Service:</span>
+                          <code className="text-primary text-[10px]">{selectedStation.services[0]}</code>
+                        </div>
+                      </div>
+
+                      {/* Direct Action Link */}
+                      <Link
+                        to={selectedStation.targetRoute}
+                        className="w-full py-2 bg-primary/20 hover:bg-primary text-primary hover:text-black border border-primary/40 rounded-sm font-mono text-xs uppercase tracking-wider font-bold flex items-center justify-center gap-1.5 transition-colors"
+                      >
+                        <span>{selectedStation.targetRouteLabel}</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  )}
+
+                  {/* TAB 2: AI UNDER-THE-HOOD THINKING */}
+                  {inspectorTab === 'thoughts' && (
+                    <div className="space-y-3 animate-fade-in">
+                      <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                        <div className="flex items-center gap-1.5">
+                          <Terminal className="w-3.5 h-3.5 text-primary" />
+                          <span className="text-[10px] font-mono text-primary uppercase font-bold tracking-wider">
+                            Engine Internal Monologue
+                          </span>
+                        </div>
+                        <span className="w-2 h-2 rounded-full bg-status-aligned animate-pulse" />
+                      </div>
+
+                      <div className="space-y-2 font-mono text-[11px]">
+                        {selectedStation.thoughtLogs.map((log, i) => (
+                          <div key={i} className="p-2.5 bg-black/70 border-l-2 border-primary border border-white/10 rounded-sm space-y-1">
+                            <div className="flex items-center justify-between text-[9px]">
+                              <span className="text-primary font-bold">{log.agent}</span>
+                              <span className="text-white/40">{log.time}</span>
+                            </div>
+                            <span className={`inline-block px-1 py-0.2 border text-[8px] uppercase font-bold mb-1 ${log.badgeColor}`}>
+                              [{log.badge}]
+                            </span>
+                            <p className="text-white/90 leading-relaxed font-sans text-xs">{log.thought}</p>
+                          </div>
+                        ))}
+
+                        <div className="flex items-center gap-1.5 text-[10px] text-primary pt-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
+                          <span className="animate-pulse text-[10px]">Active reasoning stream listening...</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB 3: LIVE PAYLOAD & DATA PREVIEW */}
+                  {inspectorTab === 'payload' && (
+                    <div className="space-y-3 animate-fade-in">
+                      {(() => {
+                        const step = SIMULATION_STEPS.find(s => s.stageId === selectedStation.id) || SIMULATION_STEPS[simStepIndex] || SIMULATION_STEPS[0];
+                        return (
+                          <div className="space-y-3">
+                            <div>
+                              <span className="text-[10px] font-mono text-primary uppercase font-bold tracking-wider block">
+                                {step.title}
+                              </span>
+                              <p className="text-white/60 text-[11px] mt-0.5">{step.caption}</p>
+                            </div>
+
+                            {step.previewType === 'json' && (
+                              <div className="bg-black p-3 border border-white/15 rounded font-mono text-[10px] text-primary overflow-x-auto max-h-72">
+                                <pre>{step.code}</pre>
+                              </div>
+                            )}
+
+                            {step.previewType === 'math_markdown' && (
+                              <div className="p-3 bg-black/80 border border-white/15 rounded space-y-2">
+                                <div className="text-[10px] font-mono text-white/40 uppercase">Rendered KaTeX Math:</div>
+                                <div className="text-on-surface text-xs leading-relaxed">
+                                  <MathText text={step.text} />
+                                </div>
+                              </div>
+                            )}
+
+                            {step.previewType === 'diagram' && (
+                              <div className="space-y-2 p-3 bg-black/80 border border-white/15 rounded">
+                                <div className="p-2 bg-white rounded flex items-center justify-center max-h-48 overflow-hidden">
+                                  <img src={step.figureUrl} alt="diagram" className="max-h-44 object-contain" />
+                                </div>
+                                <div className="text-[11px] font-mono text-white/70">{step.meta}</div>
+                              </div>
+                            )}
+
+                            {step.previewType === 'dedup_badge' && (
+                              <div className="p-3 bg-black/80 border border-white/15 rounded space-y-2 font-mono text-xs">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xl font-bold text-status-aligned">{step.score}</span>
+                                  <span className="px-1.5 py-0.5 bg-status-aligned/20 text-status-aligned border border-status-aligned text-[10px]">
+                                    {step.status}
+                                  </span>
+                                </div>
+                                <p className="text-white/70 text-[11px]">{step.explanation}</p>
+                              </div>
+                            )}
+
+                            {step.previewType === 'review_decision' && (
+                              <div className="p-3 bg-black/80 border border-white/15 rounded space-y-2 font-mono text-xs">
+                                <div className="text-white/50 text-[10px]">Reviewer: <strong className="text-white">{step.reviewer}</strong></div>
+                                <div className="text-white/50 text-[10px]">Topic: <strong className="text-primary">{step.topic}</strong></div>
+                                <div className="text-white/50 text-[10px]">Decision: <strong className="text-status-aligned">{step.status}</strong></div>
+                              </div>
+                            )}
+
+                            {step.previewType === 'student_telemetry' && (
+                              <div className="p-3 bg-black/80 border border-white/15 rounded space-y-2 font-mono text-xs">
+                                <div className="text-white/50 text-[10px]">Student: <strong className="text-white">{step.studentName}</strong></div>
+                                <div className="text-white/50 text-[10px]">Confidence: <strong className="text-amber-400">{step.confidenceRating}</strong></div>
+                                <div className="text-white/50 text-[10px]">Answer: <strong className="text-status-aligned">{step.studentAnswer}</strong></div>
+                                <div className="text-white/50 text-[10px]">Gap Status: <strong className="text-primary">{step.gapClassification}</strong></div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </div>
+              </motion.aside>
+            )}
+          </AnimatePresence>
+
+          {/* Quick Open Inspector Button when Collapsed */}
+          {!showInspector && selectedStation && (
+            <button
+              onClick={() => setShowInspector(true)}
+              className="absolute right-3 top-3 z-30 px-3 py-1.5 bg-black/85 backdrop-blur-md border border-white/20 text-white hover:border-primary text-xs font-mono uppercase tracking-wider flex items-center gap-1.5 rounded cursor-pointer shadow-lg hover:bg-white/10 transition-colors"
+            >
+              <Eye className="w-3.5 h-3.5 text-primary" />
+              <span>Inspect Node: {selectedStation.title}</span>
+            </button>
+          )}
         </div>
       ) : (
         /* ─── Alternate Layout: Grid Nodes Sheet or Linear View ─── */
@@ -1412,7 +1693,10 @@ export default function AdminPipelinePage() {
               return (
                 <div
                   key={station.id}
-                  onClick={() => setSelectedStationId(station.id)}
+                  onClick={() => {
+                    setSelectedStationId(station.id);
+                    setShowInspector(true);
+                  }}
                   className={`p-4 border-2 transition-all cursor-pointer relative flex flex-col justify-between rounded-sm backdrop-blur-sm group ${
                     isSelected
                       ? 'border-primary bg-black/90 shadow-xl shadow-primary/20 ring-2 ring-primary/80'
@@ -1502,322 +1786,357 @@ export default function AdminPipelinePage() {
         </div>
       )}
 
-      {/* ─── Under-The-Hood AI Thinking & Execution Stream (Minute Details) ─── */}
-      <div className="border-2 border-primary bg-black p-6 space-y-4 shadow-2xl relative">
-        {/* Console Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+      {/* ─── Collapsible Deep Diagnostic Console & Technical Contracts Tray ─── */}
+      <div className="border border-white/15 bg-[#090b10] rounded-sm overflow-hidden shadow-xl">
+        <button
+          onClick={() => setShowBottomConsole(prev => !prev)}
+          className="w-full px-5 py-3.5 flex items-center justify-between text-left hover:bg-white/5 transition-colors cursor-pointer group select-none"
+        >
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded bg-primary/15 border border-primary/40 flex items-center justify-center text-primary">
-              <Terminal className="w-4 h-4 text-primary" />
+            <div className="w-7 h-7 rounded bg-primary/10 border border-primary/30 flex items-center justify-center text-primary">
+              <Terminal className="w-3.5 h-3.5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono text-primary uppercase tracking-widest font-bold">
-                  Under-The-Hood AI Thought Stream
+                <span className="text-xs font-mono text-white font-semibold uppercase tracking-wider">
+                  Secondary Diagnostics & Raw System Logs
                 </span>
-                <span className="w-2 h-2 rounded-full bg-status-aligned animate-pulse" />
-              </div>
-              <h3 className="text-lg text-white font-light mt-0.5">
-                {selectedStation.title} &mdash; <span className="text-white/60 font-mono text-xs">Engine Internal Monologue</span>
-              </h3>
-            </div>
-          </div>
-
-          {/* Engine Thought Stream Filter Pills */}
-          <div className="flex items-center gap-2 flex-wrap font-mono text-xs">
-            <span className="text-white/40 uppercase text-[10px] hidden sm:inline">Engine:</span>
-            <select
-              value={engineFilter}
-              onChange={e => setEngineFilter(e.target.value)}
-              className="bg-surface-container border border-white/20 text-white p-1.5 text-xs outline-none focus:border-primary uppercase font-mono"
-            >
-              <option value="all">Active Station ({selectedStation.title})</option>
-              {PIPELINE_STATIONS.map(s => (
-                <option key={s.id} value={s.id}>{s.number}. {s.title}</option>
-              ))}
-            </select>
-
-            <div className="flex items-center border border-white/20 bg-surface-container p-0.5">
-              <button
-                onClick={() => setThoughtVerbosity('detailed')}
-                className={`px-2.5 py-1 text-[10px] uppercase font-mono ${thoughtVerbosity === 'detailed' ? 'bg-primary text-white font-bold' : 'text-white/50'}`}
-              >
-                Minute Trace
-              </button>
-              <button
-                onClick={() => setThoughtVerbosity('summary')}
-                className={`px-2.5 py-1 text-[10px] uppercase font-mono ${thoughtVerbosity === 'summary' ? 'bg-primary text-white font-bold' : 'text-white/50'}`}
-              >
-                Summary
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Thought Stream Terminal Log Output */}
-        <div
-          ref={thoughtStreamRef}
-          className="p-4 bg-surface-dim/90 border border-white/10 rounded-sm font-mono text-xs space-y-3 max-h-80 overflow-y-auto"
-        >
-          <div className="flex items-center justify-between text-[10px] text-white/40 border-b border-white/5 pb-2">
-            <span>TIMESTAMP • ENGINE AGENT • REASONING BADGE</span>
-            <span>DIAGNOSTIC TRACE (ACTIVE LEASE)</span>
-          </div>
-
-          {displayedThoughts.map((log, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, x: -6 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.08 }}
-              className="flex flex-col sm:flex-row items-start gap-3 p-2.5 bg-black/40 border-l-2 border-primary/60 hover:bg-black/60 transition-colors"
-            >
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-white/40 text-[10px] font-mono">{log.time}</span>
-                <span className="px-1.5 py-0.5 bg-white/5 border border-white/15 text-[10px] text-primary font-bold">
-                  {log.agent}
-                </span>
-                <span className={`px-1.5 py-0.5 border text-[9px] uppercase font-bold ${log.badgeColor}`}>
-                  [{log.badge}]
+                <span className="text-[10px] font-mono px-1.5 py-0.2 bg-white/10 text-white/60 rounded">
+                  {showBottomConsole ? 'Expanded' : 'Collapsed'}
                 </span>
               </div>
-
-              <div className="text-white/90 text-xs font-light leading-relaxed flex-1">
-                {log.thought}
-              </div>
-            </motion.div>
-          ))}
-
-          {/* Typing/Thinking indicator */}
-          <div className="flex items-center gap-2 pt-2 text-[11px] text-primary">
-            <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
-            <span className="animate-pulse">Engine reasoning stream active &bull; listening for worker events...</span>
-          </div>
-        </div>
-
-        {/* Station Navigation Quick Button */}
-        <div className="flex items-center justify-between pt-2 border-t border-white/10 font-mono text-xs">
-          <span className="text-white/50 text-[11px]">
-            Engine code location: <code className="text-primary">{selectedStation.services[0]}</code>
-          </span>
-
-          <Link
-            to={selectedStation.targetRoute}
-            className="px-4 py-2 bg-primary/10 border border-primary/40 text-primary hover:bg-primary hover:text-white transition-colors uppercase tracking-widest font-bold flex items-center gap-1.5 cursor-pointer text-xs"
-          >
-            <span>{selectedStation.targetRouteLabel}</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-      </div>
-
-      {/* ─── Simulation Step Visual Payload Preview Card ─── */}
-      {activeMode === 'simulation' && SIMULATION_STEPS[simStepIndex] && (
-        <motion.div
-          key={simStepIndex}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="border border-outline-variant bg-surface-container p-6 space-y-4"
-        >
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
-            <div>
-              <span className="text-label-sm-mono uppercase text-primary font-semibold text-[11px]">
-                Payload Inspection &bull; {SIMULATION_STEPS[simStepIndex].title}
+              <span className="text-[11px] text-white/50 font-light block">
+                Expand to view full-width engine monologue terminal, technical data contracts, and simulation payload cards
               </span>
-              <p className="text-white/70 text-xs mt-0.5">
-                {SIMULATION_STEPS[simStepIndex].caption}
-              </p>
             </div>
-            <span className="px-2 py-0.5 bg-white/5 border border-white/20 text-[10px] font-mono text-white/50 uppercase">
-              Step {simStepIndex + 1} / {SIMULATION_STEPS.length}
-            </span>
           </div>
+          <div className="flex items-center gap-2 text-xs font-mono text-primary group-hover:translate-x-0.5 transition-transform">
+            <span>{showBottomConsole ? 'Hide Console' : 'Open Console'}</span>
+            <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${showBottomConsole ? 'rotate-90' : ''}`} />
+          </div>
+        </button>
 
-          {/* Payload Content Previews */}
-          {SIMULATION_STEPS[simStepIndex].previewType === 'json' && (
-            <div className="bg-black/90 p-4 border border-white/10 rounded-sm font-mono text-xs text-primary overflow-x-auto">
-              <pre>{SIMULATION_STEPS[simStepIndex].code}</pre>
-            </div>
-          )}
-
-          {SIMULATION_STEPS[simStepIndex].previewType === 'math_markdown' && (
-            <div className="space-y-3">
-              <div className="p-4 bg-surface-dim border border-white/10 rounded-sm space-y-3">
-                <div className="text-[11px] font-mono text-white/40 uppercase tracking-widest">
-                  Live KaTeX Markdown Render Output:
+        {showBottomConsole && (
+          <div className="p-6 border-t border-white/10 space-y-6 animate-fade-in bg-black/60">
+            {/* ─── Under-The-Hood AI Thinking & Execution Stream (Minute Details) ─── */}
+            <div className="border-2 border-primary bg-black p-6 space-y-4 shadow-2xl relative">
+              {/* Console Header */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded bg-primary/15 border border-primary/40 flex items-center justify-center text-primary">
+                    <Terminal className="w-4 h-4 text-primary" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono text-primary uppercase tracking-widest font-bold">
+                        Under-The-Hood AI Thought Stream
+                      </span>
+                      <span className="w-2 h-2 rounded-full bg-status-aligned animate-pulse" />
+                    </div>
+                    <h3 className="text-lg text-white font-light mt-0.5">
+                      {selectedStation.title} &mdash; <span className="text-white/60 font-mono text-xs">Engine Internal Monologue</span>
+                    </h3>
+                  </div>
                 </div>
-                <div className="text-on-surface text-sm leading-relaxed">
-                  <MathText text={SIMULATION_STEPS[simStepIndex].text} />
+
+                {/* Engine Thought Stream Filter Pills */}
+                <div className="flex items-center gap-2 flex-wrap font-mono text-xs">
+                  <span className="text-white/40 uppercase text-[10px] hidden sm:inline">Engine:</span>
+                  <select
+                    value={engineFilter}
+                    onChange={e => setEngineFilter(e.target.value)}
+                    className="bg-surface-container border border-white/20 text-white p-1.5 text-xs outline-none focus:border-primary uppercase font-mono"
+                  >
+                    <option value="all">Active Station ({selectedStation.title})</option>
+                    {PIPELINE_STATIONS.map(s => (
+                      <option key={s.id} value={s.id}>{s.number}. {s.title}</option>
+                    ))}
+                  </select>
+
+                  <div className="flex items-center border border-white/20 bg-surface-container p-0.5">
+                    <button
+                      onClick={() => setThoughtVerbosity('detailed')}
+                      className={`px-2.5 py-1 text-[10px] uppercase font-mono ${thoughtVerbosity === 'detailed' ? 'bg-primary text-white font-bold' : 'text-white/50'}`}
+                    >
+                      Minute Trace
+                    </button>
+                    <button
+                      onClick={() => setThoughtVerbosity('summary')}
+                      className={`px-2.5 py-1 text-[10px] uppercase font-mono ${thoughtVerbosity === 'summary' ? 'bg-primary text-white font-bold' : 'text-white/50'}`}
+                    >
+                      Summary
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
 
-          {SIMULATION_STEPS[simStepIndex].previewType === 'diagram' && (
-            <div className="flex flex-col md:flex-row items-center gap-6 p-4 bg-surface-dim border border-white/10 rounded-sm">
-              <div className="p-3 bg-white rounded shadow-md max-w-sm flex items-center justify-center">
-                <img
-                  src={SIMULATION_STEPS[simStepIndex].figureUrl}
-                  alt="Extracted Chemical Reaction Diagram"
-                  className="max-h-48 object-contain"
-                />
-              </div>
-              <div className="space-y-2 font-mono text-xs text-white/70">
-                <div className="text-primary font-bold text-sm">
-                  Composite Chemical Structure Clustered
+              {/* Thought Stream Terminal Log Output */}
+              <div
+                ref={thoughtStreamRef}
+                className="p-4 bg-surface-dim/90 border border-white/10 rounded-sm font-mono text-xs space-y-3 max-h-80 overflow-y-auto"
+              >
+                <div className="flex items-center justify-between text-[10px] text-white/40 border-b border-white/5 pb-2">
+                  <span>TIMESTAMP • ENGINE AGENT • REASONING BADGE</span>
+                  <span>DIAGNOSTIC TRACE (ACTIVE LEASE)</span>
                 </div>
-                <p className="text-white/60 leading-relaxed">
-                  {SIMULATION_STEPS[simStepIndex].meta}
-                </p>
-                <div className="flex items-center gap-2 pt-2">
-                  <span className="px-2 py-0.5 bg-status-aligned/20 border border-status-aligned text-status-aligned text-[10px]">
-                    Zero Bond Overwrite
-                  </span>
-                  <span className="px-2 py-0.5 bg-primary/20 border border-primary text-primary text-[10px]">
-                    24pt Spatial Cluster
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
 
-          {SIMULATION_STEPS[simStepIndex].previewType === 'dedup_badge' && (
-            <div className="p-4 bg-surface-dim border border-white/10 rounded-sm space-y-3 font-mono">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl font-light text-status-aligned">
-                  {SIMULATION_STEPS[simStepIndex].score}
+                {displayedThoughts.map((log, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.08 }}
+                    className="flex flex-col sm:flex-row items-start gap-3 p-2.5 bg-black/40 border-l-2 border-primary/60 hover:bg-black/60 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-white/40 text-[10px] font-mono">{log.time}</span>
+                      <span className="px-1.5 py-0.5 bg-white/5 border border-white/15 text-[10px] text-primary font-bold">
+                        {log.agent}
+                      </span>
+                      <span className={`px-1.5 py-0.5 border text-[9px] uppercase font-bold ${log.badgeColor}`}>
+                        [{log.badge}]
+                      </span>
+                    </div>
+
+                    <div className="text-white/90 text-xs font-light leading-relaxed flex-1">
+                      {log.thought}
+                    </div>
+                  </motion.div>
+                ))}
+
+                {/* Typing/Thinking indicator */}
+                <div className="flex items-center gap-2 pt-2 text-[11px] text-primary">
+                  <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
+                  <span className="animate-pulse">Engine reasoning stream active &bull; listening for worker events...</span>
+                </div>
+              </div>
+
+              {/* Station Navigation Quick Button */}
+              <div className="flex items-center justify-between pt-2 border-t border-white/10 font-mono text-xs">
+                <span className="text-white/50 text-[11px]">
+                  Engine code location: <code className="text-primary">{selectedStation.services[0]}</code>
                 </span>
-                <div>
-                  <span className="px-2 py-0.5 bg-status-aligned/20 border border-status-aligned text-status-aligned text-xs font-bold">
-                    {SIMULATION_STEPS[simStepIndex].status}
+
+                <Link
+                  to={selectedStation.targetRoute}
+                  className="px-4 py-2 bg-primary/10 border border-primary/40 text-primary hover:bg-primary hover:text-white transition-colors uppercase tracking-widest font-bold flex items-center gap-1.5 cursor-pointer text-xs"
+                >
+                  <span>{selectedStation.targetRouteLabel}</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
+
+            {/* ─── Simulation Step Visual Payload Preview Card ─── */}
+            {activeMode === 'simulation' && SIMULATION_STEPS[simStepIndex] && (
+              <motion.div
+                key={simStepIndex}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="border border-outline-variant bg-surface-container p-6 space-y-4"
+              >
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
+                  <div>
+                    <span className="text-label-sm-mono uppercase text-primary font-semibold text-[11px]">
+                      Payload Inspection &bull; {SIMULATION_STEPS[simStepIndex].title}
+                    </span>
+                    <p className="text-white/70 text-xs mt-0.5">
+                      {SIMULATION_STEPS[simStepIndex].caption}
+                    </p>
+                  </div>
+                  <span className="px-2 py-0.5 bg-white/5 border border-white/20 text-[10px] font-mono text-white/50 uppercase">
+                    Step {simStepIndex + 1} / {SIMULATION_STEPS.length}
                   </span>
-                  <span className="text-xs text-white/50 ml-2">Dice Trigram Coefficient</span>
+                </div>
+
+                {/* Payload Content Previews */}
+                {SIMULATION_STEPS[simStepIndex].previewType === 'json' && (
+                  <div className="bg-black/90 p-4 border border-white/10 rounded-sm font-mono text-xs text-primary overflow-x-auto">
+                    <pre>{SIMULATION_STEPS[simStepIndex].code}</pre>
+                  </div>
+                )}
+
+                {SIMULATION_STEPS[simStepIndex].previewType === 'math_markdown' && (
+                  <div className="space-y-3">
+                    <div className="p-4 bg-surface-dim border border-white/10 rounded-sm space-y-3">
+                      <div className="text-[11px] font-mono text-white/40 uppercase tracking-widest">
+                        Live KaTeX Markdown Render Output:
+                      </div>
+                      <div className="text-on-surface text-sm leading-relaxed">
+                        <MathText text={SIMULATION_STEPS[simStepIndex].text} />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {SIMULATION_STEPS[simStepIndex].previewType === 'diagram' && (
+                  <div className="flex flex-col md:flex-row items-center gap-6 p-4 bg-surface-dim border border-white/10 rounded-sm">
+                    <div className="p-3 bg-white rounded shadow-md max-w-sm flex items-center justify-center">
+                      <img
+                        src={SIMULATION_STEPS[simStepIndex].figureUrl}
+                        alt="Extracted Chemical Reaction Diagram"
+                        className="max-h-48 object-contain"
+                      />
+                    </div>
+                    <div className="space-y-2 font-mono text-xs text-white/70">
+                      <div className="text-primary font-bold text-sm">
+                        Composite Chemical Structure Clustered
+                      </div>
+                      <p className="text-white/60 leading-relaxed">
+                        {SIMULATION_STEPS[simStepIndex].meta}
+                      </p>
+                      <div className="flex items-center gap-2 pt-2">
+                        <span className="px-2 py-0.5 bg-status-aligned/20 border border-status-aligned text-status-aligned text-[10px]">
+                          Zero Bond Overwrite
+                        </span>
+                        <span className="px-2 py-0.5 bg-primary/20 border border-primary text-primary text-[10px]">
+                          24pt Spatial Cluster
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {SIMULATION_STEPS[simStepIndex].previewType === 'dedup_badge' && (
+                  <div className="p-4 bg-surface-dim border border-white/10 rounded-sm space-y-3 font-mono">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl font-light text-status-aligned">
+                        {SIMULATION_STEPS[simStepIndex].score}
+                      </span>
+                      <div>
+                        <span className="px-2 py-0.5 bg-status-aligned/20 border border-status-aligned text-status-aligned text-xs font-bold">
+                          {SIMULATION_STEPS[simStepIndex].status}
+                        </span>
+                        <span className="text-xs text-white/50 ml-2">Dice Trigram Coefficient</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-white/80 font-light">
+                      {SIMULATION_STEPS[simStepIndex].explanation}
+                    </p>
+                  </div>
+                )}
+
+                {SIMULATION_STEPS[simStepIndex].previewType === 'review_decision' && (
+                  <div className="p-4 bg-surface-dim border border-white/10 rounded-sm grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-xs">
+                    <div>
+                      <span className="text-white/40 block text-[10px]">REVIEWER</span>
+                      <span className="text-white font-semibold">{SIMULATION_STEPS[simStepIndex].reviewer}</span>
+                    </div>
+                    <div>
+                      <span className="text-white/40 block text-[10px]">ASSIGNED TOPIC</span>
+                      <span className="text-primary font-semibold">{SIMULATION_STEPS[simStepIndex].topic}</span>
+                    </div>
+                    <div>
+                      <span className="text-white/40 block text-[10px]">DECISION</span>
+                      <span className="text-status-aligned font-bold">{SIMULATION_STEPS[simStepIndex].status}</span>
+                    </div>
+                  </div>
+                )}
+
+                {SIMULATION_STEPS[simStepIndex].previewType === 'student_telemetry' && (
+                  <div className="p-4 bg-surface-dim border border-white/10 rounded-sm grid grid-cols-1 sm:grid-cols-4 gap-4 font-mono text-xs">
+                    <div>
+                      <span className="text-white/40 block text-[10px]">STUDENT</span>
+                      <span className="text-white font-semibold">{SIMULATION_STEPS[simStepIndex].studentName}</span>
+                    </div>
+                    <div>
+                      <span className="text-white/40 block text-[10px]">PRE-TEST CONFIDENCE</span>
+                      <span className="text-amber-400 font-semibold">{SIMULATION_STEPS[simStepIndex].confidenceRating}</span>
+                    </div>
+                    <div>
+                      <span className="text-white/40 block text-[10px]">RESULT</span>
+                      <span className="text-status-aligned font-semibold">{SIMULATION_STEPS[simStepIndex].studentAnswer}</span>
+                    </div>
+                    <div>
+                      <span className="text-white/40 block text-[10px]">CALIBRATION</span>
+                      <span className="text-primary font-bold">{SIMULATION_STEPS[simStepIndex].gapClassification}</span>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {/* ─── Deep Station Technical Architecture & Diagnostic Inspector ─── */}
+            <div className="border border-outline-variant bg-surface-container p-6 space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-primary/15 border border-primary/40 flex items-center justify-center text-primary font-mono font-bold text-lg">
+                    {selectedStation.number}
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-primary font-bold">
+                      Technical Data Contract & Architecture
+                    </span>
+                    <h3 className="text-xl text-white font-light mt-0.5">
+                      {selectedStation.title} &mdash; <span className="text-white/60 font-mono text-sm">{selectedStation.subtitle}</span>
+                    </h3>
+                  </div>
+                </div>
+
+                <Link
+                  to={selectedStation.targetRoute}
+                  className="px-4 py-2 bg-primary/10 border border-primary/40 text-primary hover:bg-primary hover:text-white transition-colors text-xs font-mono uppercase tracking-widest font-bold flex items-center gap-1.5 shrink-0 cursor-pointer"
+                >
+                  <span>{selectedStation.targetRouteLabel}</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+
+              {/* Station Narrative Explanation */}
+              <p className="text-body-md text-on-surface font-light leading-relaxed">
+                {selectedStation.description}
+              </p>
+
+              {/* Technical Architecture Specs: Inputs, Outputs & Workers */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 font-mono text-xs">
+                {/* Inputs */}
+                <div className="p-4 bg-surface-dim border border-outline-variant space-y-2">
+                  <span className="text-white/50 uppercase tracking-wider text-[11px] block font-semibold">
+                    📥 Stage Inputs & Pre-Conditions
+                  </span>
+                  <ul className="space-y-1.5 text-white/80 text-[11px]">
+                    {selectedStation.inputs.map((inp, i) => (
+                      <li key={i} className="flex items-start gap-1.5">
+                        <span className="text-primary mt-0.5">&bull;</span>
+                        <span>{inp}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Outputs */}
+                <div className="p-4 bg-surface-dim border border-outline-variant space-y-2">
+                  <span className="text-white/50 uppercase tracking-wider text-[11px] block font-semibold">
+                    📤 Stage Outputs & Artifacts
+                  </span>
+                  <ul className="space-y-1.5 text-white/80 text-[11px]">
+                    {selectedStation.outputs.map((out, i) => (
+                      <li key={i} className="flex items-start gap-1.5">
+                        <span className="text-status-aligned mt-0.5">&bull;</span>
+                        <span>{out}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Underlying Services & Workers */}
+                <div className="p-4 bg-surface-dim border border-outline-variant space-y-2">
+                  <span className="text-white/50 uppercase tracking-wider text-[11px] block font-semibold">
+                    ⚙️ Codebase Engine & Modules
+                  </span>
+                  <ul className="space-y-1.5 text-white/80 text-[11px]">
+                    {selectedStation.services.map((svc, i) => (
+                      <li key={i} className="flex items-start gap-1.5">
+                        <span className="text-primary mt-0.5">&rsaquo;</span>
+                        <code className="text-primary/90 bg-primary/5 px-1 py-0.5 rounded">{svc}</code>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
-              <p className="text-xs text-white/80 font-light">
-                {SIMULATION_STEPS[simStepIndex].explanation}
-              </p>
-            </div>
-          )}
-
-          {SIMULATION_STEPS[simStepIndex].previewType === 'review_decision' && (
-            <div className="p-4 bg-surface-dim border border-white/10 rounded-sm grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-xs">
-              <div>
-                <span className="text-white/40 block text-[10px]">REVIEWER</span>
-                <span className="text-white font-semibold">{SIMULATION_STEPS[simStepIndex].reviewer}</span>
-              </div>
-              <div>
-                <span className="text-white/40 block text-[10px]">ASSIGNED TOPIC</span>
-                <span className="text-primary font-semibold">{SIMULATION_STEPS[simStepIndex].topic}</span>
-              </div>
-              <div>
-                <span className="text-white/40 block text-[10px]">DECISION</span>
-                <span className="text-status-aligned font-bold">{SIMULATION_STEPS[simStepIndex].status}</span>
-              </div>
-            </div>
-          )}
-
-          {SIMULATION_STEPS[simStepIndex].previewType === 'student_telemetry' && (
-            <div className="p-4 bg-surface-dim border border-white/10 rounded-sm grid grid-cols-1 sm:grid-cols-4 gap-4 font-mono text-xs">
-              <div>
-                <span className="text-white/40 block text-[10px]">STUDENT</span>
-                <span className="text-white font-semibold">{SIMULATION_STEPS[simStepIndex].studentName}</span>
-              </div>
-              <div>
-                <span className="text-white/40 block text-[10px]">PRE-TEST CONFIDENCE</span>
-                <span className="text-amber-400 font-semibold">{SIMULATION_STEPS[simStepIndex].confidenceRating}</span>
-              </div>
-              <div>
-                <span className="text-white/40 block text-[10px]">RESULT</span>
-                <span className="text-status-aligned font-semibold">{SIMULATION_STEPS[simStepIndex].studentAnswer}</span>
-              </div>
-              <div>
-                <span className="text-white/40 block text-[10px]">CALIBRATION</span>
-                <span className="text-primary font-bold">{SIMULATION_STEPS[simStepIndex].gapClassification}</span>
-              </div>
-            </div>
-          )}
-        </motion.div>
-      )}
-
-      {/* ─── Deep Station Technical Architecture & Diagnostic Inspector ─── */}
-      <div className="border border-outline-variant bg-surface-container p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary/15 border border-primary/40 flex items-center justify-center text-primary font-mono font-bold text-lg">
-              {selectedStation.number}
-            </div>
-            <div>
-              <span className="text-[10px] font-mono uppercase tracking-widest text-primary font-bold">
-                Technical Data Contract & Architecture
-              </span>
-              <h3 className="text-xl text-white font-light mt-0.5">
-                {selectedStation.title} &mdash; <span className="text-white/60 font-mono text-sm">{selectedStation.subtitle}</span>
-              </h3>
             </div>
           </div>
-
-          <Link
-            to={selectedStation.targetRoute}
-            className="px-4 py-2 bg-primary/10 border border-primary/40 text-primary hover:bg-primary hover:text-white transition-colors text-xs font-mono uppercase tracking-widest font-bold flex items-center gap-1.5 shrink-0 cursor-pointer"
-          >
-            <span>{selectedStation.targetRouteLabel}</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        {/* Station Narrative Explanation */}
-        <p className="text-body-md text-on-surface font-light leading-relaxed">
-          {selectedStation.description}
-        </p>
-
-        {/* Technical Architecture Specs: Inputs, Outputs & Workers */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 font-mono text-xs">
-          {/* Inputs */}
-          <div className="p-4 bg-surface-dim border border-outline-variant space-y-2">
-            <span className="text-white/50 uppercase tracking-wider text-[11px] block font-semibold">
-              📥 Stage Inputs & Pre-Conditions
-            </span>
-            <ul className="space-y-1.5 text-white/80 text-[11px]">
-              {selectedStation.inputs.map((inp, i) => (
-                <li key={i} className="flex items-start gap-1.5">
-                  <span className="text-primary mt-0.5">&bull;</span>
-                  <span>{inp}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Outputs */}
-          <div className="p-4 bg-surface-dim border border-outline-variant space-y-2">
-            <span className="text-white/50 uppercase tracking-wider text-[11px] block font-semibold">
-              📤 Stage Outputs & Artifacts
-            </span>
-            <ul className="space-y-1.5 text-white/80 text-[11px]">
-              {selectedStation.outputs.map((out, i) => (
-                <li key={i} className="flex items-start gap-1.5">
-                  <span className="text-status-aligned mt-0.5">&bull;</span>
-                  <span>{out}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Underlying Services & Workers */}
-          <div className="p-4 bg-surface-dim border border-outline-variant space-y-2">
-            <span className="text-white/50 uppercase tracking-wider text-[11px] block font-semibold">
-              ⚙️ Codebase Engine & Modules
-            </span>
-            <ul className="space-y-1.5 text-white/80 text-[11px]">
-              {selectedStation.services.map((svc, i) => (
-                <li key={i} className="flex items-start gap-1.5">
-                  <span className="text-primary mt-0.5">&rsaquo;</span>
-                  <code className="text-primary/90 bg-primary/5 px-1 py-0.5 rounded">{svc}</code>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

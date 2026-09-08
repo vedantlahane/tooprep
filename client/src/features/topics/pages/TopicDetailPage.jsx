@@ -101,7 +101,7 @@ export default function TopicDetailPage() {
   const chronEvals = [...(evaluation_history || [])].reverse();
 
   return (
-    <div className="w-full max-w-5xl mr-auto animate-fade-in space-y-8 pb-16 text-left">
+    <div className="w-full min-w-0 animate-fade-in space-y-8 pb-16 text-left">
       <div className="flex items-center justify-between">
         <button
           onClick={() => navigate('/')}

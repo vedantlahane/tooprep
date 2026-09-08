@@ -149,7 +149,7 @@ export default function TimelineProgressPage() {
   const { daysLeft, weeksLeft, examYear, stats, weeklyPlan, urgency } = timeline;
 
   return (
-    <div className="w-full max-w-5xl min-w-0 mr-auto animate-fade-in space-y-8 pb-16 text-left">
+    <div className="w-full min-w-0 animate-fade-in space-y-8 pb-16 text-left">
       {/* Header */}
       <div className="border-b border-white/10 pb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>

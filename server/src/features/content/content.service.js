@@ -14,10 +14,26 @@ import { validateContentDraft, validateIngestionSource } from './content.validat
 import { storeSourcePdf, downloadSourcePdf, storeQuestionImage } from './content.storage.js';
 import { assertContentTransition } from './content-lifecycle.js';
 import { markSupabaseSync, upsertPublishedQuestion } from './publication.repository.js';
+import { logger } from '../../platform/logger.js';
 
 const execFileAsync = promisify(execFile);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+async function runPythonScript(args, options = {}) {
+  const pythonCmds = process.platform === 'win32' ? ['python', 'py'] : ['python3', 'python'];
+  let lastError = null;
+  for (const cmd of pythonCmds) {
+    try {
+      return await execFileAsync(cmd, args, options);
+    } catch (err) {
+      lastError = err;
+      if (err.code === 'ENOENT') continue;
+      throw err;
+    }
+  }
+  throw lastError || new Error('Python runtime not available on host system');
+}
 
 function applicationError(message, statusCode) {
   const error = new Error(message);
@@ -424,20 +440,49 @@ export const contentService = {
 
   async renderPdfPage(jobId, pageNumber, dpi = 150) {
     const job = await this.getIngestionJob(jobId);
-    const localPdfPath = await ensureLocalSourcePdf(job);
-    const pythonScript = path.resolve(__dirname, './pdf-renderer.py');
+    if (!job) throw applicationError(`Ingestion job ${jobId} not found`, 404);
 
-    const { stdout, stderr } = await execFileAsync('python', [
-      pythonScript, 'render_page', localPdfPath, String(pageNumber), '-', String(dpi)
-    ], { maxBuffer: 50 * 1024 * 1024 });
-
-    if (stderr && !stdout) {
-      throw applicationError(`PDF render error: ${stderr}`, 500);
+    let localPdfPath;
+    try {
+      localPdfPath = await ensureLocalSourcePdf(job);
+    } catch (pdfErr) {
+      return {
+        success: false,
+        error: pdfErr.message || 'Source PDF file not found on server',
+        code: 'SOURCE_PDF_NOT_FOUND',
+        job_id: jobId,
+        page: pageNumber
+      };
     }
 
-    const result = JSON.parse(stdout);
-    if (!result.success) throw applicationError(result.error || 'Failed to render PDF page', 500);
-    return result;
+    const pythonScript = path.resolve(__dirname, './pdf-renderer.py');
+    try {
+      const { stdout, stderr } = await runPythonScript([
+        pythonScript, 'render_page', localPdfPath, String(pageNumber), '-', String(dpi)
+      ], { maxBuffer: 50 * 1024 * 1024 });
+
+      if (stderr && !stdout) {
+        return {
+          success: false,
+          error: `PDF render error: ${stderr}`,
+          code: 'RENDER_SCRIPT_ERROR',
+          job_id: jobId,
+          page: pageNumber
+        };
+      }
+
+      const result = JSON.parse(stdout);
+      return result;
+    } catch (execErr) {
+      logger.warn('pdf.render.engine_unavailable', { jobId, error: execErr.message });
+      return {
+        success: false,
+        error: 'PDF render engine unavailable on server host. You can attach or select the local PDF in the Studio viewer.',
+        code: 'RENDERER_UNAVAILABLE',
+        job_id: jobId,
+        page: pageNumber
+      };
+    }
   },
 
   async cropPdfDiagram(jobId, pageNumber, rect, dpi = 300) {
@@ -445,30 +490,94 @@ export const contentService = {
       throw applicationError('Crop rectangle coordinates {x0, y0, x1, y1} are required', 400);
     }
     const job = await this.getIngestionJob(jobId);
-    const localPdfPath = await ensureLocalSourcePdf(job);
+    if (!job) throw applicationError(`Ingestion job ${jobId} not found`, 404);
+
+    let localPdfPath;
+    try {
+      localPdfPath = await ensureLocalSourcePdf(job);
+    } catch (pdfErr) {
+      throw applicationError(pdfErr.message || 'Source PDF file not found on server', 404);
+    }
+
     const pythonScript = path.resolve(__dirname, './pdf-renderer.py');
     const tempCropPath = path.resolve(__dirname, `../../../public/uploads/questions/crop_${Date.now()}_${randomBytes(4).toString('hex')}.png`);
 
-    const { stdout, stderr } = await execFileAsync('python', [
-      pythonScript, 'crop_rect', localPdfPath, String(pageNumber), tempCropPath,
-      String(rect.x0), String(rect.y0), String(rect.x1), String(rect.y1), String(dpi)
-    ], { maxBuffer: 20 * 1024 * 1024 });
+    try {
+      const { stdout, stderr } = await runPythonScript([
+        pythonScript, 'crop_rect', localPdfPath, String(pageNumber), tempCropPath,
+        String(rect.x0), String(rect.y0), String(rect.x1), String(rect.y1), String(dpi)
+      ], { maxBuffer: 20 * 1024 * 1024 });
 
-    if (stderr && !stdout) {
-      throw applicationError(`PDF crop error: ${stderr}`, 500);
+      if (stderr && !stdout) {
+        throw applicationError(`PDF crop error: ${stderr}`, 500);
+      }
+
+      const result = JSON.parse(stdout);
+      if (!result.success) throw applicationError(result.error || 'Failed to crop diagram', 500);
+
+      const buffer = fs.readFileSync(tempCropPath);
+      const stored = await storeQuestionImage({
+        buffer,
+        mimetype: 'image/png',
+        originalname: `diagram_${job.source?.filename || 'crop'}_p${pageNumber}.png`
+      });
+
+      try { fs.unlinkSync(tempCropPath); } catch {}
+      return stored;
+    } catch (execErr) {
+      try { if (fs.existsSync(tempCropPath)) fs.unlinkSync(tempCropPath); } catch {}
+      throw applicationError(`PDF crop failed: ${execErr.message}`, 500);
     }
+  },
 
-    const result = JSON.parse(stdout);
-    if (!result.success) throw applicationError(result.error || 'Failed to crop diagram', 500);
+  async deleteIngestionJob(jobId, actorId) {
+    if (!jobId) throw applicationError('jobId is required', 400);
+    const existing = await contentRepository.findJob(jobId);
+    if (!existing) throw applicationError(`Job ${jobId} not found`, 404);
 
-    const buffer = fs.readFileSync(tempCropPath);
-    const stored = await storeQuestionImage({
-      buffer,
-      mimetype: 'image/png',
-      originalname: `diagram_${job.source?.filename || 'crop'}_p${pageNumber}.png`
+    const result = await contentRepository.deleteJob(jobId);
+    logger.info('content.job.deleted', {
+      job_id: jobId,
+      actor_id: actorId,
+      deleted_counts: result
+    });
+    return {
+      success: true,
+      message: `Ingestion job ${jobId} deleted successfully`,
+      ...result
+    };
+  },
+
+  async uploadSourcePdf(jobId, file, actorId) {
+    if (!jobId) throw applicationError('jobId is required', 400);
+    if (!file) throw applicationError('A PDF file is required', 400);
+    const job = await this.getIngestionJob(jobId);
+    if (!job) throw applicationError(`Job ${jobId} not found`, 404);
+
+    const stored = await storeSourcePdf(file);
+    await contentRepository.updateJobStage(jobId, job.stage, job.stage, {
+      'source.storage_path': stored.storagePath,
+      'source.sha256': stored.sha256,
+      'source.filename': stored.filename,
+      'source.size_bytes': stored.sizeBytes
     });
 
-    try { fs.unlinkSync(tempCropPath); } catch {}
-    return stored;
+    const cacheDir = path.resolve(__dirname, '../../../public/uploads/sources');
+    if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
+    fs.writeFileSync(path.join(cacheDir, `${jobId}.pdf`), file.buffer);
+
+    return {
+      success: true,
+      message: 'Source PDF attached to job successfully',
+      storage_path: stored.storagePath,
+      filename: stored.filename
+    };
+  },
+
+  async getSourcePdfBuffer(jobId) {
+    const job = await this.getIngestionJob(jobId);
+    if (!job) throw applicationError(`Job ${jobId} not found`, 404);
+    const localPdfPath = await ensureLocalSourcePdf(job);
+    return fs.readFileSync(localPdfPath);
   }
 };

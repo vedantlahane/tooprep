@@ -131,7 +131,7 @@ export default function ResultsPage() {
   })();
 
   return (
-    <div className="w-full max-w-4xl min-w-0 mr-auto animate-slide-up pb-16 space-y-8 text-left">
+    <div className="w-full max-w-5xl min-w-0 mx-auto animate-slide-up pb-16 space-y-8 text-left">
       {/* Header */}
       <div className="border-b border-white/10 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
