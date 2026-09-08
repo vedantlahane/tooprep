@@ -363,7 +363,9 @@ export function renderLatex(text) {
   });
 
   // 4. Inline math $...$
-  processed = processed.replace(/\$(.*?)\$/g, (_, math) => {
+  // BUG 12 FIX: Use [^\n$]+ to prevent matching across newlines (which corrupts multi-paragraph text).
+  // BUG 13 FIX: Use (?!\$) negative lookahead/lookbehind to prevent re-matching $$...$$ placeholders.
+  processed = processed.replace(/\$(?!\$)([^\n$]+?)\$(?!\$)/g, (_, math) => {
     const id = `${mathPrefix}${mathPlaceholders.length}@@@`;
     const html = renderMathRobust(math, false);
     mathPlaceholders.push({ id, html });

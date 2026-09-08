@@ -13,6 +13,29 @@ const __dirname = path.dirname(__filename);
 const EXTRACTOR_SCRIPT = path.resolve(__dirname, 'pdf-diagram-extractor.py');
 
 /**
+ * BUG 8 FIX: Cross-platform Python command resolver.
+ * On Windows, 'python' is the default. On Linux/macOS, 'python3' is the standard
+ * name while 'python' may not exist. Try both in the right priority order.
+ */
+const PYTHON_CMDS = process.platform === 'win32'
+  ? ['python', 'py', 'python3']
+  : ['python3', 'python'];
+
+async function runPythonExtractor(args, options = {}) {
+  let lastError = null;
+  for (const cmd of PYTHON_CMDS) {
+    try {
+      return await execFileAsync(cmd, args, options);
+    } catch (err) {
+      lastError = err;
+      if (err.code === 'ENOENT') continue; // command not found, try next
+      throw err; // real error (syntax, runtime), don't retry
+    }
+  }
+  throw lastError || new Error('Python runtime not available on host system');
+}
+
+/**
  * Extracts, crops, and uploads all diagrams and figures from a PDF document to Supabase Storage CDN.
  * @param {string} pdfPath - Absolute or relative path to source PDF.
  * @param {Object} [options]
@@ -28,7 +51,7 @@ export async function extractPdfDiagrams(pdfPath, options = {}) {
     await fs.mkdir(tempDir, { recursive: true });
 
     logger.info('diagram.extractor.start', { pdfPath: resolvedPdf, tempDir });
-    const { stdout, stderr } = await execFileAsync('python', [
+    const { stdout, stderr } = await runPythonExtractor([
       EXTRACTOR_SCRIPT,
       resolvedPdf,
       '--output-dir', tempDir,

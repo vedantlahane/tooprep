@@ -107,26 +107,28 @@ export function autoFormatAndCleanMath(rawText) {
   text = text.replace(/-->|->/g, ' \\rightarrow ');
   text = text.replace(/<=>|<==>/g, ' \\rightleftharpoons ');
 
-  // 2. Wrap standalone Greek letters or LaTeX symbols in $...$ if not already wrapped
+  // 2. Wrap standalone Greek letters or LaTeX symbols in $...$ if not already wrapped.
+  // BUG 16 FIX: The old code used template literal `$$$1$$` which causes triple-dollar `$$$`
+  // in some cases when $1 starts with $. Use a function replacement that builds the string safely.
+  // Also fix the lookbehind — each | branch in (?<!$|\\) must be a separate assertion:
+  //   (?<!\$)(?<!\\)(token)(?!\$)
   const isolatedLatexTokens = [
-    '\\omega', '\\theta', '\\alpha', '\\beta', '\\gamma', '\\lambda',
-    '\\mu', '\\pi', '\\rho', '\\sigma', '\\Delta', '\\Omega', '\\phi',
-    '\\epsilon', '\\nu', '\\tau'
+    '\\\\omega', '\\\\theta', '\\\\alpha', '\\\\beta', '\\\\gamma', '\\\\lambda',
+    '\\\\mu', '\\\\pi', '\\\\rho', '\\\\sigma', '\\\\Delta', '\\\\Omega', '\\\\phi',
+    '\\\\epsilon', '\\\\nu', '\\\\tau'
   ];
 
-  for (const token of isolatedLatexTokens) {
-    const escaped = token.replace('\\', '\\\\');
-    // Regex matching the token not already preceded by $ or \
-    const re = new RegExp(`(?<!\\$|\\\\)(${escaped})(?!\\$)`, 'g');
-    text = text.replace(re, '$$$1$$');
+  for (const escapedToken of isolatedLatexTokens) {
+    const re = new RegExp('(?<!\\$)(?<!\\\\)(' + escapedToken + ')(?!\\$)', 'g');
+    text = text.replace(re, (match) => '$' + match + '$');
   }
 
-  // 3. Fix double dollars inside words or empty $$
+  // 3. Fix any remaining double or triple dollars inside words or empty $$
   text = text.replace(/\$\$\$/g, '$$');
   text = text.replace(/\$\s*\$/g, '');
 
-  // 4. Normalize scientific notation: e.g. 3 x 10^8 -> 3 \times 10^8
-  text = text.replace(/(\d+)\s*[xX]\s*10\^([-\d]+)/g, '$$$1 \\times 10^{$2}$$');
+  // 4. Normalize scientific notation: e.g. 3 x 10^8 -> $3 \times 10^{8}$
+  text = text.replace(/(\d+)\s*[xX]\s*10\^([-\d]+)/g, (_, coeff, exp) => '$' + coeff + ' \\times 10^{' + exp + '}$');
 
   // 5. Clean up redundant spaces around math delimiters
   text = text.replace(/\$\s+/g, ' $');

@@ -80,15 +80,17 @@ export function sanitizeQuestionText(text) {
   return cleaned.trim();
 }
 
+// BUG 4 FIX: Use .exec() on a single match (no /g flag needed on outer) and matchAll on inner patterns
 export function parseTableOptions(text) {
+  // Use .exec() for the outer table match (non-global regex, one match only)
   const tableRegex = /<table>[\s\S]*?<\/table>/i;
-  const match = (text || '').match(tableRegex);
-  if (!match) return null;
+  const outerMatch = tableRegex.exec(text || '');
+  if (!outerMatch) return null;
 
-  const tableHtml = match[0];
+  const tableHtml = outerMatch[0];
   const optMap = {};
 
-  // Pattern A: <tr><th>(A)</th><td>...</td></tr>
+  // Pattern A: <tr><th>(A)</th><td>...</td></tr>  — must use /g flag for matchAll
   const rowRegex1 = /<tr>\s*(?:<th>|<td>)\s*(?:\(?([A-Da-d1-4])\)?)\s*(?:<\/th>|<\/td>)\s*<td>([\s\S]*?)<\/td>\s*<\/tr>/gi;
   for (const r of tableHtml.matchAll(rowRegex1)) {
     let key = r[1].toUpperCase();
@@ -120,6 +122,7 @@ export function parseTableOptions(text) {
   return null;
 }
 
+// BUG 3 FIX: Rewritten to correctly slice option text using match indices without losing first character
 export function extractOptions(raw) {
   let text = (raw || '').trim();
 
@@ -141,75 +144,71 @@ export function extractOptions(raw) {
     };
   }
 
-  // Bracketed options: (A) ... (B) ... (C) ... (D) or (1) ... (2) ... (3) ... (4)
-  const bracketRegex = /(?:^|\s|\n)(?:\(|\[)([A-Da-d1-4])(?:\)|\])\s+/g;
-  let matches = [...text.matchAll(bracketRegex)];
-
-  if (matches.length >= 4) {
-    for (let i = 0; i <= matches.length - 4; i++) {
-      const window = matches.slice(i, i + 4);
-      const keys = window.map(m => m[1].toUpperCase());
-      const isABCD = keys.join('') === 'ABCD';
-      const is1234 = keys.join('') === '1234';
-
-      if (isABCD || is1234) {
-        const qText = text.slice(0, window[0].index).trim();
-        const optA = text.slice(window[0].index + window[0][0].length, window[1].index).trim();
-        const optB = text.slice(window[1].index + window[1][0].length, window[2].index).trim();
-        const optC = text.slice(window[2].index + window[2][0].length, window[3].index).trim();
-        let optD = text.slice(window[3].index + window[3][0].length).trim();
-
-        const cutoff = optD.search(/\n\s*(?:(?:\(|\[)[A-Da-d1-4](?:\)|\])|##\s*\*\*[A-Z\s]+\*\*|\*\*[A-Z\s]{4,}\*\*)\s+/);
-        if (cutoff !== -1) {
-          optD = optD.slice(0, cutoff).trim();
-        }
-
-        return {
-          questionText: sanitizeQuestionText(qText),
-          options: {
-            A: sanitizeQuestionText(optA),
-            B: sanitizeQuestionText(optB),
-            C: sanitizeQuestionText(optC),
-            D: sanitizeQuestionText(optD)
-          },
-          hasOptions: true
-        };
-      }
+  // BUG 3 FIX: The key regex now captures the FULL token including leading whitespace correctly.
+  // We search for the option label then record where the option CONTENT starts (after the label token).
+  function findOptionPositions(src, labelRegex) {
+    const positions = [];
+    let m;
+    while ((m = labelRegex.exec(src)) !== null) {
+      const key = m[1].toUpperCase() === '1' ? 'A'
+        : m[1].toUpperCase() === '2' ? 'B'
+        : m[1].toUpperCase() === '3' ? 'C'
+        : m[1].toUpperCase() === '4' ? 'D'
+        : m[1].toUpperCase();
+      // contentStart: index immediately after the full matched token
+      positions.push({ key, matchStart: m.index, contentStart: m.index + m[0].length });
     }
+    return positions;
   }
 
-  // Fallback: A. B. C. D. on newlines
-  const newlineOptRegex = /(?:^|\n)\s*([A-Da-d1-4])(?:\.|\:)\s+/g;
-  matches = [...text.matchAll(newlineOptRegex)];
-  if (matches.length >= 4) {
-    for (let i = 0; i <= matches.length - 4; i++) {
-      const window = matches.slice(i, i + 4);
-      const keys = window.map(m => m[1].toUpperCase());
-      if (keys.join('') === 'ABCD' || keys.join('') === '1234') {
-        const qText = text.slice(0, window[0].index).trim();
-        const optA = text.slice(window[0].index + window[0][0].length, window[1].index).trim();
-        const optB = text.slice(window[1].index + window[1][0].length, window[2].index).trim();
-        const optC = text.slice(window[2].index + window[2][0].length, window[3].index).trim();
-        let optD = text.slice(window[3].index + window[3][0].length).trim();
+  function sliceOptions(src, positions) {
+    if (positions.length < 4) return null;
+    // Find the first consecutive ABCD or 1234 window
+    for (let i = 0; i <= positions.length - 4; i++) {
+      const w = positions.slice(i, i + 4);
+      const keys = w.map(p => p.key);
+      if (keys.join('') !== 'ABCD') continue;
 
-        const cutoff = optD.search(/\n\s*(?:(?:\(|\[)[A-Da-d1-4](?:\)|\])|##\s*\*\*[A-Z\s]+\*\*|\*\*[A-Z\s]{4,}\*\*)\s+/);
-        if (cutoff !== -1) {
-          optD = optD.slice(0, cutoff).trim();
-        }
+      const qText = src.slice(0, w[0].matchStart).trim();
+      const optA = src.slice(w[0].contentStart, w[1].matchStart).trim();
+      const optB = src.slice(w[1].contentStart, w[2].matchStart).trim();
+      const optC = src.slice(w[2].contentStart, w[3].matchStart).trim();
+      let optD = src.slice(w[3].contentStart).trim();
 
-        return {
-          questionText: sanitizeQuestionText(qText),
-          options: {
-            A: sanitizeQuestionText(optA),
-            B: sanitizeQuestionText(optB),
-            C: sanitizeQuestionText(optC),
-            D: sanitizeQuestionText(optD)
-          },
-          hasOptions: true
-        };
-      }
+      // Cut option D at the start of the next question (Q.N pattern) or next section header
+      const nextQCutoff = optD.search(/\n\s*(?:#{1,4}\s*)?(?:\*\*)?Q\.?\s*\d{1,3}(?:\*\*)?\s*(?:\n|$)/i);
+      const nextSectionCutoff = optD.search(/\n\s*(?:(?:\(|\[)[A-Da-d1-4](?:\)|\])|##\s*\*\*[A-Z\s]+\*\*|\*\*(?:PHYSICS|CHEMISTRY|MATHEMATICS)\*\*)\s*\n/);
+
+      let cutoff = -1;
+      if (nextQCutoff !== -1) cutoff = nextQCutoff;
+      if (nextSectionCutoff !== -1 && (cutoff === -1 || nextSectionCutoff < cutoff)) cutoff = nextSectionCutoff;
+      if (cutoff !== -1) optD = optD.slice(0, cutoff).trim();
+
+      return {
+        questionText: sanitizeQuestionText(qText),
+        options: {
+          A: sanitizeQuestionText(optA),
+          B: sanitizeQuestionText(optB),
+          C: sanitizeQuestionText(optC),
+          D: sanitizeQuestionText(optD)
+        },
+        hasOptions: true
+      };
     }
+    return null;
   }
+
+  // Strategy 1: Bracketed options (A) or [A] or (1)
+  const bracketRegex = /(?:^|(?<=\n)|(?<=\s))(?:\(|\[)([A-Da-d1-4])(?:\)|\])\s+/g;
+  const bracketPositions = findOptionPositions(text, bracketRegex);
+  const bracketResult = sliceOptions(text, bracketPositions);
+  if (bracketResult) return bracketResult;
+
+  // Strategy 2: Newline-prefixed A. B. C. D.
+  const newlineOptRegex = /(?:^|\n)\s*([A-Da-d1-4])(?:\.|:)\s+/g;
+  const newlinePositions = findOptionPositions(text, newlineOptRegex);
+  const newlineResult = sliceOptions(text, newlinePositions);
+  if (newlineResult) return newlineResult;
 
   return {
     questionText: sanitizeQuestionText(text),
@@ -218,15 +217,18 @@ export function extractOptions(raw) {
   };
 }
 
+// BUG 1 FIX: Corrected regex - was /(?:\*\*|\b)(\d{1,3})\s*(?:\.\*\*|\.|\\))\s*\(([1-4A-Da-d,\s]+)\)/g
+// The old pattern had unbalanced parens and wrong escape. Now handles: "1. (A)", "1.[A]", "**1**.(A)", "1 (A)"
 export function parseAnswerKeyMap(pages) {
   const answerKeyMap = {};
   for (const page of pages) {
     const md = page.markdown || '';
     if (md.includes('**ANSWERS**') || md.includes('# ANSWERS') || md.includes('## ANSWERS')) {
-      const ansPattern = /(?:\*\*|\b)(\d{1,3})\s*(?:\.\*\*|\.|\))\s*\(([1-4A-Da-d,\s]+)\)/g;
+      // Match patterns like: 1. (A), 1. [A], 1.(A), **1**. (A), 1 (A), 1.[2]
+      const ansPattern = /(?:\*\*)?(\d{1,3})(?:\*\*)?\s*\.?\s*[\(\[]([1-4A-Da-d])[\)\]]/g;
       for (const m of md.matchAll(ansPattern)) {
         const qNum = parseInt(m[1], 10);
-        let rawAns = m[2].trim();
+        let rawAns = m[2].trim().toUpperCase();
         if (rawAns === '1') rawAns = 'A';
         else if (rawAns === '2') rawAns = 'B';
         else if (rawAns === '3') rawAns = 'C';
@@ -342,6 +344,8 @@ export function extractQuestionCandidates(jobId, pages, allTopics = [], diagramM
     const fullClassificationText = `${parsed.questionText || rawText} ${Object.values(parsed.options || {}).join(' ')}`;
     const classification = classifyQuestion(qNum, fullClassificationText, allTopics);
     const sourcePage = getPageNum(qMatches[i].index);
+
+    // BUG 5 FIX: Added `*[Diagram:` check (generated by sanitizeQuestionText from pseudo <img> tags)
     const hasDiagram = Boolean(
       rawText.includes('imgur') ||
       rawText.includes('<img') ||
@@ -372,7 +376,7 @@ export function extractQuestionCandidates(jobId, pages, allTopics = [], diagramM
       has_solution: Boolean(solutionText),
       has_diagram: hasDiagram,
       classification_confidence: classification.confidence,
-      extraction_method: 'STREAM_MATCH_WITH_SOLUTIONS_V3',
+      extraction_method: 'STREAM_MATCH_WITH_SOLUTIONS_V4',
       status: 'REVIEW_REQUIRED'
     });
   }
@@ -403,6 +407,8 @@ export function extractQuestionCandidates(jobId, pages, allTopics = [], diagramM
 
         const solutionText = solutionsMap[qNum]?.text || null;
         const classification = classifyQuestion(qNum, parsed.questionText || rawText, allTopics);
+
+        // BUG 5 FIX: Same has_diagram fix in fallback path
         const hasDiagram = Boolean(
           rawText.includes('imgur') ||
           rawText.includes('<img') ||
@@ -430,7 +436,7 @@ export function extractQuestionCandidates(jobId, pages, allTopics = [], diagramM
           has_solution: Boolean(solutionText),
           has_diagram: hasDiagram,
           classification_confidence: classification.confidence,
-          extraction_method: 'STRUCTURED_PAGE_FALLBACK_V3',
+          extraction_method: 'STRUCTURED_PAGE_FALLBACK_V4',
           status: 'REVIEW_REQUIRED'
         });
       }

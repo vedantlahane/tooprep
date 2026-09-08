@@ -21,10 +21,20 @@ export default function QuestionCard({
     ? (() => { try { return JSON.parse(question.options); } catch { return []; } })()
     : question.options;
 
+  // BUG 14 FIX: Normalize option lookup to handle both uppercase {A,B,C,D} and lowercase {a,b,c,d} keys
+  // from the database. Always coerce the text value to a string so opt.text is never undefined.
   const options = Array.isArray(rawOptions)
-    ? rawOptions
+    ? rawOptions.map(opt => ({ ...opt, text: String(opt.text ?? '') }))
     : rawOptions && typeof rawOptions === 'object'
-      ? ['A', 'B', 'C', 'D'].map(id => ({ id, text: rawOptions[id] ?? rawOptions[id.toLowerCase()] ?? '' }))
+      ? ['A', 'B', 'C', 'D'].map(id => ({
+          id,
+          text: String(
+            rawOptions[id] ??
+            rawOptions[id.toLowerCase()] ??
+            rawOptions[id.toUpperCase()] ??
+            ''
+          )
+        }))
       : [];
 
   const getOptionStyle = (optionId) => {
@@ -63,9 +73,21 @@ export default function QuestionCard({
     return 'bg-black/30 border border-white/15 text-primary font-bold';
   };
 
+  // BUG 15 FIX: Strip LaTeX delimiters and commands before measuring text length for layout detection.
+  // Without this, short math options like "$\frac{3}{4}$" (18 chars of LaTeX) would measure as 18
+  // when the rendered content is just "3/4" — forcing single-column layout unnecessarily.
   const areOptionsShort = options.length > 0 && options.every(opt => {
-    const t = typeof opt.text === 'string' ? opt.text.trim() : '';
-    return t.length <= 45 && !t.includes('\n') && !t.includes('![');
+    const t = opt.text.trim();
+    // Strip LaTeX math delimiters and command tokens to approximate rendered length
+    const visibleText = t
+      .replace(/\$\$[\s\S]*?\$\$/g, 'X')          // $$...$$ display math → single char
+      .replace(/\$[^\n$]*?\$/g, 'X')               // $...$ inline math → single char
+      .replace(/\\[a-zA-Z]+\{[^}]*\}/g, 'X')       // \cmd{arg} → single char
+      .replace(/\\[a-zA-Z]+/g, 'X')                // \cmd → single char
+      .replace(/\{[^}]*\}/g, '')                    // bare {arg} → empty
+      .replace(/\s+/g, ' ')
+      .trim();
+    return visibleText.length <= 45 && !t.includes('\n') && !t.includes('![');
   });
 
   return (

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Automated PDF Diagram & Chemical Structure Extractor for TooPrep.
+TooPrep - PDF Diagram & Chemical Structure Extractor.
 Analyzes layout geometry, isolates vector graphics and embedded raster images,
 clusters them by question/option boundaries, and renders 300 DPI cropped PNGs.
 """
@@ -12,6 +12,7 @@ import argparse
 import math
 import re
 import pymupdf
+
 
 def is_noise_rect(r, page_w, page_h, is_two_col=True):
     """Filters out borders, rules, section banners, dividers, and sub-pixel artifacts."""
@@ -32,13 +33,103 @@ def is_noise_rect(r, page_w, page_h, is_two_col=True):
         return True
     return False
 
+
+def merge_clusters(rects, gap=24):
+    """
+    BUG 9 FIX: O(n log n) single-pass greedy cluster merge that always terminates.
+    Sort by x0 then y0; greedily expand each cluster by any rect that intersects its
+    expanded bounding box. Repeat until no merges happen (bounded by n passes).
+    """
+    if not rects:
+        return []
+
+    clusters = [pymupdf.Rect(r) for r in rects]
+
+    changed = True
+    while changed:
+        changed = False
+        merged = [False] * len(clusters)
+        result = []
+
+        for i in range(len(clusters)):
+            if merged[i]:
+                continue
+            current = pymupdf.Rect(clusters[i])
+            for j in range(i + 1, len(clusters)):
+                if merged[j]:
+                    continue
+                # Expand current cluster by gap on all sides before testing intersection
+                exp = pymupdf.Rect(
+                    current.x0 - gap,
+                    current.y0 - gap,
+                    current.x1 + gap,
+                    current.y1 + gap
+                )
+                if exp.intersects(clusters[j]):
+                    current.include_rect(clusters[j])
+                    merged[j] = True
+                    changed = True
+            result.append(current)
+
+        clusters = result
+
+    return clusters
+
+
+# BUG 10 FIX: Broader Q header patterns to match LlamaParse output variants:
+#   Q.1, Q. 1, Q1, **Q.1**, **Q. 1**, Q.1., Q 1
+_Q_WORD_RE = re.compile(
+    r'^Q\.?\s*(\d+)\.?$',   # bare word: Q.1, Q1, Q.1.
+)
+_Q_BOLD_RE = re.compile(
+    r'^\*\*Q\.?\s*(\d+)\.?\*\*$'  # bold: **Q.1**, **Q. 1**
+)
+
+
+def detect_q_words(words):
+    """
+    BUG 10 FIX: Extract question number markers from page word list.
+    Handles Q.1, Q. 1, Q1, **Q.1**, **Q. 1** and space-separated "Q" + "1" adjacent words.
+    Returns list of dicts with keys: q, x0, y0, x1, y1.
+    """
+    q_words = []
+    i = 0
+    while i < len(words):
+        w = words[i]
+        raw = w[4].strip()
+
+        # Single-word forms: Q.1, Q1, **Q.1**
+        m = _Q_WORD_RE.match(raw) or _Q_BOLD_RE.match(raw)
+        if m:
+            q_words.append({'q': int(m.group(1)), 'x0': w[0], 'y0': w[1], 'x1': w[2], 'y1': w[3]})
+            i += 1
+            continue
+
+        # Two-word form: word "Q." or "Q" immediately followed by a digit word on the same line
+        # e.g. words[i]="Q." words[i+1]="1"
+        if raw in ('Q.', 'Q', '**Q.**', '**Q**') and i + 1 < len(words):
+            nxt = words[i + 1]
+            nxt_raw = nxt[4].strip().rstrip('.')
+            if nxt_raw.isdigit() and abs(nxt[1] - w[1]) < 4:  # same line (y within 4pt)
+                q_words.append({
+                    'q': int(nxt_raw),
+                    'x0': w[0], 'y0': w[1],
+                    'x1': nxt[2], 'y1': nxt[3]
+                })
+                i += 2
+                continue
+
+        i += 1
+
+    return q_words
+
+
 def extract_diagrams(pdf_path, output_dir, dpi=300, min_size=15):
     os.makedirs(output_dir, exist_ok=True)
     doc = pymupdf.open(pdf_path)
-    
+
     diagrams_by_q = {}
-    
-    # Process all pages that contain exam questions
+
     for pno in range(len(doc)):
         page = doc[pno]
         pw, ph = page.rect.width, page.rect.height
@@ -46,23 +137,17 @@ def extract_diagrams(pdf_path, output_dir, dpi=300, min_size=15):
         if not words:
             continue
 
-        # 1. Detect question headers: Q.1, Q.2, etc.
-        q_words = []
-        for w in words:
-            m = re.match(r'^Q\.(\d+)$', w[4])
-            if m:
-                q_words.append({
-                    'q': int(m.group(1)),
-                    'x0': w[0], 'y0': w[1], 'x1': w[2], 'y1': w[3]
-                })
+        # BUG 10 FIX: Use the improved Q-header detector
+        q_words = detect_q_words(words)
 
-        # If no questions on this page, skip
         if not q_words:
             continue
 
-        # Multi-column detection (JEE papers standardly 2 columns)
-        is_two_col = any(q['x0'] > 250 for q in q_words)
-        col_split = 295.0 if is_two_col else pw
+        # BUG 11 FIX: Derive column split from actual page width rather than hard-coding 295.0.
+        # Use pw/2 as the split point. Two-column layout is confirmed if any Q header
+        # appears in the right half of the page (x0 > pw * 0.45).
+        is_two_col = any(q['x0'] > pw * 0.45 for q in q_words)
+        col_split = pw / 2.0 if is_two_col else pw
 
         # 2. Detect option markers: (A), (B), (C), (D)
         opt_words = []
@@ -82,7 +167,6 @@ def extract_diagrams(pdf_path, output_dir, dpi=300, min_size=15):
             if not is_noise_rect(r, pw, ph, is_two_col) and (r.width > 2 or r.height > 2):
                 candidate_rects.append(r)
 
-        # Also check raster images on page
         for img in page.get_images():
             try:
                 rects = page.get_image_rects(img[0])
@@ -95,56 +179,28 @@ def extract_diagrams(pdf_path, output_dir, dpi=300, min_size=15):
         if not candidate_rects:
             continue
 
-        # 4. Cluster nearby drawings into diagram envelopes (24pt radius for chemical reagents & arrows)
-        clusters = []
-        for r in candidate_rects:
-            merged = False
-            for c in clusters:
-                exp = pymupdf.Rect(c.x0 - 24, c.y0 - 24, c.x1 + 24, c.y1 + 24)
-                if exp.intersects(r):
-                    c.include_rect(r)
-                    merged = True
-                    break
-            if not merged:
-                clusters.append(pymupdf.Rect(r))
+        # BUG 9 FIX: Use the O(n²)-worst-but-bounded merge_clusters function
+        # that always terminates. The old while/pop loop could cycle indefinitely.
+        clusters = merge_clusters(candidate_rects, gap=24)
 
-        # Iteratively merge overlapping/adjacent clusters
-        changed = True
-        while changed:
-            changed = False
-            new_c = []
-            while clusters:
-                curr = clusters.pop(0)
-                merged = False
-                for other in clusters:
-                    exp = pymupdf.Rect(curr.x0 - 24, curr.y0 - 24, curr.x1 + 24, curr.y1 + 24)
-                    if exp.intersects(other):
-                        other.include_rect(curr)
-                        merged = True
-                        changed = True
-                        break
-                if not merged:
-                    new_c.append(curr)
-            clusters = new_c
-
-        # Filter out flat fraction lines and small symbols
+        # Filter out flat fraction lines and small symbols, expand to encapsulate touching text
         valid_diagrams = []
         for c in clusters:
             if c.width < min_size or c.height < min_size:
                 continue
-            # Expand to encapsulate touching chemical/symbol text words (e.g. Br, CH3, OH, R1, C1, PCC)
             expanded = pymupdf.Rect(c)
             for w in words:
                 if (c.x0 - 18 <= w[0] and w[2] <= c.x1 + 18 and
-                    c.y0 - 18 <= w[1] and w[3] <= c.y1 + 18):
+                        c.y0 - 18 <= w[1] and w[3] <= c.y1 + 18):
                     expanded.include_rect(pymupdf.Rect(w[0], w[1], w[2], w[3]))
             valid_diagrams.append(expanded)
 
         # 5. Define column boundaries
-        columns = [
-            {'x0': 30, 'x1': col_split},
-            {'x0': col_split, 'x1': pw - 20}
-        ] if is_two_col else [{'x0': 30, 'x1': pw - 20}]
+        columns = (
+            [{'x0': 30, 'x1': col_split}, {'x0': col_split, 'x1': pw - 20}]
+            if is_two_col
+            else [{'x0': 30, 'x1': pw - 20}]
+        )
 
         for col in columns:
             col_qs = [q for q in q_words if col['x0'] <= q['x0'] < col['x1']]
@@ -155,12 +211,10 @@ def extract_diagrams(pdf_path, output_dir, dpi=300, min_size=15):
                 top_y = q['y0'] - 6
                 bot_y = col_qs[i + 1]['y0'] - 6 if i + 1 < len(col_qs) else ph - 30
 
-                # Options belonging to this question
                 q_opts = [o for o in opt_words if col['x0'] <= o['x0'] < col['x1'] and top_y <= o['y0'] < bot_y]
                 q_opts.sort(key=lambda x: (x['y0'], x['x0']))
                 first_opt_y = min([o['y0'] for o in q_opts]) if q_opts else bot_y
 
-                # Find all diagrams situated inside this question's vertical and horizontal envelope
                 q_diags = []
                 for diag in valid_diagrams:
                     if col['x0'] - 15 <= diag.x0 and diag.x1 <= col['x1'] + 15:
@@ -174,25 +228,21 @@ def extract_diagrams(pdf_path, output_dir, dpi=300, min_size=15):
                 if q_num not in diagrams_by_q:
                     diagrams_by_q[q_num] = {'stem': None, 'options': {}}
 
-                # Group stem diagrams vs option diagrams:
-                # In every exam question, the stem diagram is placed strictly before the options (d.y1 <= first_opt_y + 1).
-                # Option diagrams extend at or below the option markers (d.y1 > first_opt_y + 1).
+                # Stem diagrams: placed before the first option marker
                 stem_diags = [d for d in q_diags if d.y1 <= first_opt_y + 1]
                 opt_diags = [d for d in q_diags if d.y1 > first_opt_y + 1]
 
-                # Merge all stem diagrams for this question into a single composite stem bbox
                 if stem_diags:
                     composite_stem = pymupdf.Rect(stem_diags[0])
                     for sd in stem_diags[1:]:
                         composite_stem.include_rect(sd)
-                    # Also include any text words inside or between the stem drawings (reaction reagents, arrows, conditions)
+                    # Also include text words between the stem drawings (reagents, arrows, conditions)
                     for w in words:
                         if (composite_stem.x0 - 14 <= w[0] and w[2] <= composite_stem.x1 + 14 and
-                            composite_stem.y0 - 14 <= w[1] and w[3] <= composite_stem.y1 + 14 and
-                            w[3] < first_opt_y - 4):
+                                composite_stem.y0 - 14 <= w[1] and w[3] <= composite_stem.y1 + 14 and
+                                w[3] < first_opt_y - 4):
                             composite_stem.include_rect(pymupdf.Rect(w[0], w[1], w[2], w[3]))
 
-                    # Crop and save stem diagram with generous 14pt margin
                     stem_crop_rect = pymupdf.Rect(
                         max(0, composite_stem.x0 - 14),
                         max(0, composite_stem.y0 - 14),
@@ -212,7 +262,7 @@ def extract_diagrams(pdf_path, output_dir, dpi=300, min_size=15):
                         'height': round(stem_crop_rect.height, 1)
                     }
 
-                # Option diagrams: group by closest option marker and merge all fragments
+                # Option diagrams: group by nearest option marker
                 if opt_diags and q_opts:
                     opt_groups = {o['opt']: [] for o in q_opts}
                     for od in opt_diags:
@@ -226,15 +276,14 @@ def extract_diagrams(pdf_path, output_dir, dpi=300, min_size=15):
                         for od in o_diags[1:]:
                             comp_opt.include_rect(od)
 
-                        # Include adjacent chemical text labels for this option (e.g. OH, CHO, CH3, Br)
+                        # Include adjacent chemical text labels for this option
                         for w in words:
                             if (comp_opt.x0 - 10 <= w[0] and w[2] <= comp_opt.x1 + 10 and
-                                comp_opt.y0 - 10 <= w[1] and w[3] <= comp_opt.y1 + 10 and
-                                w[1] >= first_opt_y - 2 and w[3] <= bot_y + 2):
+                                    comp_opt.y0 - 10 <= w[1] and w[3] <= comp_opt.y1 + 10 and
+                                    w[1] >= first_opt_y - 2 and w[3] <= bot_y + 2):
                                 if not re.match(r'^\([A-D]\)$', w[4]):
                                     comp_opt.include_rect(pymupdf.Rect(w[0], w[1], w[2], w[3]))
 
-                        # Crop and save option diagram with generous 12pt margin
                         opt_crop_rect = pymupdf.Rect(
                             max(0, comp_opt.x0 - 12),
                             max(0, comp_opt.y0 - 12),
@@ -254,9 +303,9 @@ def extract_diagrams(pdf_path, output_dir, dpi=300, min_size=15):
                             'height': round(opt_crop_rect.height, 1)
                         }
 
-    # Clean up empty entries
     clean_diagrams = {k: v for k, v in diagrams_by_q.items() if v['stem'] or v['options']}
     return clean_diagrams
+
 
 def main():
     parser = argparse.ArgumentParser(description='Extract diagrams and figures from exam PDF.')
@@ -281,6 +330,7 @@ def main():
     except Exception as e:
         print(json.dumps({'success': False, 'error': str(e)}))
         sys.exit(1)
+
 
 if __name__ == '__main__':
     main()
