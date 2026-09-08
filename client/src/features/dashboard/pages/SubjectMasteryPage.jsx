@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GraduationCap, ChevronDown, ArrowRight, BookOpen, AlertTriangle, CheckCircle2, Zap, Play, Layers } from 'lucide-react';
 import { dashboardService } from '../services/dashboardService';
+import MapSubNav from '../components/MapSubNav';
 
 const STATUS_COLORS = {
   OVERCONFIDENT: 'status-overconfident',
@@ -162,7 +163,9 @@ export default function SubjectMasteryPage() {
   }
 
   return (
-    <div className="w-full min-w-0 animate-fade-in space-y-8 pb-16 text-left">
+    <div className="w-full min-w-0 animate-fade-in space-y-6 pb-16 text-left">
+      <MapSubNav />
+
       {/* ─── Header ─── */}
       <div className="border-b border-white/10 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>

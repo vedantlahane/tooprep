@@ -255,11 +255,26 @@ export const topicsService = {
     // Get topic info
     const { data: topic, error: tErr } = await supabaseAdmin
       .from('topics')
-      .select('*, chapters(name, subjects(name))')
+      .select('*, chapters(id, name, subjects(id, name))')
       .eq('id', topicId)
       .single();
 
     if (tErr || !topic) return null;
+
+    // Fetch sibling topics in the same chapter to enable seamless navigation
+    const { data: siblingTopics } = await supabaseAdmin
+      .from('topics')
+      .select('id, name')
+      .eq('chapter_id', topic.chapter_id)
+      .order('name');
+
+    let prevTopic = null;
+    let nextTopic = null;
+    if (siblingTopics && siblingTopics.length > 0) {
+      const idx = siblingTopics.findIndex(s => s.id === topicId);
+      if (idx > 0) prevTopic = siblingTopics[idx - 1];
+      if (idx !== -1 && idx < siblingTopics.length - 1) nextTopic = siblingTopics[idx + 1];
+    }
 
     /* ── Fetch full confidence history (chronological) ──
      * Ordered ascending for chart rendering — oldest to newest.
@@ -387,7 +402,10 @@ export const topicsService = {
         ...gapData
       },
       confidence_history: confidenceHistory || [],
-      evaluation_history: evalHistory
+      evaluation_history: evalHistory,
+      chapter_topics: siblingTopics || [],
+      prev_topic: prevTopic,
+      next_topic: nextTopic
     };
   }
 };

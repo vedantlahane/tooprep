@@ -4,6 +4,7 @@ import Icon, { TrendingUp, TrendingDown, ArrowRight, Activity, Timer, Play, Chec
 import { dashboardService } from '../services/dashboardService';
 import { evaluationsService } from '@/features/evaluations/services/evaluationsService';
 import { topicsService } from '@/features/topics/services/topicsService';
+import MapSubNav from '../components/MapSubNav';
 
 export default function PerformanceTrendPage() {
   const navigate = useNavigate();
@@ -123,7 +124,9 @@ export default function PerformanceTrendPage() {
   }
 
   return (
-    <div className="w-full min-w-0 animate-fade-in space-y-8 pb-16 text-left">
+    <div className="w-full min-w-0 animate-fade-in space-y-6 pb-16 text-left">
+      <MapSubNav />
+
       {/* Header */}
       <div className="border-b border-white/10 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
@@ -167,7 +170,7 @@ export default function PerformanceTrendPage() {
           {/* Platform-Wide Retest Summary Live Tiles */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="p-4 border border-status-aligned/40 bg-status-aligned/5 relative overflow-hidden text-left">
-              <div className="absolute top-0 left-0 right-0 h-1 bg-status-aligned" />
+              <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-status-aligned" />
               <div className="text-[10px] font-mono text-status-aligned uppercase tracking-widest mb-1 font-bold">Topics Improving</div>
               <div className="text-3xl font-light font-mono text-status-aligned">
                 {topicsWithTrends.filter(t => t.improvement).length}
@@ -178,7 +181,7 @@ export default function PerformanceTrendPage() {
             </div>
 
             <div className="p-4 border border-primary/40 bg-primary/10 relative overflow-hidden text-left">
-              <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
+              <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-primary" />
               <div className="text-[10px] font-mono text-primary uppercase tracking-widest mb-1 font-bold">Avg Trajectory Delta</div>
               <div className="text-3xl font-light font-mono text-primary">
                 +{Math.round(topicsWithTrends.reduce((sum, t) => sum + t.trend, 0) / topicsWithTrends.length)}%
@@ -189,7 +192,7 @@ export default function PerformanceTrendPage() {
             </div>
 
             <div className="p-4 border border-white/15 bg-white/[0.02] relative overflow-hidden text-left">
-              <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
+              <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-white/40" />
               <div className="text-[10px] font-mono text-white/60 uppercase tracking-widest mb-1 font-bold">Evaluations Tracked</div>
               <div className="text-3xl font-light font-mono text-white">
                 {evaluations.length}

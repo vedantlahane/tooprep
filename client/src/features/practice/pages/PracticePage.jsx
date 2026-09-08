@@ -378,25 +378,25 @@ export default function PracticePage() {
 
         {/* Scorecard Tiles - Windows 10 Mobile Live Tiles */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="p-5 border border-primary/40 bg-primary/10 relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
+          <div className="p-5 border border-primary/40 bg-primary/10 relative overflow-hidden text-left">
+            <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-primary" />
             <div className="text-3xl sm:text-4xl font-light text-primary tracking-tight font-sans mt-1">{summary.correct}/{summary.total_questions}</div>
             <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-2 font-semibold">Total Score</div>
           </div>
-          <div className="p-5 border border-white/10 bg-white/[0.02] relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
+          <div className="p-5 border border-white/10 bg-white/[0.02] relative overflow-hidden text-left">
+            <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-white/40" />
             <div className="text-3xl sm:text-4xl font-light text-white tracking-tight font-sans mt-1">{summary.accuracy}%</div>
             <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-2 font-semibold">Accuracy</div>
           </div>
-          <div className="p-5 border border-white/10 bg-white/[0.02] relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
+          <div className="p-5 border border-white/10 bg-white/[0.02] relative overflow-hidden text-left">
+            <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-white/40" />
             <div className="text-3xl sm:text-4xl font-light text-white tracking-tight font-sans mt-1">
               {Math.floor(summary.avg_time_seconds / 60)}:{String(summary.avg_time_seconds % 60).padStart(2, '0')}
             </div>
             <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-2 font-semibold">Avg Time / Q</div>
           </div>
-          <div className="p-5 border border-white/10 bg-white/[0.02] relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
+          <div className="p-5 border border-white/10 bg-white/[0.02] relative overflow-hidden text-left">
+            <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-white/40" />
             <div className="text-3xl sm:text-4xl font-light text-white tracking-tight font-sans mt-1">{summary.total_questions}</div>
             <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-2 font-semibold">Total Solved</div>
           </div>

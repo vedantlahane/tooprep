@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Icon, { ArrowRight, ListTodo, AlertTriangle, TrendingUp, HelpCircle, Play, Timer, Sparkles } from '@/shared/components/Icon';
 import { dashboardService } from '../services/dashboardService';
+import MapSubNav from '../components/MapSubNav';
 
 const PRIORITY_STATUS = {
   OVERCONFIDENT: 0,
@@ -111,7 +112,9 @@ export default function StudyPlanPage() {
   }
 
   return (
-    <div className="w-full min-w-0 animate-fade-in space-y-8 pb-16 text-left">
+    <div className="w-full min-w-0 animate-fade-in space-y-6 pb-16 text-left">
+      <MapSubNav />
+
       {/* Header */}
       <div className="border-b border-white/10 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
@@ -144,7 +147,7 @@ export default function StudyPlanPage() {
       {/* KPI Priority Tiles - Flat Lumia Style */}
       <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
         <div className="border border-status-overconfident/40 p-5 bg-status-overconfident/5 relative overflow-hidden text-left">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-status-overconfident" />
+          <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-status-overconfident" />
           <div className="text-[10px] font-mono uppercase tracking-widest text-status-overconfident flex items-center gap-1.5 font-bold">
             <AlertTriangle className="w-3.5 h-3.5" />
             Priority Revision (Gaps)
@@ -154,7 +157,7 @@ export default function StudyPlanPage() {
         </div>
 
         <div className="border border-status-underconfident/40 p-5 bg-status-underconfident/5 relative overflow-hidden text-left">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-status-underconfident" />
+          <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-status-underconfident" />
           <div className="text-[10px] font-mono uppercase tracking-widest text-status-underconfident flex items-center gap-1.5 font-bold">
             <TrendingUp className="w-3.5 h-3.5" />
             Quick Wins (Underconfident)
@@ -164,7 +167,7 @@ export default function StudyPlanPage() {
         </div>
 
         <div className="border border-white/15 p-5 bg-white/[0.02] relative overflow-hidden text-left">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
+          <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-primary" />
           <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 flex items-center gap-1.5 font-bold">
             <HelpCircle className="w-3.5 h-3.5 text-primary" />
             Untested Syllabus Topics

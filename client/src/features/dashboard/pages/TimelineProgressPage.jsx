@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Icon, { AlertTriangle, Clock, ArrowRight, PartyPopper, Zap } from '@/shared/components/Icon';
 import { dashboardService } from '../services/dashboardService';
 import { profileService } from '@/features/profile/services/profileService';
+import MapSubNav from '../components/MapSubNav';
 
 const STATUS_PRIORITY = {
   OVERCONFIDENT: 0,
@@ -149,7 +150,9 @@ export default function TimelineProgressPage() {
   const { daysLeft, weeksLeft, examYear, stats, weeklyPlan, urgency } = timeline;
 
   return (
-    <div className="w-full min-w-0 animate-fade-in space-y-8 pb-16 text-left">
+    <div className="w-full min-w-0 animate-fade-in space-y-6 pb-16 text-left">
+      <MapSubNav />
+
       {/* ─── Header ─── */}
       <div className="border-b border-white/10 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>

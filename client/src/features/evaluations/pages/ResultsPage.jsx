@@ -320,7 +320,7 @@ export default function ResultsPage() {
               <div className="grid grid-cols-2 gap-3">
                 {/* Total Score */}
                 <div className="p-4 border border-primary/40 bg-primary/10 relative overflow-hidden text-left">
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
+                  <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-primary" />
                   <div className="text-2xl md:text-3xl font-light text-primary font-sans mt-0.5">
                     {summary.correct}/{summary.total_questions}
                   </div>
@@ -329,7 +329,7 @@ export default function ResultsPage() {
 
                 {/* Accuracy */}
                 <div className="p-4 border border-white/10 bg-white/[0.02] relative overflow-hidden text-left">
-                  <div className={`absolute top-0 left-0 right-0 h-1 ${
+                  <span className={`absolute top-2.5 right-2.5 w-1.5 h-1.5 ${
                     summary.accuracy >= 70 ? 'bg-status-aligned' : summary.accuracy >= 40 ? 'bg-status-weak' : 'bg-error'
                   }`} />
                   <div className={`text-2xl md:text-3xl font-light font-sans mt-0.5 ${
@@ -342,7 +342,7 @@ export default function ResultsPage() {
 
                 {/* Attempt Rate */}
                 <div className="p-4 border border-white/10 bg-white/[0.02] relative overflow-hidden text-left">
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
+                  <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-white/40" />
                   <div className="text-2xl md:text-3xl font-light text-white font-sans mt-0.5">
                     {summary.attempt_rate}%
                   </div>
@@ -351,7 +351,7 @@ export default function ResultsPage() {
 
                 {/* Avg Time */}
                 <div className="p-4 border border-white/10 bg-white/[0.02] relative overflow-hidden text-left">
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
+                  <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-white/40" />
                   <div className="text-2xl md:text-3xl font-light text-white font-sans mt-0.5">
                     {Math.floor(summary.avg_time_seconds / 60)}:{String(summary.avg_time_seconds % 60).padStart(2, '0')}
                   </div>
@@ -360,7 +360,7 @@ export default function ResultsPage() {
 
                 {/* PYQ Accuracy */}
                 <div className="p-4 border border-white/10 bg-white/[0.02] relative overflow-hidden text-left col-span-2">
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
+                  <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-white/40" />
                   <div className={`text-2xl md:text-3xl font-light font-sans mt-0.5 ${
                     summary.pyq_accuracy !== null && summary.pyq_accuracy >= 70 ? 'text-status-aligned' :
                     summary.pyq_accuracy !== null && summary.pyq_accuracy >= 40 ? 'text-status-weak' : 'text-white/50'

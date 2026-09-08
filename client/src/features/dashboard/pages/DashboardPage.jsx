@@ -32,6 +32,7 @@ import Icon, {
   Calculator,
   ChevronUp
 } from '@/shared/components/Icon';
+import MapSubNav from '../components/MapSubNav';
 
 export default function DashboardPage() {
   const [data, setData] = useState(() => dashboardService.getCachedDashboard() || []);
@@ -459,6 +460,9 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* ─── Map Ecosystem Sub-Navigation ─── */}
+      <MapSubNav />
 
       {/* ─── Priority Overconfidence Alert Banner ─── */}
       <AnimatePresence>

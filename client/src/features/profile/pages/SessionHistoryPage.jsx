@@ -189,14 +189,14 @@ export default function SessionHistoryPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="border border-primary/40 bg-primary/10 p-4 relative overflow-hidden text-left">
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
+                    <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-primary" />
                     <div className="text-[10px] font-mono text-white/60 uppercase tracking-widest mb-0.5 font-semibold">Total Sessions</div>
                     <div className="text-2xl md:text-3xl font-light font-sans text-primary">{analytics.totalSessions}</div>
                     <div className="text-[10px] font-mono text-white/40 mt-1">evals &amp; drills</div>
                   </div>
 
                   <div className="border border-white/15 bg-white/[0.02] p-4 relative overflow-hidden text-left">
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
+                    <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-white/40" />
                     <div className="text-[10px] font-mono text-white/60 uppercase tracking-widest mb-0.5 font-semibold">Time Invested</div>
                     <div className="text-2xl md:text-3xl font-light font-sans text-white">{analytics.totalHours}h</div>
                     <div className="text-[10px] font-mono text-white/40 mt-1">active testing</div>
