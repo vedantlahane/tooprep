@@ -315,13 +315,13 @@ export default function PracticePage() {
           </div>
         )}
 
-        <div className="acrylic-glass p-6 md:p-8 rounded-sm border border-white/10 space-y-6 shadow-xl">
-          <div className="space-y-1">
-            <h2 className="text-xs font-mono font-bold uppercase tracking-widest text-white/90">
-              1. Choose Curriculum Scope (Multi-Select)
+        <div className="space-y-6">
+          <div className="space-y-1 border-b border-white/10 pb-3">
+            <h2 className="text-xs font-mono font-bold uppercase tracking-widest text-primary">
+              1. Curriculum Scope
             </h2>
-            <p className="text-xs font-light text-white/50">
-              Select one or multiple chapters and specific topics. The drill pool automatically adapts to your selection.
+            <p className="text-xs font-light text-white/60">
+              Select one or multiple chapters and topics. The drill pool automatically adapts to your selection.
             </p>
           </div>
 
@@ -336,11 +336,11 @@ export default function PracticePage() {
           />
 
           {/* Start Drill Action */}
-          <div className="pt-2">
+          <div className="pt-4 border-t border-white/10">
             <button
               onClick={startPractice}
               disabled={loading || !hasSelection}
-              className="w-full py-3.5 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest rounded-sm hover:brightness-110 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-primary/20 cursor-pointer"
+              className="w-full py-4 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest hover:brightness-110 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed shadow-lg shadow-primary/20 cursor-pointer"
             >
               <Play className="w-4 h-4 fill-current" />
               <span>{loading ? 'Preparing Drill Pool...' : 'Start Practice Drill'}</span>
@@ -366,24 +366,24 @@ export default function PracticePage() {
 
         {/* Scorecard Tiles - Windows 10 Mobile Live Tiles */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="acrylic-glass p-5 rounded-sm border border-primary/40 bg-primary/10 relative overflow-hidden shadow-md">
+          <div className="p-5 border border-primary/40 bg-primary/10 relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
             <div className="text-3xl sm:text-4xl font-light text-primary tracking-tight font-sans mt-1">{summary.correct}/{summary.total_questions}</div>
             <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-2 font-semibold">Total Score</div>
           </div>
-          <div className="acrylic-glass p-5 rounded-sm border border-white/10 relative overflow-hidden shadow-md">
+          <div className="p-5 border border-white/10 bg-white/[0.02] relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
             <div className="text-3xl sm:text-4xl font-light text-white tracking-tight font-sans mt-1">{summary.accuracy}%</div>
             <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-2 font-semibold">Accuracy</div>
           </div>
-          <div className="acrylic-glass p-5 rounded-sm border border-white/10 relative overflow-hidden shadow-md">
+          <div className="p-5 border border-white/10 bg-white/[0.02] relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
             <div className="text-3xl sm:text-4xl font-light text-white tracking-tight font-sans mt-1">
               {Math.floor(summary.avg_time_seconds / 60)}:{String(summary.avg_time_seconds % 60).padStart(2, '0')}
             </div>
             <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-2 font-semibold">Avg Time / Q</div>
           </div>
-          <div className="acrylic-glass p-5 rounded-sm border border-white/10 relative overflow-hidden shadow-md">
+          <div className="p-5 border border-white/10 bg-white/[0.02] relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
             <div className="text-3xl sm:text-4xl font-light text-white tracking-tight font-sans mt-1">{summary.total_questions}</div>
             <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-2 font-semibold">Total Solved</div>
@@ -392,7 +392,7 @@ export default function PracticePage() {
 
         {/* Post-Session Confidence Rating Prompt */}
         {!confidenceUpdated ? (
-          <div className="acrylic-glass p-6 border border-primary/40 bg-primary/5 rounded-sm space-y-4 animate-fade-in">
+          <div className="p-6 border border-primary/40 bg-primary/[0.04] space-y-4 animate-fade-in">
             <div className="flex items-center gap-2 text-xs font-mono text-primary uppercase tracking-widest font-bold">
               <Sparkles className="w-4 h-4 text-primary" />
               <span>Update Confidence Rating?</span>
@@ -405,26 +405,26 @@ export default function PracticePage() {
               <button
                 onClick={handlePostSessionConfidenceUpdate}
                 disabled={confidenceUpdating}
-                className="flex-1 py-2.5 bg-primary text-black text-xs font-mono uppercase tracking-widest font-bold hover:brightness-110 transition-colors rounded-sm"
+                className="flex-1 py-3 bg-primary text-black text-xs font-mono uppercase tracking-widest font-bold hover:brightness-110 transition-colors rounded-none"
               >
                 {confidenceUpdating ? 'Updating...' : 'Update Topic Confidence'}
               </button>
               <button
                 onClick={() => setConfidenceUpdated(true)}
-                className="px-5 py-2.5 border border-outline-variant text-white/60 text-xs font-mono uppercase tracking-widest hover:text-white rounded-sm"
+                className="px-6 py-3 border border-white/20 text-white/60 text-xs font-mono uppercase tracking-widest hover:text-white rounded-none"
               >
                 Skip
               </button>
             </div>
           </div>
         ) : (
-          <div className="p-4 bg-status-aligned/10 border border-status-aligned/40 text-status-aligned text-xs font-mono rounded-sm flex items-center gap-2">
+          <div className="p-4 bg-status-aligned/10 border border-status-aligned/40 text-status-aligned text-xs font-mono flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-status-aligned" />
             <span>Confidence rating calibrated successfully!</span>
           </div>
         )}
 
-        <div className="p-4 acrylic-glass border border-white/10 rounded-sm text-xs text-white/60 font-light leading-relaxed">
+        <div className="p-4 border-l-2 border-white/20 text-xs text-white/60 font-light leading-relaxed">
           <strong>Next step:</strong> Practice accuracy trains your instincts. To officially benchmark and update your Knowledge Map confidence gap, take a timed evaluation.
         </div>
 
@@ -463,7 +463,7 @@ export default function PracticePage() {
           <button
             type="button"
             onClick={() => setPaletteOpen(!paletteOpen)}
-            className="px-3 py-1.5 bg-surface-container border border-white/15 hover:border-primary/50 text-white text-xs font-mono rounded-sm flex items-center gap-2 transition-all cursor-pointer shadow-sm"
+            className="px-3 py-1.5 bg-transparent border border-white/15 hover:border-primary/50 text-white text-xs font-mono rounded-sm flex items-center gap-2 transition-all cursor-pointer"
             title="Toggle Question Palette"
           >
             <Grid className="w-3.5 h-3.5 text-primary" />
@@ -495,7 +495,7 @@ export default function PracticePage() {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-            className="overflow-hidden border border-white/10 acrylic-glass rounded-sm p-4 space-y-3.5 shadow-xl"
+            className="overflow-hidden border border-white/10 bg-black/40 p-4 space-y-3.5"
           >
             <div className="flex items-center justify-between flex-wrap gap-2 text-[10px] font-mono uppercase tracking-wider">
               <span className="text-white/60 font-bold">Question Palette (Click to jump):</span>
@@ -629,7 +629,7 @@ export default function PracticePage() {
             type="button"
             onClick={handlePrevious}
             disabled={currentIndex === 0}
-            className="px-4 py-2.5 bg-surface-container border border-white/15 hover:border-white/40 text-white text-xs font-mono uppercase tracking-wider rounded-sm disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
+            className="px-4 py-2.5 bg-transparent border border-white/15 hover:border-white/40 text-white text-xs font-mono uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <ChevronLeft className="w-4 h-4" />
             <span>Previous</span>
@@ -638,10 +638,10 @@ export default function PracticePage() {
           <button
             type="button"
             onClick={handleToggleFlag}
-            className={`px-3.5 py-2.5 border text-xs font-mono uppercase tracking-wider rounded-sm flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm ${
+            className={`px-3.5 py-2.5 border text-xs font-mono uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer ${
               isCurrentFlagged
                 ? 'bg-[#FF9500]/20 border-[#FF9500] text-[#FF9500] font-bold'
-                : 'bg-surface-container border-white/15 text-white/60 hover:text-white hover:border-white/30'
+                : 'bg-transparent border-white/15 text-white/60 hover:text-white hover:border-white/30'
             }`}
             title="Mark this question to review later"
           >
@@ -658,12 +658,12 @@ export default function PracticePage() {
               whileTap={!currentSelectedAnswer || loading ? {} : { scale: 0.98 }}
               onClick={handleSubmitAnswer}
               disabled={!currentSelectedAnswer || loading}
-              className="flex-1 sm:flex-none px-6 py-2.5 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest rounded-sm hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-primary/20 cursor-pointer"
+              className="flex-1 sm:flex-none px-6 py-2.5 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-primary/20 cursor-pointer"
             >
               {loading ? 'Submitting...' : 'Submit & Reveal'}
             </motion.button>
           ) : (
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-surface-container border border-white/10 rounded-xs text-[11px] font-mono">
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-white/[0.03] border border-white/10 rounded-xs text-[11px] font-mono">
               {currentState.correct ? (
                 <span className="text-status-aligned flex items-center gap-1">
                   <CheckCircle2 className="w-3.5 h-3.5" />
@@ -682,7 +682,7 @@ export default function PracticePage() {
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleNext}
-            className="flex-1 sm:flex-none px-5 py-2.5 bg-surface-bright border border-white/20 hover:border-primary text-white hover:text-primary text-xs font-mono uppercase tracking-wider rounded-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-sm"
+            className="flex-1 sm:flex-none px-5 py-2.5 bg-transparent border border-white/20 hover:border-primary text-white hover:text-primary text-xs font-mono uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
           >
             <span>{currentIndex < questions.length - 1 ? 'Next Question' : 'Complete Drill'}</span>
             <ChevronRight className="w-4 h-4" />

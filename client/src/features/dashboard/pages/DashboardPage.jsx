@@ -512,7 +512,7 @@ export default function DashboardPage() {
       {viewMode === 'sheet' && (
         <div className="space-y-3">
           {/* ─── Search & Quick Status Filter Bar ─── */}
-          <div className="acrylic-glass border border-white/10 rounded-sm p-1.5 flex items-center gap-2 bg-surface-container/90">
+          <div className="border border-white/10 rounded-sm p-1.5 flex items-center gap-2 bg-black/40">
             {/* Name Box (Active Cell Coordinate) */}
             <div
               className="px-2 py-1 bg-black/60 border border-white/15 rounded text-primary text-[11px] sm:text-xs font-semibold min-w-[44px] sm:min-w-[56px] text-center shrink-0 tracking-wider font-mono"

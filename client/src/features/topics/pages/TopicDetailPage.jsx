@@ -163,7 +163,7 @@ export default function TopicDetailPage() {
 
       {/* KPI Tiles - Windows 10 Mobile Live Tiles */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="p-5 acrylic-glass border border-primary/40 bg-primary/10 rounded-sm flex flex-col justify-between relative overflow-hidden shadow-md">
+        <div className="p-5 border border-primary/40 bg-primary/10 flex flex-col justify-between relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
           <div className="text-3xl sm:text-4xl font-light text-primary font-sans mb-1 mt-0.5 tracking-tight">
             {topic.confidence ? `${topic.confidence}/10` : '—'}
@@ -171,7 +171,7 @@ export default function TopicDetailPage() {
           <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 font-semibold">CONFIDENCE</div>
         </div>
 
-        <div className="p-5 acrylic-glass border border-white/10 rounded-sm flex flex-col justify-between relative overflow-hidden shadow-md">
+        <div className="p-5 border border-white/10 bg-white/[0.02] flex flex-col justify-between relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
           <div className="text-3xl sm:text-4xl font-light text-white font-sans mb-1 mt-0.5 tracking-tight">
             {topic.evaluation_accuracy !== null ? `${topic.evaluation_accuracy}%` : '—'}
@@ -179,7 +179,7 @@ export default function TopicDetailPage() {
           <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 font-semibold">EVAL ACCURACY</div>
         </div>
 
-        <div className="p-5 acrylic-glass border border-white/10 rounded-sm flex flex-col justify-between relative overflow-hidden shadow-md">
+        <div className="p-5 border border-white/10 bg-white/[0.02] flex flex-col justify-between relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
           <div className={`text-3xl sm:text-4xl font-light font-sans mb-1 mt-0.5 tracking-tight ${getStatusColor(topic.status)}`}>
             {topic.gap !== null ? (topic.gap >= 0 ? `+${topic.gap}%` : `${topic.gap}%`) : '—'}
@@ -187,7 +187,7 @@ export default function TopicDetailPage() {
           <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 font-semibold">PERFORMANCE GAP</div>
         </div>
 
-        <div className="p-5 acrylic-glass border border-white/10 rounded-sm flex flex-col justify-between relative overflow-hidden shadow-md">
+        <div className="p-5 border border-white/10 bg-white/[0.02] flex flex-col justify-between relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
           <div className={`text-xl sm:text-2xl font-light font-sans uppercase tracking-wider mb-1 mt-0.5 ${getStatusColor(topic.status)}`}>
             {topic.status?.replace('_', ' ')}
@@ -197,7 +197,7 @@ export default function TopicDetailPage() {
       </div>
 
       {showConfidenceInput && (
-        <div className="bg-primary/20 border-l-4 border-primary p-6 rounded-r-sm">
+        <div className="bg-primary/20 border-l-4 border-primary p-6">
           <h3 className="text-headline-md text-on-surface mb-2 font-light">Rate Your Baseline Confidence</h3>
           <p className="text-body-md text-on-surface-variant mb-6">
             Set your initial self-assessment before starting practice.
@@ -206,22 +206,22 @@ export default function TopicDetailPage() {
           <button
             onClick={handleSetConfidence}
             disabled={confidenceLoading}
-            className="mt-6 px-8 py-3 bg-primary text-black text-xs font-mono font-bold uppercase tracking-wider hover:brightness-110 shadow-md shadow-primary/20 transition-all rounded-sm disabled:opacity-50 cursor-pointer"
+            className="mt-6 px-8 py-3 bg-primary text-black text-xs font-mono font-bold uppercase tracking-wider hover:brightness-110 shadow-md shadow-primary/20 transition-all disabled:opacity-50 cursor-pointer"
           >
             {confidenceLoading ? 'Saving...' : 'Set Confidence'}
           </button>
         </div>
       )}
 
-      {/* Recommendation Card */}
-      <div className="acrylic-glass rounded-sm border border-white/10 p-6 shadow-md">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-label-sm-mono uppercase tracking-[0.18em] text-on-surface-variant">Study Recommendation</h3>
-          <span className={`text-label-sm-mono uppercase tracking-[0.18em] font-bold ${getStatusColor(topic.status)}`}>
+      {/* Recommendation Block */}
+      <div className="border-l-2 border-primary/40 bg-white/[0.02] p-5">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-xs font-mono uppercase tracking-widest text-primary font-bold">Study Recommendation</h3>
+          <span className={`text-xs font-mono uppercase tracking-widest font-bold ${getStatusColor(topic.status)}`}>
             {topic.status?.replace('_', ' ')}
           </span>
         </div>
-        <p className="text-body-lg text-on-surface leading-relaxed">{getRecommendation(topic.status)}</p>
+        <p className="text-sm text-white/90 font-light leading-relaxed">{getRecommendation(topic.status)}</p>
       </div>
 
       {/* Action Hub */}
@@ -259,54 +259,54 @@ export default function TopicDetailPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Confidence Trend */}
-        <div className="acrylic-glass border border-white/10 rounded-sm p-6 shadow-md">
-          <h3 className="text-headline-md font-light mb-4 text-on-surface">Confidence Trend</h3>
+        <div className="border border-white/10 p-5 bg-black/40 text-left">
+          <h3 className="text-sm font-mono uppercase tracking-widest font-bold mb-4 text-primary">Confidence Calibration Trend</h3>
           {confidenceTrend.length > 0 ? (
             <div className="flex h-36 items-end gap-2 pt-4">
               {confidenceTrend.map((point, index) => (
                 <div key={point.id || index} className="flex-1 flex flex-col items-center gap-2">
                   <div className="w-full h-full flex items-end justify-center">
                     <div
-                      className="w-full rounded-t-sm bg-primary/80"
+                      className="w-full bg-primary/80"
                       style={{ height: `${Math.max(12, (point.confidence / maxTrend) * 100)}%` }}
                     />
                   </div>
-                  <span className="text-[10px] text-on-surface-variant uppercase tracking-widest">
+                  <span className="text-[10px] text-white/50 font-mono uppercase tracking-widest">
                     {new Date(point.recorded_at).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
                   </span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-body-md text-on-surface-variant">No confidence history yet.</p>
+            <p className="text-xs font-mono text-white/40">No confidence history yet.</p>
           )}
         </div>
 
         {/* Metrics Grid */}
-        <div className="acrylic-glass border border-white/10 rounded-sm p-6 shadow-md">
-          <h3 className="text-headline-md font-light mb-4 text-on-surface">Engagement Metrics</h3>
+        <div className="border border-white/10 p-5 bg-black/40 text-left">
+          <h3 className="text-sm font-mono uppercase tracking-widest font-bold mb-4 text-primary">Engagement Telemetry</h3>
           <div className="grid grid-cols-2 gap-3">
-            <div className="p-4 bg-surface-dim rounded-sm">
-              <div className="text-headline-md font-light text-on-surface">{topic.questions_attempted || 0}</div>
-              <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mt-1">QUESTIONS ATTEMPTED</div>
+            <div className="p-4 bg-white/[0.02] border border-white/5">
+              <div className="text-3xl font-light text-white">{topic.questions_attempted || 0}</div>
+              <div className="text-[10px] font-mono text-white/50 uppercase tracking-widest mt-1">QUESTIONS ATTEMPTED</div>
             </div>
-            <div className="p-4 bg-surface-dim rounded-sm">
-              <div className="text-headline-md font-light text-on-surface">
+            <div className="p-4 bg-white/[0.02] border border-white/5">
+              <div className="text-3xl font-light text-white">
                 {topic.pyq_accuracy !== null ? `${topic.pyq_accuracy}%` : '—'}
               </div>
-              <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mt-1">PYQ ACCURACY</div>
+              <div className="text-[10px] font-mono text-white/50 uppercase tracking-widest mt-1">PYQ ACCURACY</div>
             </div>
-            <div className="p-4 bg-surface-dim rounded-sm col-span-2">
-              <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-1">LAST PRACTICED</div>
-              <div className="text-body-md text-on-surface">{formatDate(topic.last_practiced_at)}</div>
+            <div className="p-4 bg-white/[0.02] border border-white/5 col-span-2">
+              <div className="text-[10px] font-mono text-white/50 uppercase tracking-widest mb-1">LAST PRACTICED</div>
+              <div className="text-sm font-mono text-white/80">{formatDate(topic.last_practiced_at)}</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Evaluation History Chart & List */}
-      <div className="acrylic-glass border border-white/10 rounded-sm p-6 shadow-md">
-        <h3 className="text-headline-md font-light mb-4 text-on-surface">Evaluation Accuracy Progression</h3>
+      <div className="border border-white/10 p-5 bg-black/40 text-left">
+        <h3 className="text-sm font-mono uppercase tracking-widest font-bold mb-4 text-primary">Evaluation Accuracy Progression</h3>
         
         {/* SVG Sparkline Chart */}
         {chronEvals.length >= 2 && (

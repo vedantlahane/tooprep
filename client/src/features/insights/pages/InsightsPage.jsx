@@ -86,7 +86,7 @@ export default function InsightsPage() {
   if (!insights || data.length === 0) {
     return (
       <div className="w-full max-w-4xl mr-auto animate-fade-in py-12 text-left">
-        <div className="acrylic-glass border border-white/10 p-12 text-left rounded-sm">
+        <div className="border border-white/10 p-12 text-left rounded-sm bg-black/30">
           <BarChart3 className="w-16 h-16 text-primary mb-6 opacity-60" />
           <h3 className="text-2xl font-light text-white mb-2">No calibration telemetry yet</h3>
           <p className="text-sm text-white/50 mb-8 max-w-md font-mono">
@@ -140,7 +140,7 @@ export default function InsightsPage() {
 
       {/* Educational Guide Card (Toggleable) */}
       {showLegend && (
-        <div className="acrylic-glass border border-primary/30 p-6 rounded-sm animate-fade-in">
+        <div className="border border-primary/30 p-6 rounded-sm animate-fade-in bg-black/40">
           <h3 className="text-xs font-mono text-primary uppercase tracking-widest mb-3 flex items-center gap-2">
             <Info className="w-4 h-4" />
             Metacognitive Calibration Framework
@@ -180,7 +180,7 @@ export default function InsightsPage() {
         ].map(s => {
           const TileIcon = s.icon;
           return (
-            <div key={s.label} className={`p-5 rounded-sm flex flex-col justify-between relative overflow-hidden group acrylic-glass border shadow-md ${s.bgTint}`}>
+            <div key={s.label} className={`p-5 rounded-sm flex flex-col justify-between relative overflow-hidden group border ${s.bgTint}`}>
               <div className={`absolute top-0 left-0 right-0 h-1 ${s.accent}`} />
               <TileIcon className="absolute top-3.5 right-3.5 opacity-20 w-6 h-6 group-hover:scale-125 transition-transform" />
               <div>
@@ -195,7 +195,7 @@ export default function InsightsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
         {/* Subject Mastery Progress */}
-        <div className="acrylic-glass border border-white/10 p-6 md:p-8 rounded-sm">
+        <div className="border border-white/10 p-6 md:p-8 rounded-sm bg-black/30">
           <h3 className="text-xs font-mono text-white/60 uppercase tracking-widest mb-6 flex items-center gap-2">
             <BarChart3 className="w-4 h-4 text-primary" />
             SUBJECT-LEVEL MASTERY AGGREGATE
@@ -305,7 +305,7 @@ export default function InsightsPage() {
 
           {/* Untested topics */}
           {insights.noData.length > 0 && (
-            <div className="acrylic-glass border border-white/10 p-6 md:p-8 rounded-sm">
+            <div className="border border-white/10 p-6 md:p-8 rounded-sm bg-black/30">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xs font-mono text-white/60 uppercase tracking-widest flex items-center gap-2">
                   <ListCheck className="w-4 h-4 text-primary" />

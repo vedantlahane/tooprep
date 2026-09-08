@@ -173,10 +173,10 @@ export default function EvaluationPage() {
           </div>
         )}
 
-        <div className="acrylic-glass p-6 md:p-8 rounded-sm border border-white/10 space-y-6 shadow-xl">
+        <div className="space-y-6">
           {/* Topic Selector with Hierarchical TopicPicker */}
           <div className="space-y-2">
-            <label className="block text-label-sm-mono text-white/80 uppercase tracking-widest text-xs font-bold">
+            <label className="block text-label-sm-mono text-primary uppercase tracking-widest text-xs font-bold">
               1. Select Curriculum Topic
             </label>
             <TopicPicker
@@ -189,7 +189,7 @@ export default function EvaluationPage() {
 
           {/* Question count selector */}
           <div className="space-y-2">
-            <label className="block text-label-sm-mono text-white/80 uppercase tracking-widest text-xs font-bold">
+            <label className="block text-label-sm-mono text-primary uppercase tracking-widest text-xs font-bold">
               2. Number of Questions
             </label>
             <div className="grid grid-cols-6 gap-2">
@@ -197,10 +197,10 @@ export default function EvaluationPage() {
                 <button
                   key={n}
                   onClick={() => setQuestionCount(n)}
-                  className={`py-2.5 rounded-sm border text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                  className={`py-2.5 border text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer ${
                     questionCount === n
-                      ? 'bg-primary border-primary text-black font-bold shadow-md shadow-primary/20'
-                      : 'bg-surface-container border-white/10 text-white/60 hover:border-white/30 hover:text-white'
+                      ? 'bg-primary border-primary text-black font-bold shadow-sm'
+                      : 'bg-transparent border-white/15 text-white/60 hover:border-white/40 hover:text-white'
                   }`}
                 >
                   {n}
@@ -211,7 +211,7 @@ export default function EvaluationPage() {
 
           {/* Duration Selector */}
           <div className="space-y-2">
-            <label className="block text-label-sm-mono text-white/80 uppercase tracking-widest text-xs font-bold">
+            <label className="block text-label-sm-mono text-primary uppercase tracking-widest text-xs font-bold">
               3. Time Limit
             </label>
             <div className="grid grid-cols-4 gap-2.5">
@@ -224,10 +224,10 @@ export default function EvaluationPage() {
                 <button
                   key={val}
                   onClick={() => setDurationSeconds(val)}
-                  className={`py-2.5 rounded-sm border text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                  className={`py-2.5 border text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer ${
                     durationSeconds === val
-                      ? 'bg-primary border-primary text-black font-bold shadow-md shadow-primary/20'
-                      : 'bg-surface-container border-white/10 text-white/60 hover:border-white/30 hover:text-white'
+                      ? 'bg-primary border-primary text-black font-bold shadow-sm'
+                      : 'bg-transparent border-white/15 text-white/60 hover:border-white/40 hover:text-white'
                   }`}
                 >
                   {label}
@@ -237,7 +237,7 @@ export default function EvaluationPage() {
           </div>
 
           {/* Examination Protocol Notice */}
-          <div className="p-4 bg-error/10 border-l-4 border-error rounded-r-sm space-y-1.5">
+          <div className="p-4 border-l-2 border-error bg-error/[0.04] space-y-1.5">
             <div className="text-xs font-mono uppercase tracking-wider text-error font-bold flex items-center gap-1.5">
               <AlertTriangle className="w-3.5 h-3.5" />
               <span>Examination Protocol</span>
@@ -252,7 +252,7 @@ export default function EvaluationPage() {
             <button
               onClick={startEvaluation}
               disabled={!selectedTopic || loading}
-              className="w-full py-3.5 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest rounded-sm hover:brightness-110 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-primary/20 cursor-pointer"
+              className="w-full py-4 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest hover:brightness-110 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed shadow-lg shadow-primary/20 cursor-pointer"
             >
               <TimerIcon className="w-4 h-4 stroke-[2]" />
               <span>{loading ? 'Assembling Question Set...' : 'Begin Timed Evaluation'}</span>
@@ -325,7 +325,7 @@ export default function EvaluationPage() {
             <button
               onClick={() => handleNavigateQuestion(Math.max(0, currentIndex - 1))}
               disabled={currentIndex === 0}
-              className="px-4 py-2.5 bg-surface-container border border-outline-variant text-white/80 hover:text-white rounded-sm text-xs font-mono uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="px-4 py-2.5 bg-transparent border border-white/15 text-white/80 hover:text-white rounded-none text-xs font-mono uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
               <span>Previous</span>
@@ -333,10 +333,10 @@ export default function EvaluationPage() {
 
             <button
               onClick={toggleMarkForReview}
-              className={`px-4 py-2.5 border rounded-sm text-xs font-mono uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer ${
+              className={`px-4 py-2.5 border rounded-none text-xs font-mono uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer ${
                 markedForReview.has(currentQuestion?.id)
-                  ? 'bg-status-weak/20 text-status-weak border-status-weak/40'
-                  : 'bg-surface-dim border-outline-variant text-white/60 hover:text-white'
+                  ? 'bg-[#FF9500]/20 text-[#FF9500] border-[#FF9500]'
+                  : 'bg-transparent border-white/15 text-white/60 hover:text-white'
               }`}
             >
               <Bookmark className="w-3.5 h-3.5" />
@@ -346,7 +346,7 @@ export default function EvaluationPage() {
             <button
               onClick={() => handleNavigateQuestion(Math.min(questions.length - 1, currentIndex + 1))}
               disabled={currentIndex === questions.length - 1}
-              className="px-4 py-2.5 bg-primary text-black font-bold rounded-sm text-xs font-mono uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="px-5 py-2.5 bg-primary text-black font-bold rounded-none text-xs font-mono uppercase tracking-wider disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <span>Next</span>
               <ChevronRight className="w-4 h-4" />
@@ -355,7 +355,7 @@ export default function EvaluationPage() {
         </div>
 
         {/* Question Palette Drawer (Desktop) */}
-        <div className="acrylic-glass p-5 rounded-sm border border-white/10 space-y-4 shadow-xl">
+        <div className="border border-white/10 bg-black/40 p-4 space-y-4 text-left">
           <div className="text-xs font-mono uppercase tracking-widest text-white/80 font-bold border-b border-white/10 pb-2">
             Question Palette
           </div>

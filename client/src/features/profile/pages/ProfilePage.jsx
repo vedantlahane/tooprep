@@ -98,84 +98,82 @@ export default function ProfilePage() {
         </button>
       </div>
 
-      {/* Profile Header Card */}
-      <div className="acrylic-glass border border-white/10 rounded-sm overflow-hidden">
-        <div className="h-24 bg-gradient-to-r from-primary/30 via-primary/10 to-transparent border-b border-white/5"></div>
-        <div className="p-6 md:p-8 relative">
-          <div className="absolute -top-10 left-6 md:left-8 w-20 h-20 bg-black border-2 border-primary rounded-sm flex items-center justify-center shadow-xl">
-            <User className="w-10 h-10 text-primary" />
-          </div>
-
-          <div className="mt-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      {/* Profile Header on Canvas */}
+      <div className="border-b border-white/10 pb-8 relative text-left">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="flex items-start gap-4">
+            <div className="w-16 h-16 bg-primary/10 border-2 border-primary flex items-center justify-center shrink-0">
+              <User className="w-8 h-8 text-primary" />
+            </div>
             <div>
-              <h3 className="text-2xl font-light text-white">{profile?.display_name || 'Student'}</h3>
+              <h3 className="text-3xl font-light text-white">{profile?.display_name || 'Student'}</h3>
               <p className="text-xs font-mono text-white/50 mt-1">{user?.email}</p>
               {profile?.target_exam_year && (
-                <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 bg-primary/10 border border-primary/30 text-primary rounded-xs text-xs font-mono uppercase tracking-wider">
+                <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-0.5 bg-primary/10 border border-primary/30 text-primary text-xs font-mono uppercase tracking-wider">
                   <GraduationCap className="w-3.5 h-3.5" />
                   Target: JEE Main {profile.target_exam_year}
                 </div>
               )}
             </div>
-
-            {!editing && (
-              <button
-                onClick={() => setEditing(true)}
-                className="px-5 py-2 border border-primary text-primary text-xs font-mono uppercase tracking-widest hover:bg-primary hover:text-white transition-colors rounded-sm font-semibold"
-              >
-                Edit Profile
-              </button>
-            )}
           </div>
 
-          {/* Edit Form */}
-          {editing && (
-            <div className="mt-6 pt-6 border-t border-white/10 space-y-4 max-w-md animate-fade-in">
-              <div className="space-y-1.5">
-                <label className="text-xs font-mono text-white/60 uppercase tracking-widest block">Display Name</label>
-                <input
-                  type="text"
-                  value={displayName}
-                  onChange={e => setDisplayName(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-white/15 bg-surface-container focus:border-primary text-white outline-none rounded-sm transition-colors text-sm font-sans"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-mono text-white/60 uppercase tracking-widest block">Target Exam Year</label>
-                <select
-                  value={targetYear}
-                  onChange={e => setTargetYear(parseInt(e.target.value))}
-                  className="w-full px-4 py-2.5 border border-white/15 bg-surface-container focus:border-primary text-white outline-none rounded-sm transition-colors text-sm font-mono"
-                >
-                  {[currentYear, currentYear + 1, currentYear + 2, currentYear + 3].map(y => (
-                    <option key={y} value={y} className="bg-black text-white">JEE {y}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={handleSave}
-                  className="flex-1 py-2.5 bg-primary text-white text-xs font-mono font-bold uppercase tracking-widest hover:brightness-110 transition-all rounded-sm"
-                >
-                  Save Changes
-                </button>
-                <button
-                  onClick={() => setEditing(false)}
-                  className="flex-1 py-2.5 border border-white/10 text-white/60 text-xs font-mono uppercase tracking-widest hover:bg-white/5 transition-colors rounded-sm"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
+          {!editing && (
+            <button
+              onClick={() => setEditing(true)}
+              className="px-5 py-2 border border-primary text-primary text-xs font-mono uppercase tracking-widest hover:bg-primary hover:text-black transition-colors font-bold cursor-pointer"
+            >
+              Edit Profile
+            </button>
           )}
         </div>
+
+        {/* Edit Form Directly on Canvas */}
+        {editing && (
+          <div className="mt-6 pt-6 border-t border-white/10 space-y-4 max-w-md animate-fade-in">
+            <div className="space-y-1.5">
+              <label className="text-xs font-mono text-primary uppercase tracking-widest block">Display Name</label>
+              <input
+                type="text"
+                value={displayName}
+                onChange={e => setDisplayName(e.target.value)}
+                className="w-full px-0 py-2 bg-transparent border-b border-white/20 focus:border-primary text-white outline-none transition-colors text-sm font-sans"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-mono text-primary uppercase tracking-widest block">Target Exam Year</label>
+              <select
+                value={targetYear}
+                onChange={e => setTargetYear(parseInt(e.target.value))}
+                className="w-full px-0 py-2 bg-transparent border-b border-white/20 focus:border-primary text-white outline-none transition-colors text-sm font-mono"
+              >
+                {[currentYear, currentYear + 1, currentYear + 2, currentYear + 3].map(y => (
+                  <option key={y} value={y} className="bg-black text-white">JEE {y}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={handleSave}
+                className="flex-1 py-3 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest hover:brightness-110 transition-all cursor-pointer"
+              >
+                Save Changes
+              </button>
+              <button
+                onClick={() => setEditing(false)}
+                className="flex-1 py-3 border border-white/20 text-white/60 text-xs font-mono uppercase tracking-widest hover:text-white transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Action Live Tiles */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
         <div
           onClick={() => navigate('/history')}
-          className="cursor-pointer bg-surface-container/60 border border-white/10 hover:border-primary p-6 rounded-sm flex flex-col justify-between transition-all group"
+          className="cursor-pointer bg-black/40 border border-white/10 hover:border-primary p-6 flex flex-col justify-between transition-all group"
         >
           <History className="w-8 h-8 text-primary mb-6 group-hover:scale-110 transition-transform" />
           <div>
@@ -187,7 +185,7 @@ export default function ProfilePage() {
 
         <div
           onClick={() => navigate('/practice')}
-          className="cursor-pointer bg-surface-container/60 border border-white/10 hover:border-primary p-6 rounded-sm flex flex-col justify-between transition-all group"
+          className="cursor-pointer bg-black/40 border border-white/10 hover:border-primary p-6 flex flex-col justify-between transition-all group"
         >
           <Play className="w-8 h-8 text-primary mb-6 group-hover:scale-110 transition-transform" />
           <div>
@@ -199,7 +197,7 @@ export default function ProfilePage() {
 
         <div
           onClick={() => navigate('/evaluate')}
-          className="cursor-pointer bg-primary/20 border border-primary/40 hover:border-primary p-6 rounded-sm flex flex-col justify-between transition-all group"
+          className="cursor-pointer bg-primary/10 border border-primary/40 hover:border-primary p-6 flex flex-col justify-between transition-all group"
         >
           <Timer className="w-8 h-8 text-primary mb-6 group-hover:scale-110 transition-transform" />
           <div>
@@ -212,7 +210,7 @@ export default function ProfilePage() {
 
       {/* Admin Section */}
       {profile?.is_admin && (
-        <div className="acrylic-glass border border-primary/30 p-6 md:p-8 rounded-sm space-y-4">
+        <div className="border border-primary/40 bg-primary/[0.03] p-6 space-y-4 text-left">
           <div className="flex justify-between items-center flex-wrap gap-2">
             <h3 className="text-xs font-mono text-primary uppercase tracking-widest flex items-center gap-2 font-bold">
               <Shield className="w-4 h-4" />
@@ -220,7 +218,7 @@ export default function ProfilePage() {
             </h3>
             <button
               onClick={() => navigate('/admin')}
-              className="px-4 py-1.5 bg-primary text-white text-xs font-mono uppercase tracking-widest font-bold hover:brightness-110 flex items-center gap-1.5 transition-all"
+              className="px-4 py-2 bg-primary text-black text-xs font-mono uppercase tracking-widest font-bold hover:brightness-110 flex items-center gap-1.5 transition-all cursor-pointer"
             >
               <span>Open Mission Control</span>
               <ArrowRight className="w-3.5 h-3.5" />

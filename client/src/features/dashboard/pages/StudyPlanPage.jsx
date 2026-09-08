@@ -143,7 +143,7 @@ export default function StudyPlanPage() {
 
       {/* KPI Priority Tiles */}
       <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
-        <div className="acrylic-glass border border-status-overconfident/30 p-5 rounded-sm bg-status-overconfident/5">
+        <div className="border border-status-overconfident/30 p-5 rounded-sm bg-status-overconfident/5">
           <div className="text-[10px] font-mono uppercase tracking-widest text-status-overconfident flex items-center gap-1.5">
             <AlertTriangle className="w-3.5 h-3.5" />
             Priority Revision (Gaps)
@@ -152,7 +152,7 @@ export default function StudyPlanPage() {
           <div className="text-xs text-white/40 font-mono mt-1">High negative mark risk</div>
         </div>
 
-        <div className="acrylic-glass border border-status-underconfident/30 p-5 rounded-sm bg-status-underconfident/5">
+        <div className="border border-status-underconfident/30 p-5 rounded-sm bg-status-underconfident/5">
           <div className="text-[10px] font-mono uppercase tracking-widest text-status-underconfident flex items-center gap-1.5">
             <TrendingUp className="w-3.5 h-3.5" />
             Quick Wins (Underconfident)
@@ -161,7 +161,7 @@ export default function StudyPlanPage() {
           <div className="text-xs text-white/40 font-mono mt-1">Ready for timed mocks</div>
         </div>
 
-        <div className="acrylic-glass border border-white/10 p-5 rounded-sm bg-surface-container/40">
+        <div className="border border-white/10 p-5 rounded-sm bg-black/40">
           <div className="text-[10px] font-mono uppercase tracking-widest text-white/50 flex items-center gap-1.5">
             <HelpCircle className="w-3.5 h-3.5 text-primary" />
             Untested Syllabus Topics
@@ -228,7 +228,7 @@ export default function StudyPlanPage() {
 
       {/* Priority Queues Detail */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="acrylic-glass border border-white/10 rounded-sm p-6">
+        <div className="border border-white/10 rounded-sm p-6 bg-black/30">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs font-mono text-white/60 uppercase tracking-widest flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-status-overconfident" />
@@ -239,11 +239,11 @@ export default function StudyPlanPage() {
 
           <div className="space-y-3">
             {topPriority.length === 0 ? (
-              <p className="text-xs font-mono text-white/40 p-4 bg-surface-container/40 rounded-sm">No overconfidence gaps detected. Keep current drill steady.</p>
+              <p className="text-xs font-mono text-white/40 p-4 bg-white/[0.02] border border-white/5 rounded-sm">No overconfidence gaps detected. Keep current drill steady.</p>
             ) : topPriority.map(topic => (
               <div
                 key={topic.topic_id}
-                className="p-3.5 rounded-sm border border-white/10 bg-surface-container/40 hover:border-white/20 transition-colors flex items-center justify-between gap-3"
+                className="p-3.5 rounded-sm border border-white/10 bg-white/[0.02] hover:border-white/20 transition-colors flex items-center justify-between gap-3"
               >
                 <div>
                   <div
@@ -274,7 +274,7 @@ export default function StudyPlanPage() {
           </div>
         </div>
 
-        <div className="acrylic-glass border border-white/10 rounded-sm p-6">
+        <div className="border border-white/10 rounded-sm p-6 bg-black/30">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs font-mono text-white/60 uppercase tracking-widest flex items-center gap-2">
               <HelpCircle className="w-4 h-4 text-primary" />
@@ -285,11 +285,11 @@ export default function StudyPlanPage() {
 
           <div className="space-y-3">
             {untested.length === 0 ? (
-              <p className="text-xs font-mono text-white/40 p-4 bg-surface-container/40 rounded-sm">All topics in the syllabus have at least one test recorded.</p>
+              <p className="text-xs font-mono text-white/40 p-4 bg-white/[0.02] border border-white/5 rounded-sm">All topics in the syllabus have at least one test recorded.</p>
             ) : untested.map(topic => (
               <div
                 key={topic.topic_id}
-                className="p-3.5 rounded-sm border border-white/10 bg-surface-container/40 hover:border-white/20 transition-colors flex items-center justify-between gap-3"
+                className="p-3.5 rounded-sm border border-white/10 bg-white/[0.02] hover:border-white/20 transition-colors flex items-center justify-between gap-3"
               >
                 <div>
                   <div

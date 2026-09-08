@@ -47,16 +47,16 @@ const QuestionBrowserCard = memo(function QuestionBrowserCard({ q, onPracticeTop
   const srcStyle = q.source_type === 'PYQ' ? SOURCE_STYLES.PYQ : SOURCE_STYLES.default;
 
   return (
-    <div className="acrylic-glass border border-white/10 rounded-sm overflow-hidden hover:border-primary/40 transition-all duration-200 space-y-0 shadow-xl animate-slide-up hover-lift">
+    <div className="border-b border-white/10 pb-8 pt-4 space-y-3 text-left animate-slide-up">
       {/* Header badges */}
-      <div className="flex items-center gap-2 px-5 py-3 border-b border-white/10 flex-wrap bg-surface-container/70 text-xs font-mono">
+      <div className="flex items-center gap-2 flex-wrap text-xs font-mono pb-2 border-b border-white/5">
         {q.difficulty && (
-          <span className={`px-2 py-0.5 border rounded-xs uppercase tracking-wider text-[10px] font-bold ${diffStyle}`}>
+          <span className={`px-2 py-0.5 border text-[10px] font-bold uppercase tracking-wider ${diffStyle}`}>
             {q.difficulty}
           </span>
         )}
         {q.source_type && (
-          <span className={`px-2 py-0.5 border rounded-xs uppercase tracking-wider text-[10px] font-bold ${srcStyle}`}>
+          <span className={`px-2 py-0.5 border text-[10px] font-bold uppercase tracking-wider ${srcStyle}`}>
             {q.source_type}
           </span>
         )}
@@ -66,7 +66,7 @@ const QuestionBrowserCard = memo(function QuestionBrowserCard({ q, onPracticeTop
           </span>
         )}
         {q.has_diagram && (
-          <span className="px-2 py-0.5 rounded-xs bg-primary/10 border border-primary/30 text-primary uppercase text-[10px]">
+          <span className="px-2 py-0.5 bg-primary/10 border border-primary/30 text-primary uppercase text-[10px]">
             Diagram
           </span>
         )}
@@ -74,7 +74,7 @@ const QuestionBrowserCard = memo(function QuestionBrowserCard({ q, onPracticeTop
         {isAdmin && (
           <button
             onClick={() => onEditQuestion(q)}
-            className="ml-auto flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 border border-primary/40 text-primary hover:bg-primary hover:text-black transition-all text-[10px] uppercase tracking-wider font-bold rounded-sm cursor-pointer"
+            className="ml-auto flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 border border-primary/40 text-primary hover:bg-primary hover:text-black transition-all text-[10px] uppercase tracking-wider font-bold cursor-pointer"
             title="Edit this question in Admin Editor"
           >
             <Edit3 className="w-3 h-3" />
@@ -84,15 +84,13 @@ const QuestionBrowserCard = memo(function QuestionBrowserCard({ q, onPracticeTop
       </div>
 
       {/* Question stem */}
-      <div className="px-5 py-4">
-        <div className="text-lg md:text-xl text-white font-light leading-relaxed tracking-tight">
-          <MathText text={q.question_text || q.text || ''} />
-        </div>
+      <div className="py-2 text-lg md:text-xl text-white font-light leading-relaxed tracking-tight">
+        <MathText text={q.question_text || q.text || ''} />
       </div>
 
       {/* Options grid */}
       {q.options && (
-        <div className="px-5 pb-4 grid grid-cols-1 md:grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1">
           {options.map((letter) => {
             const optionText = Array.isArray(q.options)
               ? q.options.find(o => o.id === letter)?.text
@@ -102,13 +100,13 @@ const QuestionBrowserCard = memo(function QuestionBrowserCard({ q, onPracticeTop
             return (
               <div
                 key={letter}
-                className={`flex items-start gap-3 px-4 py-3 rounded-sm border transition-all ${
+                className={`flex items-start gap-3 px-3.5 py-3 border transition-all ${
                   isCorrect
                     ? 'border-status-aligned/60 bg-status-aligned/10 text-white ring-1 ring-status-aligned/40 shadow-sm'
-                    : 'border-white/10 bg-black/40 text-white/90 hover:border-white/25'
+                    : 'border-white/10 bg-white/[0.02] text-white/90 hover:border-white/25'
                 }`}
               >
-                <span className={`w-6 h-6 rounded-xs flex items-center justify-center text-xs font-mono font-bold uppercase shrink-0 mt-0.5 ${
+                <span className={`w-6 h-6 flex items-center justify-center text-xs font-mono font-bold uppercase shrink-0 mt-0.5 ${
                     isCorrect ? 'bg-status-aligned text-black' : 'bg-white/5 border border-white/10 text-primary'
                   }`}>
                   {letter}.
@@ -126,10 +124,10 @@ const QuestionBrowserCard = memo(function QuestionBrowserCard({ q, onPracticeTop
       )}
 
       {/* Show Answer Toggle & Solution Accordion */}
-      <div className="px-5 pb-4 pt-1 border-t border-white/5 flex items-center justify-between">
+      <div className="pt-2 flex items-center justify-between">
         <button
           onClick={() => setShowAnswer(v => !v)}
-          className="text-xs font-mono uppercase tracking-widest text-primary hover:underline flex items-center gap-1.5"
+          className="text-xs font-mono uppercase tracking-widest text-primary hover:underline flex items-center gap-1.5 cursor-pointer"
         >
           {showAnswer ? (
             <>
@@ -147,7 +145,7 @@ const QuestionBrowserCard = memo(function QuestionBrowserCard({ q, onPracticeTop
         {q.topic_id && onPracticeTopic && (
           <button
             onClick={() => onPracticeTopic(q.topic_id)}
-            className="text-[10px] font-mono uppercase tracking-wider text-white/50 hover:text-primary flex items-center gap-1"
+            className="text-[10px] font-mono uppercase tracking-wider text-white/50 hover:text-primary flex items-center gap-1 cursor-pointer"
           >
             <span>Practice Topic</span>
             <Play className="w-3 h-3 fill-current" />
@@ -156,7 +154,7 @@ const QuestionBrowserCard = memo(function QuestionBrowserCard({ q, onPracticeTop
       </div>
 
       {showAnswer && (
-        <div className="px-5 pb-5 pt-3 border-t border-white/10 bg-surface-container/50 space-y-3 animate-slide-down">
+        <div className="mt-3 p-5 border-l-2 border-primary bg-white/[0.02] space-y-3 animate-slide-down">
           {!hasAnswer ? (
             <p className="text-xs font-mono text-white/50 italic font-light">
               Answer is withheld for evaluation integrity. Complete a practice drill on this topic to view full solution steps.
@@ -165,12 +163,12 @@ const QuestionBrowserCard = memo(function QuestionBrowserCard({ q, onPracticeTop
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-xs font-mono">
                 <span className="text-white/50 uppercase tracking-widest">Correct Option:</span>
-                <span className="text-sm font-bold text-status-aligned px-2 py-0.5 rounded bg-status-aligned/10 border border-status-aligned/30">
+                <span className="text-sm font-bold text-status-aligned px-2 py-0.5 bg-status-aligned/10 border border-status-aligned/30">
                   Option ({q.correct_answer})
                 </span>
               </div>
               {q.solution_text && (
-                <div className="p-4 bg-surface-dim/90 rounded-sm border border-primary/30 space-y-2 shadow-inner">
+                <div className="space-y-2 pt-2 border-t border-white/5">
                   <div className="text-[10px] font-mono text-primary uppercase tracking-widest font-bold">
                     Step-by-Step LaTeX Derivation
                   </div>
@@ -355,8 +353,8 @@ export default function QuestionsPage() {
         </div>
       </div>
 
-      {/* Multi-Curriculum Filter Card */}
-      <div className="acrylic-glass p-5 rounded-sm border border-white/10 space-y-4 shadow-xl">
+      {/* Multi-Curriculum Filter Area */}
+      <div className="space-y-4 pt-1">
         <CurriculumMultiPicker
           hierarchy={hierarchy}
           selectedSubject={selectedSubject}
@@ -368,17 +366,17 @@ export default function QuestionsPage() {
         />
 
         {/* Secondary Filter: Difficulty Buttons & Search Filter */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-white/5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-white/10">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-[10px] font-mono text-white/50 uppercase tracking-wider mr-1">Difficulty:</span>
             {DIFFICULTIES.map(d => (
               <button
                 key={d}
                 onClick={() => setSelectedDifficulty(d)}
-                className={`px-3.5 py-1.5 rounded-sm text-xs font-mono uppercase tracking-wider transition-all cursor-pointer ${
+                className={`px-3.5 py-1.5 border text-xs font-mono uppercase tracking-wider transition-all cursor-pointer ${
                   selectedDifficulty === d
-                    ? 'bg-primary border border-primary text-black font-bold shadow-sm'
-                    : 'bg-surface-container border border-white/10 text-white/60 hover:text-white hover:border-white/30'
+                    ? 'bg-primary border-primary text-black font-bold shadow-sm'
+                    : 'bg-transparent border-white/15 text-white/60 hover:text-white hover:border-white/40'
                 }`}
               >
                 {d}
@@ -387,13 +385,13 @@ export default function QuestionsPage() {
           </div>
 
           <div className="relative max-w-xs w-full">
-            <Search className="w-3.5 h-3.5 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-white/40 absolute left-2.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchFilter}
               onChange={e => setSearchFilter(e.target.value)}
               placeholder="Search in questions or derivations..."
-              className="w-full bg-black/50 border border-white/10 rounded-sm pl-8 pr-3 py-1.5 text-xs font-mono text-white placeholder:text-white/30 outline-none focus:border-primary/60 transition-colors"
+              className="w-full bg-white/[0.03] border-b border-white/20 focus:border-primary pl-8 pr-3 py-1.5 text-xs font-mono text-white placeholder:text-white/30 outline-none transition-colors"
             />
           </div>
         </div>
@@ -414,15 +412,15 @@ export default function QuestionsPage() {
           </div>
         </div>
       ) : filteredQuestions.length === 0 ? (
-        <div className="acrylic-glass border border-white/10 rounded-sm p-16 text-center text-white/40 space-y-2">
+        <div className="border border-white/10 p-16 text-center text-white/40 space-y-2 bg-black/30">
           <div className="text-sm font-light text-white">No questions found for this filter combination</div>
           <p className="text-xs text-white/50 font-mono">Try selecting different chapters/topics or clear your search term.</p>
         </div>
       ) : (
         <div className="space-y-4">
           {/* Top Pagination Toolbar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 border border-outline-variant bg-surface-dim text-xs font-mono">
-            <div className="flex items-center gap-2 text-on-surface-variant flex-wrap">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 py-2 px-3 border-t border-b border-white/10 text-xs font-mono bg-white/[0.02]">
+            <div className="flex items-center gap-2 text-white/70 flex-wrap">
               <span className="text-white/50 uppercase tracking-widest text-[11px]">Per page:</span>
               {[10, 20, 50, 100].map(size => (
                 <button
@@ -496,7 +494,7 @@ export default function QuestionsPage() {
 
           {/* Bottom Pagination Toolbar if multiple pages */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between p-3 border border-white/10 bg-surface-container/70 rounded-sm text-xs font-mono shadow-md">
+            <div className="flex items-center justify-between py-2 px-3 border-t border-b border-white/10 text-xs font-mono bg-white/[0.02]">
               <span className="text-white/50">
                 Page {currentPage} of {totalPages}
               </span>

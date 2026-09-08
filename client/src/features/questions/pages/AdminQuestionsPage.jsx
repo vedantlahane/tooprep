@@ -66,26 +66,26 @@ const AdminQuestionCard = memo(function AdminQuestionCard({ q, isSelected, onTog
   };
 
   return (
-    <div className={`acrylic-glass border rounded-sm transition-all duration-150 shadow-xl overflow-hidden ${
-      isSelected ? 'border-primary bg-primary/[0.05] ring-1 ring-primary/40 shadow-primary/10' : 'border-white/10 hover:border-primary/40'
+    <div className={`border-b border-white/10 pb-6 pt-4 space-y-3 transition-all text-left ${
+      isSelected ? 'bg-primary/[0.04] border-l-2 border-l-primary pl-3' : ''
     }`}>
       {/* Header Bar */}
-      <div className="flex items-center gap-2 px-5 py-3 border-b border-white/10 flex-wrap bg-surface-container/70 text-xs font-mono">
+      <div className="flex items-center gap-2 pb-2 border-b border-white/5 flex-wrap text-xs font-mono">
         <input
           type="checkbox"
           checked={Boolean(isSelected)}
           onChange={() => onToggleSelect(q.id)}
-          className="w-3.5 h-3.5 accent-primary cursor-pointer mr-1.5 rounded-xs"
+          className="w-3.5 h-3.5 accent-primary cursor-pointer mr-1.5"
           title="Select question for bulk action"
         />
         {q.difficulty && (
-          <span className={`px-2 py-0.5 border text-label-sm-mono uppercase tracking-widest text-xs rounded-xs font-bold ${diffStyle}`}>
+          <span className={`px-2 py-0.5 border text-[10px] font-bold uppercase tracking-widest ${diffStyle}`}>
             {q.difficulty}
           </span>
         )}
         {q.source_type && (
-          <span className={`px-2 py-0.5 border text-label-sm-mono uppercase tracking-widest text-xs ${
-            q.source_type === 'PYQ' ? 'bg-primary/10 text-primary border-primary/30' : 'bg-surface-container text-white/60 border-white/10'
+          <span className={`px-2 py-0.5 border text-[10px] uppercase tracking-widest ${
+            q.source_type === 'PYQ' ? 'bg-primary/10 text-primary border-primary/30' : 'border-white/15 bg-transparent text-white/60'
           }`}>
             {q.source_type}
           </span>
@@ -94,7 +94,7 @@ const AdminQuestionCard = memo(function AdminQuestionCard({ q, isSelected, onTog
           onClick={handleVerifyClick}
           disabled={toggling}
           title="Click to toggle publication verification"
-          className={`px-2.5 py-0.5 border rounded-xs text-label-sm-mono uppercase tracking-widest text-xs transition-colors cursor-pointer hover:brightness-125 flex items-center gap-1.5 ${
+          className={`px-2.5 py-0.5 border text-[10px] uppercase tracking-widest transition-colors cursor-pointer hover:brightness-125 flex items-center gap-1.5 ${
             q.verified
               ? 'bg-status-aligned/15 text-status-aligned border-status-aligned/40 hover:bg-status-aligned/25'
               : 'bg-error/15 text-error border-error/40 hover:bg-error/25'
@@ -105,7 +105,7 @@ const AdminQuestionCard = memo(function AdminQuestionCard({ q, isSelected, onTog
         </button>
 
         {q.exam_year && (
-          <span className="text-label-sm-mono text-on-surface-variant text-xs uppercase tracking-widest">
+          <span className="text-white/40 text-[10px] uppercase tracking-widest">
             {q.exam_year}
           </span>
         )}
@@ -114,7 +114,7 @@ const AdminQuestionCard = memo(function AdminQuestionCard({ q, isSelected, onTog
         <div className="ml-auto flex items-center gap-2">
           <button
             onClick={() => onEdit(q)}
-            className="flex items-center gap-1 px-3 py-1 bg-primary/10 border border-primary/40 text-primary hover:bg-primary hover:text-black transition-all text-label-sm-mono uppercase tracking-widest text-xs font-semibold rounded-sm cursor-pointer"
+            className="flex items-center gap-1 px-3 py-1 bg-primary/10 border border-primary/40 text-primary hover:bg-primary hover:text-black transition-all text-[10px] uppercase tracking-widest font-semibold cursor-pointer"
             title="Edit question text, choices, answers, and solution"
           >
             <Edit3 className="w-3.5 h-3.5" />
@@ -123,7 +123,7 @@ const AdminQuestionCard = memo(function AdminQuestionCard({ q, isSelected, onTog
 
           <button
             onClick={() => onClone(q)}
-            className="flex items-center gap-1 px-3 py-1 bg-white/5 border border-white/15 text-white/80 hover:border-white/40 hover:text-white transition-all text-label-sm-mono uppercase tracking-widest text-xs font-semibold rounded-sm cursor-pointer"
+            className="flex items-center gap-1 px-3 py-1 bg-white/5 border border-white/15 text-white/80 hover:border-white/40 hover:text-white transition-all text-[10px] uppercase tracking-widest font-semibold cursor-pointer"
             title="Clone / Author variant"
           >
             <Layers className="w-3.5 h-3.5" />
@@ -132,7 +132,7 @@ const AdminQuestionCard = memo(function AdminQuestionCard({ q, isSelected, onTog
 
           <button
             onClick={() => onDelete(q.id)}
-            className="flex items-center gap-1 px-2.5 py-1 border border-error/40 text-error hover:bg-error hover:text-white transition-all text-label-sm-mono uppercase tracking-widest text-xs rounded-sm cursor-pointer"
+            className="flex items-center gap-1 px-2.5 py-1 border border-error/40 text-error hover:bg-error hover:text-white transition-all text-[10px] uppercase tracking-widest cursor-pointer"
             title="Delete this question from question bank"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -140,7 +140,7 @@ const AdminQuestionCard = memo(function AdminQuestionCard({ q, isSelected, onTog
 
           <button
             onClick={handleCopyId}
-            className="flex items-center gap-1 px-2.5 py-1 border border-white/10 hover:border-primary text-white/60 hover:text-primary transition-all text-label-sm-mono uppercase tracking-widest text-xs rounded-sm cursor-pointer"
+            className="flex items-center gap-1 px-2.5 py-1 border border-white/10 hover:border-primary text-white/60 hover:text-primary transition-all text-[10px] uppercase tracking-widest cursor-pointer"
             title={`Copy UUID: ${q.id}`}
           >
             {copied ? <Check className="w-3.5 h-3.5 text-status-aligned" /> : <Copy className="w-3.5 h-3.5" />}
@@ -149,15 +149,13 @@ const AdminQuestionCard = memo(function AdminQuestionCard({ q, isSelected, onTog
       </div>
 
       {/* Question text */}
-      <div className="px-5 py-4">
-        <div className="text-body-lg text-on-surface font-light leading-relaxed">
-          <MathText text={q.question_text || q.text || ''} />
-        </div>
+      <div className="py-2 text-base md:text-lg text-white font-light leading-relaxed">
+        <MathText text={q.question_text || q.text || ''} />
       </div>
 
       {/* Options */}
       {q.options && (
-        <div className="px-5 pb-4 grid grid-cols-1 md:grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
           {options.map((letter) => {
             const optionText = Array.isArray(q.options)
               ? q.options.find(o => o.id === letter)?.text
@@ -167,16 +165,16 @@ const AdminQuestionCard = memo(function AdminQuestionCard({ q, isSelected, onTog
             return (
               <div
                 key={letter}
-                className={`flex items-start gap-3 px-4 py-2.5 rounded-sm border transition-all ${
+                className={`flex items-start gap-3 px-3.5 py-2.5 border transition-all ${
                   isCorrect
-                    ? 'border-status-aligned/60 bg-status-aligned/10 text-white ring-1 ring-status-aligned/40'
-                    : 'border-white/10 bg-black/40 text-white/90'
+                    ? 'border-status-aligned/60 bg-status-aligned/10 text-white'
+                    : 'border-white/10 bg-white/[0.02] text-white/90'
                 }`}
               >
-                <span className={`text-label-sm-mono font-bold uppercase shrink-0 mt-0.5 ${isCorrect ? 'text-status-aligned' : 'text-on-surface-variant'}`}>
+                <span className={`text-xs font-mono font-bold uppercase shrink-0 mt-0.5 ${isCorrect ? 'text-status-aligned' : 'text-white/40'}`}>
                   {letter}.
                 </span>
-                <div className="text-body-md font-light flex-1">
+                <div className="text-sm font-light flex-1">
                   <MathText text={String(optionText)} />
                 </div>
                 {isCorrect && (
@@ -190,12 +188,12 @@ const AdminQuestionCard = memo(function AdminQuestionCard({ q, isSelected, onTog
 
       {/* Solution Section (Lazy Rendered on Demand) */}
       {q.solution_text && (
-        <div className="px-5 pb-4">
-          <div className="border border-outline-variant bg-surface-dim/60">
+        <div className="pt-2">
+          <div className="border border-white/10 bg-white/[0.02]">
             <button
               type="button"
               onClick={() => setShowSolution(v => !v)}
-              className="w-full px-4 py-2.5 flex items-center justify-between text-label-sm-mono text-on-surface-variant hover:text-primary transition-colors text-xs font-bold uppercase tracking-widest cursor-pointer"
+              className="w-full px-4 py-2 flex items-center justify-between text-white/60 hover:text-primary transition-colors text-xs font-mono font-bold uppercase tracking-widest cursor-pointer"
             >
               <div className="flex items-center gap-2">
                 <Sparkles className="w-3.5 h-3.5 text-primary" />
@@ -204,8 +202,8 @@ const AdminQuestionCard = memo(function AdminQuestionCard({ q, isSelected, onTog
               {showSolution ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
             {showSolution && (
-              <div className="p-4 border-t border-outline-variant bg-status-aligned/5 border-l-4 border-l-status-aligned animate-fade-in">
-                <div className="text-body-md text-on-surface font-light leading-relaxed">
+              <div className="p-4 border-t border-white/10 bg-white/[0.01] border-l-2 border-l-primary space-y-2">
+                <div className="text-sm text-white/90 font-light leading-relaxed">
                   <MathText text={q.solution_text} />
                 </div>
               </div>
@@ -572,49 +570,49 @@ export default function AdminQuestionsPage() {
 
       {/* Observability Stats Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <div className="acrylic-glass border border-white/10 rounded-sm p-4 shadow-md">
-          <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest text-xs mb-1">Total in Scope</div>
+        <div className="border border-white/10 p-4 bg-black/40 text-left">
+          <div className="text-[10px] font-mono text-white/50 uppercase tracking-widest mb-1">Total in Scope</div>
           <div className="text-3xl font-light text-primary">{questions.length}</div>
         </div>
-        <div className="acrylic-glass border border-white/10 rounded-sm p-4 shadow-md">
-          <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest text-xs mb-1">Verified (Live)</div>
+        <div className="border border-white/10 p-4 bg-black/40 text-left">
+          <div className="text-[10px] font-mono text-white/50 uppercase tracking-widest mb-1">Verified (Live)</div>
           <div className="text-3xl font-light text-status-aligned">{verifiedCount}</div>
         </div>
-        <div className="acrylic-glass border border-white/10 rounded-sm p-4 shadow-md">
-          <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest text-xs mb-1">Drafts (Hidden)</div>
+        <div className="border border-white/10 p-4 bg-black/40 text-left">
+          <div className="text-[10px] font-mono text-white/50 uppercase tracking-widest mb-1">Drafts (Hidden)</div>
           <div className="text-3xl font-light text-status-weak">{draftCount}</div>
         </div>
         <div
           onClick={() => setQualityPreset(qualityPreset === 'missing_solution' ? 'all' : 'missing_solution')}
-          className={`acrylic-glass border rounded-sm p-4 cursor-pointer transition-colors shadow-md ${
+          className={`border p-4 cursor-pointer transition-colors text-left ${
             missingSolutionCount > 0
               ? 'border-status-weak/50 bg-status-weak/10 hover:border-status-weak'
-              : 'border-white/10 hover:border-primary/50'
+              : 'border-white/10 bg-black/40 hover:border-primary/50'
           }`}
           title="Click to toggle filter for questions missing explanations"
         >
-          <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest text-xs mb-1">Missing Solutions</div>
-          <div className={`text-3xl font-light ${missingSolutionCount > 0 ? 'text-status-weak font-normal' : 'text-on-surface-variant'}`}>
+          <div className="text-[10px] font-mono text-white/50 uppercase tracking-widest mb-1">Missing Solutions</div>
+          <div className={`text-3xl font-light ${missingSolutionCount > 0 ? 'text-status-weak font-normal' : 'text-white/40'}`}>
             {missingSolutionCount}
           </div>
         </div>
-        <div className="acrylic-glass border border-white/10 rounded-sm p-4 shadow-md">
-          <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest text-xs mb-1">PYQ Archives</div>
+        <div className="border border-white/10 p-4 bg-black/40 text-left">
+          <div className="text-[10px] font-mono text-white/50 uppercase tracking-widest mb-1">PYQ Archives</div>
           <div className="text-3xl font-light text-primary">{pyqCount}</div>
         </div>
       </div>
 
       {/* Dynamic Filters & Search Command Bar */}
-      <div className="acrylic-glass border border-white/10 rounded-sm p-5 md:p-6 space-y-5 shadow-xl">
+      <div className="space-y-4 pt-1 text-left">
         {/* Search Bar */}
         <div className="relative">
-          <Search className="w-4 h-4 text-white/40 absolute left-4 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search questions by LaTeX, stem keywords, derivation, or ID..."
-            className="w-full pl-11 pr-4 py-2.5 bg-black/50 border border-white/10 rounded-sm text-white placeholder-white/30 outline-none focus:border-primary/60 text-xs font-mono transition-colors"
+            className="w-full pl-10 pr-4 py-2 bg-white/[0.03] border-b border-white/20 focus:border-primary text-white placeholder-white/30 outline-none text-xs font-mono transition-colors"
           />
         </div>
 
@@ -632,14 +630,14 @@ export default function AdminQuestionsPage() {
         {/* Filter Controls Row: Difficulty, Quality Audit, Source, Year, Sort */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-3 border-t border-white/10 text-xs font-mono">
           <div>
-            <label className="block text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-1.5 text-[11px]">Difficulty</label>
+            <label className="block text-[10px] font-mono text-white/50 uppercase tracking-widest mb-1.5">Difficulty</label>
             <div className="flex gap-1.5 flex-wrap">
               {DIFFICULTIES.map((d) => (
                 <button
                   key={d}
                   onClick={() => setSelectedDifficulty(d)}
-                  className={`px-3 py-1.5 border rounded-sm uppercase tracking-wider text-xs transition-all cursor-pointer ${
-                    selectedDifficulty === d ? 'bg-primary border-primary text-black font-bold shadow-sm' : 'border-white/10 bg-surface-container text-white/60 hover:text-white hover:border-white/30'
+                  className={`px-3 py-1.5 border uppercase tracking-wider text-xs transition-all cursor-pointer ${
+                    selectedDifficulty === d ? 'bg-primary border-primary text-black font-bold shadow-sm' : 'border-white/15 bg-transparent text-white/60 hover:text-white hover:border-white/40'
                   }`}
                 >
                   {d}
@@ -649,14 +647,14 @@ export default function AdminQuestionsPage() {
           </div>
 
           <div className="md:col-span-2">
-            <label className="block text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-1.5 text-[11px]">Quality Audit & Status</label>
+            <label className="block text-[10px] font-mono text-white/50 uppercase tracking-widest mb-1.5">Quality Audit & Status</label>
             <div className="flex gap-1.5 flex-wrap">
               {QUALITY_PRESETS.map((p) => (
                 <button
                   key={p.id}
                   onClick={() => setQualityPreset(p.id)}
-                  className={`px-3 py-1.5 border rounded-sm uppercase tracking-wider text-xs transition-all cursor-pointer ${
-                    qualityPreset === p.id ? 'bg-primary border-primary text-black font-bold shadow-sm' : 'border-white/10 bg-surface-container text-white/60 hover:text-white hover:border-white/30'
+                  className={`px-3 py-1.5 border uppercase tracking-wider text-xs transition-all cursor-pointer ${
+                    qualityPreset === p.id ? 'bg-primary border-primary text-black font-bold shadow-sm' : 'border-white/15 bg-transparent text-white/60 hover:text-white hover:border-white/40'
                   }`}
                 >
                   {p.label}
@@ -666,14 +664,14 @@ export default function AdminQuestionsPage() {
           </div>
 
           <div>
-            <label className="block text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-1.5 text-[11px]">Source Type</label>
+            <label className="block text-[10px] font-mono text-white/50 uppercase tracking-widest mb-1.5">Source Type</label>
             <div className="flex gap-1.5 flex-wrap">
               {['All', 'PYQ', 'ORIGINAL'].map((s) => (
                 <button
                   key={s}
                   onClick={() => setSourceTypeFilter(s)}
-                  className={`px-3 py-1.5 border rounded-sm uppercase tracking-wider text-xs transition-all cursor-pointer ${
-                    sourceTypeFilter === s ? 'bg-primary border-primary text-black font-bold shadow-sm' : 'border-white/10 bg-surface-container text-white/60 hover:text-white hover:border-white/30'
+                  className={`px-3 py-1.5 border uppercase tracking-wider text-xs transition-all cursor-pointer ${
+                    sourceTypeFilter === s ? 'bg-primary border-primary text-black font-bold shadow-sm' : 'border-white/15 bg-transparent text-white/60 hover:text-white hover:border-white/40'
                   }`}
                 >
                   {s}
@@ -683,11 +681,11 @@ export default function AdminQuestionsPage() {
           </div>
 
           <div>
-            <label className="block text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-1.5 text-[11px]">Sort By</label>
+            <label className="block text-[10px] font-mono text-white/50 uppercase tracking-widest mb-1.5">Sort By</label>
             <select
               value={sortOption}
               onChange={(e) => setSortOption(e.target.value)}
-              className="w-full bg-black/60 border border-white/10 rounded-sm px-3 py-1.5 text-white outline-none focus:border-primary/60 uppercase text-xs font-mono"
+              className="w-full bg-black/60 border border-white/10 rounded-none px-3 py-1.5 text-white outline-none focus:border-primary/60 uppercase text-xs font-mono"
             >
               <option value="newest">Newest First</option>
               <option value="oldest">Oldest First</option>
@@ -697,11 +695,11 @@ export default function AdminQuestionsPage() {
           </div>
 
           <div>
-            <label className="block text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-1.5 text-[11px]">Exam Year</label>
+            <label className="block text-[10px] font-mono text-white/50 uppercase tracking-widest mb-1.5">Exam Year</label>
             <select
               value={examYearFilter}
               onChange={(e) => setExamYearFilter(e.target.value)}
-              className="w-full bg-black/60 border border-white/10 rounded-sm px-3 py-1.5 text-white outline-none focus:border-primary/60 uppercase text-xs font-mono"
+              className="w-full bg-black/60 border border-white/10 rounded-none px-3 py-1.5 text-white outline-none focus:border-primary/60 uppercase text-xs font-mono"
             >
               <option value="All">All Years</option>
               {[2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018].map(y => (
@@ -759,14 +757,14 @@ export default function AdminQuestionsPage() {
       {!loading && filteredQuestions.length > 0 && (
         <div className="space-y-4">
           {/* Top Pagination Toolbar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 border border-white/10 acrylic-glass rounded-sm text-xs font-mono shadow-md">
-            <div className="flex items-center gap-3 text-on-surface-variant flex-wrap">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 py-2 px-3 border-t border-b border-white/10 text-xs font-mono bg-white/[0.02]">
+            <div className="flex items-center gap-3 text-white/70 flex-wrap">
               <label className="flex items-center gap-1.5 cursor-pointer text-white hover:text-primary transition-colors">
                 <input
                   type="checkbox"
                   checked={paginatedQuestions.length > 0 && paginatedQuestions.every(q => selectedQuestionIds.includes(q.id))}
                   onChange={handleSelectAllOnPage}
-                  className="w-4 h-4 accent-[#00BFFF] cursor-pointer"
+                  className="w-4 h-4 accent-primary cursor-pointer"
                 />
                 <span className="text-[11px] uppercase tracking-wider">Select Page</span>
               </label>
@@ -789,30 +787,30 @@ export default function AdminQuestionsPage() {
                 </button>
               ))}
               <span className="text-white/30 ml-2">|</span>
-              <span className="text-on-surface ml-1">
+              <span className="text-white ml-1">
                 Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filteredQuestions.length)} of {filteredQuestions.length}
               </span>
             </div>
 
             <div className="flex items-center gap-3">
               {/* Dual View Modes Switcher */}
-              <div className="flex items-center bg-surface-container p-1 rounded-sm border border-white/10 text-xs">
+              <div className="flex items-center bg-black/40 p-1 border border-white/10 text-xs">
                 <button
                   type="button"
                   onClick={() => handleSetViewMode('cards')}
-                  className={`px-3 py-1 rounded-sm transition-all cursor-pointer flex items-center gap-1.5 ${
-                    viewMode === 'cards' ? 'bg-primary text-black font-bold shadow-sm' : 'text-white/60 hover:text-white'
+                  className={`px-3 py-1 transition-all cursor-pointer flex items-center gap-1.5 ${
+                    viewMode === 'cards' ? 'bg-primary border border-primary text-black font-bold shadow-sm' : 'text-white/60 hover:text-white'
                   }`}
-                  title="Detailed Cards View"
+                  title="Detailed Stream View"
                 >
                   <LayoutList className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline uppercase text-[11px] tracking-wider">Cards</span>
+                  <span className="hidden sm:inline uppercase text-[11px] tracking-wider">List</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleSetViewMode('table')}
-                  className={`px-3 py-1 rounded-sm transition-all cursor-pointer flex items-center gap-1.5 ${
-                    viewMode === 'table' ? 'bg-primary text-black font-bold shadow-sm' : 'text-white/60 hover:text-white'
+                  className={`px-3 py-1 transition-all cursor-pointer flex items-center gap-1.5 ${
+                    viewMode === 'table' ? 'bg-primary border border-primary text-black font-bold shadow-sm' : 'text-white/60 hover:text-white'
                   }`}
                   title="Dense Table Matrix View"
                 >

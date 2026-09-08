@@ -168,7 +168,7 @@ export default function ResultsPage() {
 
       {/* POST_EVALUATION Confidence Re-Rating Prompt */}
       {showConfidencePrompt && !confidenceSubmitted && topicId && (
-        <div className="acrylic-glass border border-primary/40 rounded-sm p-6 animate-fade-in relative overflow-hidden">
+        <div className="border border-primary/40 bg-primary/[0.04] p-6 animate-fade-in relative overflow-hidden text-left">
           <div className="flex items-start gap-4 mb-4">
             <Sparkles className="w-7 h-7 text-primary flex-shrink-0 mt-0.5" />
             <div>
@@ -184,13 +184,13 @@ export default function ResultsPage() {
             <button
               onClick={handleConfidenceSubmit}
               disabled={confidenceLoading}
-              className="flex-1 py-3 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest hover:brightness-110 transition-all rounded-sm disabled:opacity-50 shadow-md shadow-primary/20 cursor-pointer"
+              className="flex-1 py-3 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest hover:brightness-110 transition-all rounded-none disabled:opacity-50 shadow-md shadow-primary/20 cursor-pointer"
             >
               {confidenceLoading ? 'Saving...' : 'Save Updated Rating'}
             </button>
             <button
               onClick={() => setShowConfidencePrompt(false)}
-              className="px-6 py-3 border border-white/10 text-white/60 hover:text-white hover:bg-white/5 text-xs font-mono uppercase tracking-widest rounded-sm transition-colors"
+              className="px-6 py-3 border border-white/10 text-white/60 hover:text-white hover:bg-white/5 text-xs font-mono uppercase tracking-widest rounded-none transition-colors"
             >
               Skip
             </button>
@@ -199,14 +199,14 @@ export default function ResultsPage() {
       )}
 
       {confidenceSubmitted && (
-        <div className="p-4 bg-status-aligned/10 border border-status-aligned/30 text-sm text-white flex items-center gap-3 rounded-sm font-mono">
+        <div className="p-4 bg-status-aligned/10 border border-status-aligned/30 text-sm text-white flex items-center gap-3 font-mono">
           <CheckCircle2 className="w-5 h-5 text-status-aligned flex-shrink-0" />
           <span>Confidence recalibrated to <strong>{newConfidence}/10</strong>. Knowledge map gap score will update immediately.</span>
         </div>
       )}
 
       {recommendation && (
-        <div className={`mb-6 rounded-sm border border-white/10 p-6 ${
+        <div className={`mb-6 border-l-2 p-5 ${
           recommendation.tone === 'error'
             ? 'border-error bg-error/10 text-error'
             : recommendation.tone === 'primary'
@@ -215,13 +215,13 @@ export default function ResultsPage() {
         }`}>
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <div className="text-label-sm-mono uppercase tracking-widest">Next recommendation</div>
-              <div className="mt-2 text-headline-md">{recommendation.title}</div>
-              <p className="mt-2 text-body-md max-w-2xl">{recommendation.description}</p>
+              <div className="text-xs font-mono uppercase tracking-widest">Next recommendation</div>
+              <div className="mt-1 text-2xl font-light">{recommendation.title}</div>
+              <p className="mt-2 text-sm text-white/80 max-w-2xl font-light">{recommendation.description}</p>
             </div>
             <button
               onClick={() => navigate(recommendation.target, { state: topicId ? { topic: topicId } : undefined })}
-              className="px-4 py-3 rounded-sm border border-current bg-white/10 text-body-md font-semibold hover:opacity-90 transition-colors"
+              className="px-5 py-2.5 border border-current bg-white/10 text-xs font-mono uppercase tracking-widest font-semibold hover:opacity-90 transition-colors"
             >
               {recommendation.cta}
             </button>
@@ -246,7 +246,7 @@ export default function ResultsPage() {
           >
             <motion.div
               variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}
-              className="p-4 acrylic-glass border border-primary/40 bg-primary/10 rounded-sm text-left relative overflow-hidden shadow-md"
+              className="p-4 border border-primary/40 bg-primary/10 text-left relative overflow-hidden"
             >
               <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
               <div className="text-2xl md:text-3xl font-light text-primary font-sans mt-0.5">{summary.correct}/{summary.total_questions}</div>
@@ -255,7 +255,7 @@ export default function ResultsPage() {
 
             <motion.div
               variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}
-              className="p-4 acrylic-glass border border-white/10 rounded-sm text-left relative overflow-hidden shadow-md"
+              className="p-4 border border-white/10 bg-white/[0.02] text-left relative overflow-hidden"
             >
               <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
               <div className={`text-2xl md:text-3xl font-light font-sans mt-0.5 ${
@@ -269,7 +269,7 @@ export default function ResultsPage() {
 
             <motion.div
               variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}
-              className="p-4 acrylic-glass border border-white/10 rounded-sm text-left relative overflow-hidden shadow-md"
+              className="p-4 border border-white/10 bg-white/[0.02] text-left relative overflow-hidden"
             >
               <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
               <div className="text-2xl md:text-3xl font-light text-white font-sans mt-0.5">{summary.attempt_rate}%</div>
@@ -278,7 +278,7 @@ export default function ResultsPage() {
 
             <motion.div
               variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}
-              className="p-4 acrylic-glass border border-white/10 rounded-sm text-left relative overflow-hidden shadow-md"
+              className="p-4 border border-white/10 bg-white/[0.02] text-left relative overflow-hidden"
             >
               <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
               <div className="text-2xl md:text-3xl font-light text-white font-sans mt-0.5">
@@ -289,7 +289,7 @@ export default function ResultsPage() {
 
             <motion.div
               variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}
-              className="p-4 acrylic-glass border border-white/10 rounded-sm text-left col-span-2 sm:col-span-1 relative overflow-hidden shadow-md"
+              className="p-4 border border-white/10 bg-white/[0.02] text-left col-span-2 sm:col-span-1 relative overflow-hidden"
             >
               <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
               <div className={`text-2xl md:text-3xl font-light font-sans mt-0.5 ${
@@ -313,12 +313,12 @@ export default function ResultsPage() {
 
       {/* Difficulty Breakdown */}
       {diffBreakdown && (
-        <div className="acrylic-glass border border-white/10 rounded-sm p-6">
-          <h3 className="text-xs font-mono uppercase tracking-widest text-white/60 mb-6 flex items-center gap-2">
+        <div className="border border-white/10 p-5 bg-black/40 text-left">
+          <h3 className="text-xs font-mono uppercase tracking-widest text-primary mb-5 flex items-center gap-2 font-bold">
             <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
             DIFFICULTY ACCURACY BREAKDOWN
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {['easy', 'medium', 'hard'].map(diff => {
               const d = diffBreakdown[diff];
               if (!d || d.total === 0) return null;
@@ -326,7 +326,7 @@ export default function ResultsPage() {
               const barClass = diff === 'easy' ? 'bg-status-aligned' : diff === 'medium' ? 'bg-status-weak' : 'bg-error';
 
               return (
-                <div key={diff} className="bg-surface-container/60 border border-white/5 rounded-sm p-4 text-center">
+                <div key={diff} className="bg-white/[0.02] border border-white/10 p-4 text-center">
                   <div className={`text-2xl font-light font-mono ${colorClass}`}>
                     {d.accuracy !== null ? `${d.accuracy}%` : '—'}
                   </div>
@@ -348,10 +348,10 @@ export default function ResultsPage() {
 
       {/* Mistakes List */}
       {mistakes.length > 0 && (
-        <div className="acrylic-glass border border-white/10 rounded-sm p-6">
+        <div className="border border-white/10 p-5 bg-black/40 text-left">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
             <div>
-              <h3 className="text-xs font-mono uppercase tracking-widest text-error flex items-center gap-2">
+              <h3 className="text-xs font-mono uppercase tracking-widest text-error flex items-center gap-2 font-bold">
                 <AlertTriangle className="w-4 h-4" />
                 ERROR ANALYSIS & MISSED QUESTIONS ({mistakes.length})
               </h3>
@@ -360,7 +360,7 @@ export default function ResultsPage() {
             <button
               onClick={handleReDrill}
               disabled={reDrillLoading}
-              className="px-4 py-2 bg-error text-white text-xs font-mono uppercase tracking-widest font-semibold hover:bg-error/80 transition-colors rounded-sm flex items-center gap-2"
+              className="px-4 py-2 bg-error text-white text-xs font-mono uppercase tracking-widest font-semibold hover:bg-error/80 transition-colors rounded-none flex items-center gap-2 cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               {reDrillLoading ? 'Starting Drill...' : 'Re-drill Mistakes'}
@@ -369,35 +369,35 @@ export default function ResultsPage() {
 
           <div className="space-y-4">
             {mistakes.map((m, i) => (
-              <div key={i} className="p-5 rounded-sm bg-surface-container/40 border border-white/10 hover:border-white/20 transition-colors">
+              <div key={i} className="p-5 bg-white/[0.02] border border-white/10">
                 <div className="flex items-start gap-3 mb-3">
-                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded-xs uppercase tracking-wider ${
-                    m.difficulty === 'easy' ? 'bg-status-aligned/15 text-status-aligned border border-status-aligned/30' :
-                    m.difficulty === 'medium' ? 'bg-status-weak/15 text-status-weak border border-status-weak/30' :
-                    'bg-error/15 text-error border border-error/30'
+                  <span className={`text-[10px] font-mono px-2 py-0.5 uppercase tracking-wider font-bold border ${
+                    m.difficulty === 'easy' ? 'bg-status-aligned/15 text-status-aligned border-status-aligned/30' :
+                    m.difficulty === 'medium' ? 'bg-status-weak/15 text-status-weak border-status-weak/30' :
+                    'bg-error/15 text-error border-error/30'
                   }`}>
                     {m.difficulty || 'MEDIUM'}
                   </span>
                   {m.source_type && (
-                    <span className="text-[10px] font-mono px-2 py-0.5 bg-primary/10 border border-primary/20 text-primary rounded-xs uppercase">
+                    <span className="text-[10px] font-mono px-2 py-0.5 bg-primary/10 border border-primary/30 text-primary uppercase">
                       {m.source_type}
                     </span>
                   )}
                 </div>
 
-                <div className="text-sm md:text-base text-white/90 mb-4 leading-relaxed font-sans">
+                <div className="text-base text-white/90 mb-4 leading-relaxed font-light">
                   <MathText text={m.question_text} />
                 </div>
 
-                <div className="flex flex-wrap gap-4 text-xs font-mono p-3 bg-black/40 border border-white/5 rounded-sm">
+                <div className="flex flex-wrap gap-4 text-xs font-mono p-3 bg-black/40 border border-white/5">
                   <span className="text-error">Your answer: <strong>{m.selected_answer || 'Skipped'}</strong></span>
                   <span className="text-status-aligned">Correct answer: <strong>{m.correct_answer}</strong></span>
                 </div>
 
                 {m.solution_text && (
-                  <div className="mt-4 p-4 rounded-sm bg-surface-elevated/50 border border-primary/30">
-                    <div className="text-xs font-mono text-primary font-bold tracking-widest uppercase mb-2">VERIFIED STEP-BY-STEP SOLUTION</div>
-                    <div className="text-sm text-white/90 leading-relaxed font-sans">
+                  <div className="mt-4 p-4 bg-white/[0.02] border-l-2 border-primary space-y-2">
+                    <div className="text-xs font-mono text-primary font-bold tracking-widest uppercase">VERIFIED STEP-BY-STEP SOLUTION</div>
+                    <div className="text-sm text-white/90 leading-relaxed font-light">
                       <MathText text={m.solution_text} />
                     </div>
                   </div>
@@ -411,7 +411,7 @@ export default function ResultsPage() {
             whileTap={{ scale: 0.98 }}
             onClick={handleReDrill}
             disabled={reDrillLoading}
-            className="w-full mt-6 py-3.5 bg-error text-white text-xs font-mono font-bold uppercase tracking-widest hover:bg-error/80 transition-colors rounded-sm flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full mt-6 py-3.5 bg-error text-white text-xs font-mono font-bold uppercase tracking-widest hover:bg-error/80 transition-colors rounded-none flex items-center justify-center gap-2 cursor-pointer"
           >
             <RotateCcw className="w-4 h-4" />
             {reDrillLoading ? 'Starting Targeted Session...' : `Practice All ${mistakes.length} Mistakes Now`}

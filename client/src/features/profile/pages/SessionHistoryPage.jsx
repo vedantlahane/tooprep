@@ -164,7 +164,7 @@ export default function SessionHistoryPage() {
       )}
 
       {allSessions.length === 0 ? (
-        <div className="text-center py-16 acrylic-glass border border-white/10 rounded-sm">
+        <div className="text-center py-16 border border-white/10 rounded-sm bg-black/30">
           <History className="w-14 h-14 text-primary block opacity-60 mb-4 mx-auto" />
           <h3 className="text-xl font-light text-white mb-2">No sessions recorded yet</h3>
           <p className="text-sm text-white/50 max-w-md mx-auto mb-6 font-mono">
@@ -182,21 +182,21 @@ export default function SessionHistoryPage() {
           {/* Analytics KPI Cards */}
           {analytics && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="acrylic-glass border border-primary/40 bg-primary/10 rounded-sm p-4 text-center relative overflow-hidden shadow-md">
+              <div className="border border-primary/40 bg-primary/10 rounded-sm p-4 text-center relative overflow-hidden">
                 <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
                 <div className="text-[10px] font-mono text-white/60 uppercase tracking-widest mb-1 font-semibold">Total Sessions</div>
                 <div className="text-2xl md:text-3xl font-light font-sans text-primary">{analytics.totalSessions}</div>
                 <div className="text-[10px] font-mono text-white/40 mt-1">evals & drills</div>
               </div>
 
-              <div className="acrylic-glass border border-white/10 rounded-sm p-4 text-center relative overflow-hidden shadow-md">
+              <div className="border border-white/10 bg-black/40 rounded-sm p-4 text-center relative overflow-hidden">
                 <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
                 <div className="text-[10px] font-mono text-white/60 uppercase tracking-widest mb-1 font-semibold">Time Invested</div>
                 <div className="text-2xl md:text-3xl font-light font-sans text-white">{analytics.totalHours}h</div>
                 <div className="text-[10px] font-mono text-white/40 mt-1">active testing</div>
               </div>
 
-              <div className="acrylic-glass border border-white/10 rounded-sm p-4 text-center">
+              <div className="border border-white/10 bg-black/40 rounded-sm p-4 text-center">
                 <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest mb-1">Avg Accuracy</div>
                 <div className={`text-2xl md:text-3xl font-light font-mono ${
                   analytics.avgAccuracy >= 70 ? 'text-status-aligned' :
@@ -210,7 +210,7 @@ export default function SessionHistoryPage() {
               <div className={`rounded-sm p-4 text-center border ${
                 analytics.trend === 'improving'
                   ? 'bg-status-aligned/10 border-status-aligned/30'
-                  : 'acrylic-glass border-white/10'
+                  : 'border border-white/10 bg-black/40'
               }`}>
                 <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest mb-1">Recent Trend</div>
                 <div className={`text-2xl md:text-3xl font-light font-mono flex items-center justify-center gap-1.5 ${
@@ -225,7 +225,7 @@ export default function SessionHistoryPage() {
           )}
 
           {/* Filters & Sort Controls */}
-          <div className="acrylic-glass border border-white/10 p-4 rounded-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="border-t border-b border-white/10 py-3 px-1 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest mr-1">Filter:</span>
               {['ALL', 'PRACTICE', 'EVALUATION'].map(type => (
@@ -234,8 +234,8 @@ export default function SessionHistoryPage() {
                   onClick={() => setTypeFilter(type)}
                   className={`px-3 py-1.5 rounded-xs text-xs font-mono uppercase tracking-wider transition-colors ${
                     typeFilter === type
-                      ? 'bg-primary text-white font-bold'
-                      : 'bg-surface-container border border-white/10 text-white/60 hover:text-white hover:border-white/20'
+                      ? 'bg-primary text-black font-semibold'
+                      : 'bg-transparent border border-white/10 text-white/60 hover:text-white hover:border-white/20'
                   }`}
                 >
                   {type === 'ALL' ? 'All' : type === 'PRACTICE' ? 'Practice' : 'Mocks'}
@@ -258,7 +258,7 @@ export default function SessionHistoryPage() {
           </div>
 
           {/* Sessions Timeline */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             {allSessions.map((session) => {
               const accuracy = session.accuracy ?? session.summary?.accuracy;
               const isEval = session.type === 'EVALUATION';
@@ -266,7 +266,7 @@ export default function SessionHistoryPage() {
               return (
                 <div
                   key={`${session.type}-${session.sessionId}`}
-                  className="p-4 bg-surface-container/40 border border-white/10 hover:border-white/25 rounded-sm transition-all cursor-pointer group flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                  className="p-4 border-b border-white/10 hover:bg-white/[0.02] transition-all cursor-pointer group flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                   onClick={() => {
                     if (isEval) {
                       navigate(`/results/${session.sessionId}`);

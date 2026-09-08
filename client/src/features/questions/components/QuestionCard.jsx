@@ -42,9 +42,9 @@ export default function QuestionCard({
     }
 
     if (isSelected) {
-      return 'bg-primary text-black font-semibold border-primary shadow-lg shadow-primary/20 ring-2 ring-primary ring-offset-2 ring-offset-black';
+      return 'bg-primary text-black font-semibold border-primary shadow-sm';
     }
-    return 'bg-surface-container/70 border-white/10 hover:border-primary/50 text-white hover:bg-surface-bright/80';
+    return 'bg-white/[0.03] border-white/10 hover:border-primary/60 text-white hover:bg-white/[0.08]';
   };
 
   const getLetterBadgeStyle = (optionId) => {
@@ -64,7 +64,7 @@ export default function QuestionCard({
   };
 
   return (
-    <div className="acrylic-glass border border-white/10 p-6 md:p-8 animate-slide-up rounded-sm shadow-xl space-y-6 text-left">
+    <div className="w-full animate-slide-up space-y-6 text-left">
       {/* Question header */}
       <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4">
         <div className="flex items-center gap-3">
@@ -98,7 +98,7 @@ export default function QuestionCard({
             className={`p-2 transition-all rounded-sm border cursor-pointer ${
               markedForReview
                 ? 'border-[#FF9500] text-[#FF9500] bg-[#FF9500]/15'
-                : 'border-white/10 text-white/50 hover:text-white hover:border-white/30 bg-surface-container/50'
+                : 'border-white/10 text-white/50 hover:text-white hover:border-white/30 bg-white/5'
             }`}
             title="Mark for Review"
           >
@@ -119,8 +119,8 @@ export default function QuestionCard({
             key={opt.id}
             type="button"
             disabled={disabled || showResult}
-            whileHover={disabled || showResult ? {} : { scale: 1.006, x: 2 }}
-            whileTap={disabled || showResult ? {} : { scale: 0.994 }}
+            whileHover={disabled || showResult ? {} : { scale: 1.004, x: 2 }}
+            whileTap={disabled || showResult ? {} : { scale: 0.996 }}
             transition={{ type: 'spring', stiffness: 450, damping: 25 }}
             onClick={() => onSelectAnswer && onSelectAnswer(opt.id)}
             className={`w-full text-left p-3.5 md:p-4 flex items-start gap-3.5 rounded-sm border transition-all duration-150 ${getOptionStyle(opt.id)} ${
@@ -165,7 +165,7 @@ export default function QuestionCard({
             animate={{ opacity: 1, height: 'auto', y: 0 }}
             exit={{ opacity: 0, height: 0, y: -8 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="mt-6 p-5 md:p-6 bg-surface-container/90 border border-primary/30 rounded-sm overflow-hidden space-y-3"
+            className="mt-6 p-5 md:p-6 bg-white/[0.02] border-l-2 border-primary border-t-0 border-r-0 border-b-0 space-y-3"
           >
             <div className="flex items-center gap-2 text-[11px] font-mono text-primary font-bold uppercase tracking-widest">
               <Sparkles className="w-3.5 h-3.5 text-primary" />
