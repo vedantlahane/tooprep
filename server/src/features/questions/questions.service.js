@@ -65,7 +65,7 @@ export const questionsService = {
    *   newest first.
    * @throws  {Error} If the Supabase query fails.
    */
-  async getQuestions({ topic_id, topic_ids, chapter_id, chapter_ids, difficulty, source_type, verified, exam_year, sort }, { includeAnswers = false } = {}) {
+  async getQuestions({ topic_id, topic_ids, chapter_id, chapter_ids, difficulty, source_type, verified, exam_year, sort, has_solution }, { includeAnswers = false } = {}) {
     /* Start with a base query that selects every column. */
     const fields = includeAnswers
       ? '*'
@@ -116,6 +116,13 @@ export const questionsService = {
        Coerce to a real boolean so the equality check works correctly
        against the Postgres boolean column. */
     if (verified !== undefined) query = query.eq('verified', verified === 'true');
+    if (has_solution !== undefined) {
+      if (has_solution === 'true' || has_solution === true) {
+        query = query.not('solution_text', 'is', null);
+      } else if (has_solution === 'false' || has_solution === false) {
+        query = query.is('solution_text', null);
+      }
+    }
 
     /* Sorting */
     if (sort === 'oldest') {
@@ -399,5 +406,149 @@ export const questionsService = {
 
     if (error) throw new Error(error.message);
     return { deleted_count: data?.length || 0, ids: (data || []).map(d => d.id) };
+  },
+
+  /**
+   * Bulk reassign/move multiple questions to a target topic (admin-only).
+   *
+   * @param {string[]} ids - Array of question UUIDs.
+   * @param {string} targetTopicId - Destination topic UUID.
+   * @returns {Promise<{ updated_count: number, topic_id: string, topic_name: string }>}
+   */
+  async bulkMoveQuestions(ids, targetTopicId) {
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      const err = new Error('ids array must not be empty');
+      err.statusCode = 400;
+      throw err;
+    }
+    if (!targetTopicId) {
+      const err = new Error('targetTopicId is required');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    // Verify target topic exists
+    const { data: topic, error: topicErr } = await supabaseAdmin
+      .from('topics')
+      .select('id, name')
+      .eq('id', targetTopicId)
+      .single();
+
+    if (topicErr || !topic) {
+      const err = new Error(`Target topic '${targetTopicId}' not found`);
+      err.statusCode = 404;
+      throw err;
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('questions')
+      .update({ topic_id: targetTopicId })
+      .in('id', ids)
+      .select('id');
+
+    if (error) throw new Error(error.message);
+    return { updated_count: data?.length || 0, topic_id: targetTopicId, topic_name: topic.name };
+  },
+
+  /**
+   * Bulk import an array of questions (admin-only).
+   * Validates each question, assigns canonical IDs, sets defaults, and inserts.
+   *
+   * @param {Array<Object>} questions - List of raw question objects.
+   * @param {string} [defaultTopicId] - Fallback topic UUID if item lacks topic_id.
+   * @returns {Promise<{ inserted_count: number, total_submitted: number, rejected_count: number, rejected_items: Array<Object>, questions: Array<Object> }>}
+   */
+  async bulkImportQuestions(questions, defaultTopicId) {
+    if (!questions || !Array.isArray(questions) || questions.length === 0) {
+      const err = new Error('questions must be a non-empty array');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const validItems = [];
+    const rejectedItems = [];
+
+    for (let i = 0; i < questions.length; i++) {
+      const item = questions[i];
+      const assignedTopicId = item.topic_id || defaultTopicId;
+
+      if (!assignedTopicId) {
+        rejectedItems.push({ index: i, error: 'Missing topic_id and no default provided' });
+        continue;
+      }
+      if (!item.question_text || typeof item.question_text !== 'string' || item.question_text.trim() === '') {
+        rejectedItems.push({ index: i, error: 'Missing or empty question_text' });
+        continue;
+      }
+      if (!item.options || typeof item.options !== 'object') {
+        rejectedItems.push({ index: i, error: 'Missing or invalid options object/array' });
+        continue;
+      }
+      if (!item.correct_answer) {
+        rejectedItems.push({ index: i, error: 'Missing correct_answer' });
+        continue;
+      }
+
+      let formattedOptions = item.options;
+      if (Array.isArray(item.options)) {
+        const optObj = {};
+        for (const opt of item.options) {
+          if (opt && opt.id && opt.text !== undefined) {
+            optObj[opt.id.toUpperCase()] = String(opt.text);
+          }
+        }
+        formattedOptions = optObj;
+      }
+
+      const canonicalId = item.canonical_question_id || createQuestionId({
+        topic_id: assignedTopicId,
+        difficulty: (item.difficulty || 'medium').toLowerCase(),
+        source_type: item.source_type || 'PYQ',
+        question_text: item.question_text
+      });
+
+      const isVerified = item.verified !== undefined ? Boolean(item.verified) : true;
+      const pubStatus = item.publication_status || (isVerified ? 'PUBLISHED' : 'DRAFT');
+
+      validItems.push({
+        canonical_question_id: canonicalId,
+        topic_id: assignedTopicId,
+        source_type: item.source_type || 'PYQ',
+        provider: item.provider || 'system_import',
+        exam_year: item.exam_year ? Number(item.exam_year) : 2024,
+        exam_session: item.exam_session || null,
+        exam_shift: item.exam_shift || null,
+        question_type: item.question_type || 'single_correct',
+        question_text: item.question_text,
+        options: formattedOptions,
+        correct_answer: String(item.correct_answer).toUpperCase(),
+        solution_text: item.solution_text || null,
+        difficulty: (item.difficulty || 'medium').toLowerCase(),
+        verified: isVerified,
+        publication_status: pubStatus
+      });
+    }
+
+    if (validItems.length === 0) {
+      const err = new Error(`All ${questions.length} questions failed validation: ${rejectedItems.map(r => `Row ${r.index + 1}: ${r.error}`).join('; ')}`);
+      err.statusCode = 400;
+      err.details = rejectedItems;
+      throw err;
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('questions')
+      .insert(validItems)
+      .select('id, canonical_question_id, topic_id, difficulty, verified');
+
+    if (error) throw new Error(error.message);
+
+    return {
+      inserted_count: data?.length || 0,
+      total_submitted: questions.length,
+      rejected_count: rejectedItems.length,
+      rejected_items: rejectedItems,
+      questions: data || []
+    };
   }
 };

@@ -165,5 +165,36 @@ export const questionsController = {
       const statusCode = err.statusCode || 500;
       return res.status(statusCode).json({ error: err.message || 'Server error' });
     }
+  },
+
+  /**
+   * POST /api/questions/bulk-move — Bulk reassign questions to a target topic (admin-only).
+   */
+  async bulkMove(req, res) {
+    try {
+      const ids = req.body.ids || req.body.question_ids;
+      const targetTopicId = req.body.topic_id || req.body.target_topic_id;
+      const result = await questionsService.bulkMoveQuestions(ids, targetTopicId);
+      return res.json(result);
+    } catch (err) {
+      console.error('POST /questions/bulk-move error:', err);
+      const statusCode = err.statusCode || 500;
+      return res.status(statusCode).json({ error: err.message || 'Server error' });
+    }
+  },
+
+  /**
+   * POST /api/questions/bulk-import — Bulk import questions with validation (admin-only).
+   */
+  async bulkImport(req, res) {
+    try {
+      const { questions, default_topic_id, defaultTopicId } = req.body;
+      const result = await questionsService.bulkImportQuestions(questions, default_topic_id || defaultTopicId);
+      return res.status(201).json(result);
+    } catch (err) {
+      console.error('POST /questions/bulk-import error:', err);
+      const statusCode = err.statusCode || 500;
+      return res.status(statusCode).json({ error: err.message || 'Server error', details: err.details });
+    }
   }
 };

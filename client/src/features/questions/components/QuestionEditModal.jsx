@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { topicsService } from '@/features/topics/services/topicsService';
 import { questionsService } from '../services/questionsService';
@@ -14,21 +14,44 @@ import Icon, {
   Trash2,
   BookOpen,
   Eye,
-  Edit3
+  Edit3,
+  Calculator,
+  Copy
 } from '@/shared/components/Icon';
 
 const DIFFICULTIES = ['easy', 'medium', 'hard'];
 const SOURCE_TYPES = ['PYQ', 'ORIGINAL', 'LICENSED'];
 
+const MATH_SNIPPETS = [
+  { label: 'a/b', snippet: '\\frac{a}{b}', title: 'Fraction' },
+  { label: '√x', snippet: '\\sqrt{x}', title: 'Square Root' },
+  { label: 'x²', snippet: '^{2}', title: 'Superscript (Power)' },
+  { label: 'x₁', snippet: '_{1}', title: 'Subscript' },
+  { label: '∫', snippet: '\\int_{a}^{b} f(x) \\, dx', title: 'Definite Integral' },
+  { label: '∑', snippet: '\\sum_{i=1}^{n}', title: 'Summation' },
+  { label: 'Δ', snippet: '\\Delta', title: 'Delta' },
+  { label: '→', snippet: '\\rightarrow', title: 'Reaction / Vector Arrow' },
+  { label: 'α', snippet: '\\alpha', title: 'Alpha' },
+  { label: 'β', snippet: '\\beta', title: 'Beta' },
+  { label: 'θ', snippet: '\\theta', title: 'Theta' },
+  { label: 'π', snippet: '\\pi', title: 'Pi' },
+  { label: '±', snippet: '\\pm', title: 'Plus-Minus' },
+  { label: '×', snippet: '\\times', title: 'Multiplication' },
+  { label: '≈', snippet: '\\approx', title: 'Approximately Equal' },
+  { label: '∞', snippet: '\\infty', title: 'Infinity' },
+  { label: 'text', snippet: '\\text{word}', title: 'Plain text inside math' },
+];
+
 export default function QuestionEditModal({
   question = null, // null for Create mode, object for Edit mode
+  isClone = false,
   initialTopicId = '',
   isOpen = false,
   onClose,
   onSaved,
   onDeleted
 }) {
-  const isEditMode = Boolean(question?.id);
+  const isEditMode = Boolean(question?.id) && !isClone;
 
   // Hierarchy state for topic picker
   const [hierarchy, setHierarchy] = useState([]);
@@ -60,7 +83,26 @@ export default function QuestionEditModal({
   const [uploadingImage, setUploadingImage] = useState(false);
 
   const fileInputRef = useRef(null);
+  const stemTextareaRef = useRef(null);
+  const solutionTextareaRef = useRef(null);
   const [targetField, setTargetField] = useState('stem'); // 'stem' | 'optA' | etc.
+
+  const insertSnippet = useCallback((textareaRef, setter, snippet) => {
+    const el = textareaRef.current;
+    if (!el) {
+      setter(prev => prev + snippet);
+      return;
+    }
+    const start = el.selectionStart ?? el.value.length;
+    const end = el.selectionEnd ?? el.value.length;
+    const currentVal = el.value;
+    const nextVal = currentVal.substring(0, start) + snippet + currentVal.substring(end);
+    setter(nextVal);
+    setTimeout(() => {
+      el.focus();
+      el.setSelectionRange(start + snippet.length, start + snippet.length);
+    }, 0);
+  }, []);
 
   // Load curriculum hierarchy
   useEffect(() => {
@@ -78,7 +120,7 @@ export default function QuestionEditModal({
       setDifficulty((question.difficulty || 'medium').toLowerCase());
       setSourceType(question.source_type || 'PYQ');
       setExamYear(question.exam_year || 2024);
-      setVerified(Boolean(question.verified || question.is_verified));
+      setVerified(isClone ? false : Boolean(question.verified || question.is_verified));
       setTopicId(question.topic_id || '');
 
       // Parse options safely
@@ -116,7 +158,7 @@ export default function QuestionEditModal({
     }
     setError('');
     setShowDeleteConfirm(false);
-  }, [question, isOpen, initialTopicId]);
+  }, [question, isOpen, initialTopicId, isClone]);
 
   // Sync subject and chapter dropdowns from topicId
   useEffect(() => {
@@ -255,6 +297,44 @@ export default function QuestionEditModal({
     }
   };
 
+  // Keyboard shortcuts: Ctrl+S / Cmd+S to save, Esc to close
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        handleSaveRef.current();
+      } else if (e.key === 'Escape' && !saving) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, saving, onClose]);
+
+  const renderMathToolbar = (textareaRef, setter) => (
+    <div className="flex items-center gap-1 flex-wrap py-1.5 px-2 bg-black border border-white/10 text-xs font-mono mb-1">
+      <span className="text-[10px] uppercase tracking-wider text-primary font-bold mr-1 flex items-center gap-1 shrink-0">
+        <Calculator className="w-3 h-3 text-primary" />
+        <span>LaTeX:</span>
+      </span>
+      {MATH_SNIPPETS.map(item => (
+        <button
+          key={item.label}
+          type="button"
+          onClick={() => insertSnippet(textareaRef, setter, item.snippet)}
+          title={item.title}
+          className="px-1.5 py-0.5 bg-surface-container border border-white/15 hover:border-primary text-white/80 hover:text-white text-[11px] transition-colors cursor-pointer"
+        >
+          {item.label}
+        </button>
+      ))}
+    </div>
+  );
+
   if (!isOpen) return null;
 
   return (
@@ -279,13 +359,18 @@ export default function QuestionEditModal({
           <div className="bg-black px-6 py-4 border-b border-white/10 flex items-center justify-between flex-wrap gap-3">
             <div>
               <div className="text-label-sm-mono uppercase tracking-[0.2em] text-primary text-xs flex items-center gap-2">
-                <span>{isEditMode ? 'Edit Question' : 'New Question Composer'}</span>
+                <span>{isClone ? 'Clone Question Variant' : isEditMode ? 'Edit Question' : 'New Question Composer'}</span>
+                {isClone && (
+                  <span className="px-1.5 py-0.5 bg-[#FF8C00]/20 border border-[#FF8C00]/40 text-[#FF8C00] text-[10px] font-bold">
+                    CLONE MODE
+                  </span>
+                )}
                 {question?.canonical_question_id && (
                   <span className="text-white/40">[{question.canonical_question_id}]</span>
                 )}
               </div>
               <h2 className="text-xl font-light text-white">
-                {isEditMode ? 'Modify Question & Solution' : 'Publish Question to Bank'}
+                {isClone ? 'Create Variant from Existing Question' : isEditMode ? 'Modify Question & Solution' : 'Publish Question to Bank'}
               </h2>
             </div>
 
@@ -454,13 +539,17 @@ export default function QuestionEditModal({
               </div>
 
               {viewMode !== 'preview' && (
-                <textarea
-                  value={questionText}
-                  onChange={e => setQuestionText(e.target.value)}
-                  rows="4"
-                  className="w-full bg-black border border-white/15 p-3 text-white font-mono text-sm outline-none focus:border-primary"
-                  placeholder="Enter question text with LaTeX math (e.g. $E = mc^2$ or $$\int_0^1 x dx$$)..."
-                />
+                <>
+                  {renderMathToolbar(stemTextareaRef, setQuestionText)}
+                  <textarea
+                    ref={stemTextareaRef}
+                    value={questionText}
+                    onChange={e => setQuestionText(e.target.value)}
+                    rows="4"
+                    className="w-full bg-black border border-white/15 p-3 text-white font-mono text-sm outline-none focus:border-primary"
+                    placeholder="Enter question text with LaTeX math (e.g. $E = mc^2$ or $$\int_0^1 x dx$$)..."
+                  />
+                </>
               )}
 
               {viewMode !== 'edit' && (
@@ -556,13 +645,17 @@ export default function QuestionEditModal({
               </label>
 
               {viewMode !== 'preview' && (
-                <textarea
-                  value={solutionText}
-                  onChange={e => setSolutionText(e.target.value)}
-                  rows="3"
-                  className="w-full bg-black border border-white/15 p-3 text-white font-mono text-xs outline-none focus:border-primary"
-                  placeholder="Detailed mathematical derivation and reasoning..."
-                />
+                <>
+                  {renderMathToolbar(solutionTextareaRef, setSolutionText)}
+                  <textarea
+                    ref={solutionTextareaRef}
+                    value={solutionText}
+                    onChange={e => setSolutionText(e.target.value)}
+                    rows="3"
+                    className="w-full bg-black border border-white/15 p-3 text-white font-mono text-xs outline-none focus:border-primary"
+                    placeholder="Detailed mathematical derivation and reasoning..."
+                  />
+                </>
               )}
 
               {viewMode !== 'edit' && solutionText && (
@@ -628,10 +721,11 @@ export default function QuestionEditModal({
                 type="button"
                 disabled={saving}
                 onClick={handleSave}
-                className="px-6 py-2.5 bg-primary text-white font-bold text-xs font-mono uppercase tracking-widest hover:brightness-110 shadow-lg flex items-center gap-2 transition-all disabled:opacity-50"
+                title="Save question (Shortcut: Ctrl+S / Cmd+S)"
+                className="px-6 py-2.5 bg-primary text-white font-bold text-xs font-mono uppercase tracking-widest hover:brightness-110 shadow-lg flex items-center gap-2 transition-all disabled:opacity-50 cursor-pointer"
               >
                 <Save className="w-4 h-4" />
-                <span>{saving ? 'Saving...' : isEditMode ? 'Update Question' : 'Publish Question'}</span>
+                <span>{saving ? 'Saving...' : isClone ? 'Publish Cloned Variant' : isEditMode ? 'Update Question' : 'Publish Question'}</span>
               </button>
             </div>
           </div>

@@ -45,4 +45,6 @@ export const questionsService = {
   toggleVerify: (id, verified) => request('PATCH', `/questions/${id}/verify`, { verified }),
   bulkVerify: (question_ids, verified) => request('POST', '/questions/bulk-verify', { question_ids, verified }),
   bulkDelete: (question_ids) => request('POST', '/questions/bulk-delete', { question_ids }),
+  bulkMove: (ids, topic_id) => request('POST', '/questions/bulk-move', { ids, topic_id }),
+  bulkImport: (questions, default_topic_id) => request('POST', '/questions/bulk-import', { questions, default_topic_id }),
 };

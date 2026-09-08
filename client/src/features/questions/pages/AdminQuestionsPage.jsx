@@ -4,6 +4,9 @@ import { topicsService } from '@/features/topics/services/topicsService';
 import { questionsService } from '../services/questionsService';
 import MathText from '@/features/questions/components/MathText';
 import QuestionEditModal from '@/features/questions/components/QuestionEditModal';
+import BulkMoveModal from '@/features/questions/components/BulkMoveModal';
+import QuestionImportModal from '@/features/questions/components/QuestionImportModal';
+import AdminQuestionsTableView from '@/features/questions/components/AdminQuestionsTableView';
 import CurriculumMultiPicker from '@/shared/components/CurriculumMultiPicker';
 import Icon, {
   Check,
@@ -20,7 +23,13 @@ import Icon, {
   ChevronDown,
   ChevronUp,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Layers,
+  Table,
+  LayoutList,
+  UploadCloud,
+  AlertTriangle,
+  Download
 } from '@/shared/components/Icon';
 
 const DIFFICULTIES = ['All', 'Easy', 'Medium', 'Hard'];
@@ -31,7 +40,7 @@ const DIFFICULTY_STYLES = {
   hard: 'bg-error/20 text-error border-error/40',
 };
 
-const AdminQuestionCard = memo(function AdminQuestionCard({ q, isSelected, onToggleSelect, onEdit, onDelete, onToggleVerify }) {
+const AdminQuestionCard = memo(function AdminQuestionCard({ q, isSelected, onToggleSelect, onEdit, onClone, onDelete, onToggleVerify }) {
   const [copied, setCopied] = useState(false);
   const [toggling, setToggling] = useState(false);
   const [showSolution, setShowSolution] = useState(false);
@@ -110,6 +119,15 @@ const AdminQuestionCard = memo(function AdminQuestionCard({ q, isSelected, onTog
           >
             <Edit3 className="w-3.5 h-3.5" />
             <span>Edit</span>
+          </button>
+
+          <button
+            onClick={() => onClone(q)}
+            className="flex items-center gap-1 px-3 py-1 bg-white/5 border border-white/20 text-white hover:border-primary hover:text-primary transition-colors text-label-sm-mono uppercase tracking-widest text-xs font-semibold cursor-pointer"
+            title="Clone / Author variant"
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Clone</span>
           </button>
 
           <button
@@ -199,6 +217,15 @@ const AdminQuestionCard = memo(function AdminQuestionCard({ q, isSelected, onTog
   );
 });
 
+const QUALITY_PRESETS = [
+  { id: 'all', label: 'All' },
+  { id: 'verified', label: 'Verified (Live)' },
+  { id: 'draft', label: 'Drafts (Hidden)' },
+  { id: 'missing_solution', label: '⚠️ Missing Solutions' },
+  { id: 'has_solution', label: 'Has Solutions' },
+  { id: 'pyq_only', label: 'PYQ Only' }
+];
+
 export default function AdminQuestionsPage() {
   const [searchParams] = useSearchParams();
   const initialTopicFromUrl = searchParams.get('topic_id') || '';
@@ -210,11 +237,21 @@ export default function AdminQuestionsPage() {
     initialTopicFromUrl ? [initialTopicFromUrl] : []
   );
   const [selectedDifficulty, setSelectedDifficulty] = useState('All');
-  const [verificationFilter, setVerificationFilter] = useState('All'); // 'All' | 'Verified' | 'Draft'
+  const [qualityPreset, setQualityPreset] = useState('all');
   const [sourceTypeFilter, setSourceTypeFilter] = useState('All'); // 'All' | 'PYQ' | 'ORIGINAL'
   const [examYearFilter, setExamYearFilter] = useState('All');
   const [sortOption, setSortOption] = useState('newest'); // 'newest' | 'oldest' | 'difficulty_asc' | 'difficulty_desc'
   const [searchQuery, setSearchQuery] = useState('');
+
+  // View mode state (Cards vs Table)
+  const [viewMode, setViewMode] = useState(() => {
+    return localStorage.getItem('tooprep_admin_questions_view') || 'cards';
+  });
+
+  const handleSetViewMode = (mode) => {
+    setViewMode(mode);
+    localStorage.setItem('tooprep_admin_questions_view', mode);
+  };
 
   // Multi-question bulk selection state
   const [selectedQuestionIds, setSelectedQuestionIds] = useState([]);
@@ -226,7 +263,12 @@ export default function AdminQuestionsPage() {
 
   // Modal Editor state
   const [modalOpen, setModalOpen] = useState(false);
+  const [isCloneMode, setIsCloneMode] = useState(false);
   const [activeQuestion, setActiveQuestion] = useState(null); // null = create mode
+
+  // Bulk Move and Import Modals state
+  const [bulkMoveOpen, setBulkMoveOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
 
   useEffect(() => {
     topicsService.getTopics().then((tree) => {
@@ -298,13 +340,16 @@ export default function AdminQuestionsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  // Client-side filtering for search text and verification status using deferred search value
+  // Client-side filtering for search text and quality presets using deferred search value
   const filteredQuestions = useMemo(() => {
     const query = deferredSearchQuery.trim().toLowerCase();
     return questions.filter((q) => {
-      // Verification filter
-      if (verificationFilter === 'Verified' && !q.verified) return false;
-      if (verificationFilter === 'Draft' && q.verified) return false;
+      // Quality Preset filter
+      if (qualityPreset === 'verified' && !q.verified) return false;
+      if (qualityPreset === 'draft' && q.verified) return false;
+      if (qualityPreset === 'missing_solution' && (q.solution_text && q.solution_text.trim())) return false;
+      if (qualityPreset === 'has_solution' && (!q.solution_text || !q.solution_text.trim())) return false;
+      if (qualityPreset === 'pyq_only' && q.source_type !== 'PYQ') return false;
 
       // Text search filter
       if (query) {
@@ -315,12 +360,12 @@ export default function AdminQuestionsPage() {
       }
       return true;
     });
-  }, [questions, verificationFilter, deferredSearchQuery]);
+  }, [questions, qualityPreset, deferredSearchQuery]);
 
   // Reset pagination to page 1 whenever any filter criteria changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedSubject, selectedChapters, selectedTopics, selectedDifficulty, verificationFilter, deferredSearchQuery, pageSize]);
+  }, [selectedSubject, selectedChapters, selectedTopics, selectedDifficulty, qualityPreset, deferredSearchQuery, pageSize]);
 
   // Compute pagination window
   const totalPages = Math.max(1, Math.ceil(filteredQuestions.length / pageSize));
@@ -332,13 +377,34 @@ export default function AdminQuestionsPage() {
   // Actions wrapped in useCallback for referential stability with memoized cards
   const handleCreateNew = useCallback(() => {
     setActiveQuestion(null);
+    setIsCloneMode(false);
     setModalOpen(true);
   }, []);
 
   const handleEditQuestion = useCallback((q) => {
     setActiveQuestion(q);
+    setIsCloneMode(false);
     setModalOpen(true);
   }, []);
+
+  const handleCloneQuestion = useCallback((q) => {
+    setActiveQuestion(q);
+    setIsCloneMode(true);
+    setModalOpen(true);
+  }, []);
+
+  const handleBulkMoveConfirm = async (targetTopicId) => {
+    setBulkActionInProgress(true);
+    try {
+      await questionsService.bulkMove(selectedQuestionIds, targetTopicId);
+      setSelectedQuestionIds([]);
+      await fetchQuestions();
+    } catch (err) {
+      alert('Bulk move failed: ' + err.message);
+    } finally {
+      setBulkActionInProgress(false);
+    }
+  };
 
   const handleDeleteQuestion = useCallback(async (id) => {
     if (!window.confirm(`Permanently delete question ${id}? This cannot be undone.`)) return;
@@ -466,10 +532,11 @@ export default function AdminQuestionsPage() {
   const verifiedCount = questions.filter((q) => q.verified).length;
   const draftCount = questions.length - verifiedCount;
   const pyqCount = questions.filter((q) => q.source_type === 'PYQ').length;
+  const missingSolutionCount = questions.filter((q) => !q.solution_text || !q.solution_text.trim()).length;
 
   return (
     <div className="w-full max-w-6xl min-w-0 mr-auto animate-fade-in space-y-6 pb-16 text-left">
-      {/* Header and Create Button */}
+      {/* Header and Create / Import Buttons */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/10 pb-5">
         <div>
           <p className="text-label-sm-mono uppercase tracking-[0.2em] text-primary text-xs">
@@ -483,17 +550,28 @@ export default function AdminQuestionsPage() {
           </p>
         </div>
 
-        <button
-          onClick={handleCreateNew}
-          className="px-6 py-3 bg-primary text-white text-xs font-mono uppercase tracking-widest font-bold hover:brightness-110 shadow-lg flex items-center gap-2 transition-all shrink-0 cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>+ New Question</span>
-        </button>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <button
+            onClick={() => setImportModalOpen(true)}
+            className="px-4 py-3 border border-primary/40 bg-primary/10 text-primary hover:bg-primary hover:text-white text-xs font-mono uppercase tracking-widest font-bold flex items-center gap-2 transition-all cursor-pointer"
+            title="Batch Import Questions from JSON"
+          >
+            <UploadCloud className="w-4 h-4" />
+            <span>Import JSON</span>
+          </button>
+
+          <button
+            onClick={handleCreateNew}
+            className="px-6 py-3 bg-primary text-white text-xs font-mono uppercase tracking-widest font-bold hover:brightness-110 shadow-lg flex items-center gap-2 transition-all shrink-0 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>+ New Question</span>
+          </button>
+        </div>
       </div>
 
       {/* Observability Stats Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <div className="border border-outline-variant bg-surface-container p-4">
           <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest text-xs mb-1">Total in Scope</div>
           <div className="text-3xl font-light text-primary">{questions.length}</div>
@@ -505,6 +583,20 @@ export default function AdminQuestionsPage() {
         <div className="border border-outline-variant bg-surface-container p-4">
           <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest text-xs mb-1">Drafts (Hidden)</div>
           <div className="text-3xl font-light text-status-weak">{draftCount}</div>
+        </div>
+        <div
+          onClick={() => setQualityPreset(qualityPreset === 'missing_solution' ? 'all' : 'missing_solution')}
+          className={`border p-4 cursor-pointer transition-colors ${
+            missingSolutionCount > 0
+              ? 'border-status-weak/50 bg-status-weak/10 hover:border-status-weak'
+              : 'border-outline-variant bg-surface-container hover:border-primary/50'
+          }`}
+          title="Click to toggle filter for questions missing explanations"
+        >
+          <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest text-xs mb-1">Missing Solutions</div>
+          <div className={`text-3xl font-light ${missingSolutionCount > 0 ? 'text-status-weak font-normal' : 'text-on-surface-variant'}`}>
+            {missingSolutionCount}
+          </div>
         </div>
         <div className="border border-outline-variant bg-surface-container p-4">
           <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest text-xs mb-1">PYQ Archives</div>
@@ -537,7 +629,7 @@ export default function AdminQuestionsPage() {
           onTopicsChange={setSelectedTopics}
         />
 
-        {/* Filter Controls Row: Difficulty, Verification, Source, Year, Sort */}
+        {/* Filter Controls Row: Difficulty, Quality Audit, Source, Year, Sort */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-3 border-t border-white/10 text-xs font-mono">
           <div>
             <label className="block text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-1.5 text-[11px]">Difficulty</label>
@@ -556,18 +648,18 @@ export default function AdminQuestionsPage() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-1.5 text-[11px]">Status</label>
+          <div className="md:col-span-2">
+            <label className="block text-label-sm-mono text-on-surface-variant uppercase tracking-widest mb-1.5 text-[11px]">Quality Audit & Status</label>
             <div className="flex gap-1.5 flex-wrap">
-              {['All', 'Verified', 'Draft'].map((v) => (
+              {QUALITY_PRESETS.map((p) => (
                 <button
-                  key={v}
-                  onClick={() => setVerificationFilter(v)}
-                  className={`px-3 py-1 border uppercase tracking-wider text-xs transition-colors ${
-                    verificationFilter === v ? 'bg-primary border-primary text-white font-bold' : 'border-outline-variant text-on-surface hover:border-on-surface'
+                  key={p.id}
+                  onClick={() => setQualityPreset(p.id)}
+                  className={`px-3 py-1 border uppercase tracking-wider text-xs transition-colors cursor-pointer ${
+                    qualityPreset === p.id ? 'bg-primary border-primary text-white font-bold' : 'border-outline-variant text-on-surface hover:border-on-surface'
                   }`}
                 >
-                  {v}
+                  {p.label}
                 </button>
               ))}
             </div>
@@ -703,6 +795,32 @@ export default function AdminQuestionsPage() {
             </div>
 
             <div className="flex items-center gap-3">
+              {/* Dual View Modes Switcher */}
+              <div className="flex items-center border border-white/20">
+                <button
+                  type="button"
+                  onClick={() => handleSetViewMode('cards')}
+                  className={`px-2.5 py-1 flex items-center gap-1.5 transition-colors cursor-pointer ${
+                    viewMode === 'cards' ? 'bg-primary text-white font-bold' : 'text-white/60 hover:text-white'
+                  }`}
+                  title="Detailed Cards View"
+                >
+                  <LayoutList className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline uppercase text-[11px] tracking-wider">Cards</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSetViewMode('table')}
+                  className={`px-2.5 py-1 flex items-center gap-1.5 transition-colors cursor-pointer ${
+                    viewMode === 'table' ? 'bg-primary text-white font-bold' : 'text-white/60 hover:text-white'
+                  }`}
+                  title="Dense Table Matrix View"
+                >
+                  <Table className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline uppercase text-[11px] tracking-wider">Table</span>
+                </button>
+              </div>
+
               <button
                 onClick={() => fetchQuestions()}
                 className="flex items-center gap-1 text-white/60 hover:text-primary transition-colors cursor-pointer"
@@ -754,20 +872,35 @@ export default function AdminQuestionsPage() {
             </div>
           </div>
 
-          {/* Cards List (Only renders active page, ~20 items) */}
-          <div className="space-y-4">
-            {paginatedQuestions.map((q) => (
-              <AdminQuestionCard
-                key={q.id}
-                q={q}
-                isSelected={selectedQuestionIds.includes(q.id)}
-                onToggleSelect={handleToggleSelectOne}
-                onEdit={handleEditQuestion}
-                onDelete={handleDeleteQuestion}
-                onToggleVerify={handleToggleVerify}
-              />
-            ))}
-          </div>
+          {/* Questions Content: Table or Cards View */}
+          {viewMode === 'table' ? (
+            <AdminQuestionsTableView
+              questions={paginatedQuestions}
+              selectedQuestionIds={selectedQuestionIds}
+              onToggleSelect={handleToggleSelectOne}
+              onSelectAll={handleSelectAllOnPage}
+              allSelected={paginatedQuestions.length > 0 && paginatedQuestions.every(q => selectedQuestionIds.includes(q.id))}
+              onEdit={handleEditQuestion}
+              onClone={handleCloneQuestion}
+              onDelete={handleDeleteQuestion}
+              onToggleVerify={handleToggleVerify}
+            />
+          ) : (
+            <div className="space-y-4">
+              {paginatedQuestions.map((q) => (
+                <AdminQuestionCard
+                  key={q.id}
+                  q={q}
+                  isSelected={selectedQuestionIds.includes(q.id)}
+                  onToggleSelect={handleToggleSelectOne}
+                  onEdit={handleEditQuestion}
+                  onClone={handleCloneQuestion}
+                  onDelete={handleDeleteQuestion}
+                  onToggleVerify={handleToggleVerify}
+                />
+              ))}
+            </div>
+          )}
 
           {/* Floating Metro Bulk Actions Command Bar */}
           {selectedQuestionIds.length > 0 && (
@@ -776,6 +909,16 @@ export default function AdminQuestionsPage() {
                 <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
                 <span className="text-white font-bold">{selectedQuestionIds.length} Selected</span>
               </div>
+
+              <button
+                onClick={() => setBulkMoveOpen(true)}
+                disabled={bulkActionInProgress}
+                className="px-3.5 py-1.5 bg-primary/20 border border-primary text-primary hover:bg-primary hover:text-white font-bold uppercase tracking-wider transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                title="Reassign selected questions to another topic"
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>Move to Topic</span>
+              </button>
 
               <button
                 onClick={() => handleBulkVerify(true)}
@@ -874,10 +1017,32 @@ export default function AdminQuestionsPage() {
       <QuestionEditModal
         isOpen={modalOpen}
         question={activeQuestion}
+        isClone={isCloneMode}
         initialTopicId={selectedTopics[0] || ''}
         onClose={() => setModalOpen(false)}
         onSaved={handleSavedQuestion}
         onDeleted={(deletedId) => setQuestions(prev => prev.filter(q => q.id !== deletedId))}
+      />
+
+      {/* Bulk Syllabus Move Modal */}
+      <BulkMoveModal
+        isOpen={bulkMoveOpen}
+        selectedCount={selectedQuestionIds.length}
+        hierarchy={hierarchy}
+        initialTopicId={selectedTopics[0] || ''}
+        onClose={() => setBulkMoveOpen(false)}
+        onConfirm={handleBulkMoveConfirm}
+      />
+
+      {/* Batch JSON Question Importer Modal */}
+      <QuestionImportModal
+        isOpen={importModalOpen}
+        hierarchy={hierarchy}
+        initialTopicId={selectedTopics[0] || ''}
+        onClose={() => setImportModalOpen(false)}
+        onImported={() => {
+          fetchQuestions();
+        }}
       />
     </div>
   );
