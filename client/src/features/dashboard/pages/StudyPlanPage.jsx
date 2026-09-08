@@ -213,7 +213,7 @@ export default function StudyPlanPage() {
                   onClick={task.onClick}
                   className={`px-5 py-2.5 text-xs font-mono uppercase tracking-widest font-semibold rounded-sm transition-all flex items-center justify-center gap-2 flex-shrink-0 ${
                     task.tone === 'error' ? 'bg-status-overconfident text-white hover:brightness-110' :
-                    task.tone === 'primary' ? 'bg-primary text-white hover:brightness-110' :
+                    task.tone === 'primary' ? 'bg-primary text-black font-semibold hover:brightness-110 shadow-md shadow-primary/20' :
                     'bg-white/10 border border-white/20 text-white hover:bg-white/20'
                   }`}
                 >

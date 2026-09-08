@@ -1,4 +1,4 @@
-import { Bookmark, Check, X } from 'lucide-react';
+import { Bookmark, Check, X, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import MathText from './MathText';
 
@@ -32,78 +32,105 @@ export default function QuestionCard({
     const isCorrect = question.correct_answer === optionId;
 
     if (showResult) {
-      if (isCorrect) return 'bg-status-aligned text-white border-2 border-status-aligned';
-      if (isSelected && !isCorrect) return 'bg-error text-white border-2 border-error';
-      return 'bg-surface-container-high border-2 border-transparent text-on-surface-variant';
+      if (isCorrect) {
+        return 'bg-status-aligned/15 border-status-aligned text-white ring-1 ring-status-aligned/50 shadow-md shadow-status-aligned/10';
+      }
+      if (isSelected && !isCorrect) {
+        return 'bg-error/15 border-error text-white ring-1 ring-error/50 shadow-md shadow-error/10';
+      }
+      return 'bg-surface-container/40 border-white/5 text-white/40';
     }
 
-    if (isSelected) return 'bg-primary text-white border-2 border-primary';
-    return 'bg-surface-container-high border-2 border-transparent text-on-surface hover:border-outline-variant';
+    if (isSelected) {
+      return 'bg-primary text-black font-semibold border-primary shadow-lg shadow-primary/20 ring-2 ring-primary ring-offset-2 ring-offset-black';
+    }
+    return 'bg-surface-container/70 border-white/10 hover:border-primary/50 text-white hover:bg-surface-bright/80';
+  };
+
+  const getLetterBadgeStyle = (optionId) => {
+    const isSelected = selectedAnswer === optionId;
+    const isCorrect = question.correct_answer === optionId;
+
+    if (showResult) {
+      if (isCorrect) return 'bg-status-aligned text-black font-bold';
+      if (isSelected && !isCorrect) return 'bg-error text-white font-bold';
+      return 'bg-white/5 text-white/40 border border-white/10';
+    }
+
+    if (isSelected) {
+      return 'bg-black/25 text-black font-bold';
+    }
+    return 'bg-black/30 border border-white/15 text-primary font-bold';
   };
 
   return (
-    <div className="bg-surface-dim border-2 border-outline-variant p-6 md:p-8 animate-slide-up rounded-sm shadow-xl">
+    <div className="acrylic-glass border border-white/10 p-6 md:p-8 animate-slide-up rounded-sm shadow-xl space-y-6 text-left">
       {/* Question header */}
-      <div className="flex items-start justify-between mb-6">
-        <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4">
+        <div className="flex items-center gap-3">
           {questionNumber && (
-            <span className="inline-flex items-center justify-center w-10 h-10 bg-primary text-white text-headline-md font-light">
+            <span className="inline-flex items-center justify-center w-8 h-8 rounded-sm bg-primary text-black font-bold text-sm shadow-sm">
               {questionNumber}
             </span>
           )}
           <div className="flex items-center gap-2">
-            <span className={`text-label-sm-mono px-2 py-1 uppercase tracking-widest ${
-              question.difficulty === 'easy' ? 'bg-status-aligned/20 text-status-aligned' :
-              question.difficulty === 'medium' ? 'bg-status-weak/20 text-status-weak' :
-              'bg-error/20 text-error'
+            <span className={`text-[11px] font-mono px-2 py-0.5 rounded-xs uppercase tracking-wider font-bold border ${
+              question.difficulty === 'easy'
+                ? 'bg-status-aligned/15 text-status-aligned border-status-aligned/30'
+                : question.difficulty === 'medium'
+                ? 'bg-status-weak/15 text-status-weak border-status-weak/30'
+                : 'bg-error/15 text-error border-error/30'
             }`}>
               {question.difficulty}
             </span>
             {question.source_type === 'PYQ' && (
-              <span className="text-label-sm-mono px-2 py-1 bg-primary/20 text-primary uppercase tracking-widest">
+              <span className="text-[11px] font-mono px-2 py-0.5 rounded-xs bg-primary/10 text-primary border border-primary/30 uppercase tracking-wider">
                 PYQ {question.exam_year || ''}
               </span>
             )}
           </div>
         </div>
+
         {onMarkForReview && (
           <button
+            type="button"
             onClick={onMarkForReview}
-            className={`p-2 transition-colors border-2 ${
+            className={`p-2 transition-all rounded-sm border cursor-pointer ${
               markedForReview
-                ? 'border-status-weak text-status-weak bg-status-weak/10'
-                : 'border-transparent text-on-surface-variant hover:border-outline-variant'
+                ? 'border-[#FF9500] text-[#FF9500] bg-[#FF9500]/15'
+                : 'border-white/10 text-white/50 hover:text-white hover:border-white/30 bg-surface-container/50'
             }`}
+            title="Mark for Review"
           >
-            <Bookmark className={`w-5 h-5 ${markedForReview ? 'fill-current text-status-weak' : ''}`} />
+            <Bookmark className={`w-4 h-4 ${markedForReview ? 'fill-current text-[#FF9500]' : ''}`} />
           </button>
         )}
       </div>
 
-      {/* Question text */}
-      <div className="text-headline-md font-light text-on-surface mb-8 leading-relaxed">
+      {/* Question stem */}
+      <div className="text-xl md:text-2xl font-light text-white leading-relaxed tracking-tight py-1">
         <MathText text={question.question_text} />
       </div>
 
       {/* Options */}
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {options.map(opt => (
           <motion.button
             key={opt.id}
             type="button"
             disabled={disabled || showResult}
-            whileHover={disabled || showResult ? {} : { scale: 1.008, x: 2 }}
-            whileTap={disabled || showResult ? {} : { scale: 0.99 }}
+            whileHover={disabled || showResult ? {} : { scale: 1.006, x: 2 }}
+            whileTap={disabled || showResult ? {} : { scale: 0.994 }}
             transition={{ type: 'spring', stiffness: 450, damping: 25 }}
             onClick={() => onSelectAnswer && onSelectAnswer(opt.id)}
-            className={`w-full text-left p-4 flex items-start gap-4 rounded-sm transition-colors duration-150 ${getOptionStyle(opt.id)} ${
+            className={`w-full text-left p-3.5 md:p-4 flex items-start gap-3.5 rounded-sm border transition-all duration-150 ${getOptionStyle(opt.id)} ${
               disabled || showResult ? '' : 'cursor-pointer'
             }`}
           >
-            <span className="inline-flex items-center justify-center w-8 h-8 bg-black/20 text-body-lg font-bold flex-shrink-0 mt-0.5 rounded-xs">
+            <span className={`inline-flex items-center justify-center w-7 h-7 text-xs rounded-xs flex-shrink-0 mt-0.5 transition-colors ${getLetterBadgeStyle(opt.id)}`}>
               {opt.id}
             </span>
-            <span className="text-body-lg flex-1">
+            <span className="text-base md:text-lg flex-1 font-light leading-snug">
               <MathText text={opt.text} />
             </span>
             {showResult && question.correct_answer === opt.id && (
@@ -111,8 +138,9 @@ export default function QuestionCard({
                 initial={{ scale: 0, rotate: -20 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                className="w-7 h-7 rounded-full bg-status-aligned/20 border border-status-aligned flex items-center justify-center shrink-0"
               >
-                <Check className="w-5 h-5 flex-shrink-0 text-white" />
+                <Check className="w-4 h-4 text-status-aligned stroke-[2.5]" />
               </motion.span>
             )}
             {showResult && selectedAnswer === opt.id && selectedAnswer !== question.correct_answer && (
@@ -120,8 +148,9 @@ export default function QuestionCard({
                 initial={{ scale: 0, rotate: 20 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                className="w-7 h-7 rounded-full bg-error/20 border border-error flex items-center justify-center shrink-0"
               >
-                <X className="w-5 h-5 flex-shrink-0 text-white" />
+                <X className="w-4 h-4 text-error stroke-[2.5]" />
               </motion.span>
             )}
           </motion.button>
@@ -136,10 +165,13 @@ export default function QuestionCard({
             animate={{ opacity: 1, height: 'auto', y: 0 }}
             exit={{ opacity: 0, height: 0, y: -8 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="mt-8 p-6 bg-primary/10 border-l-4 border-primary rounded-r-sm overflow-hidden"
+            className="mt-6 p-5 md:p-6 bg-surface-container/90 border border-primary/30 rounded-sm overflow-hidden space-y-3"
           >
-            <div className="text-label-sm-mono text-primary font-bold mb-3 tracking-widest uppercase">solution</div>
-            <div className="text-body-lg text-on-surface leading-relaxed font-light">
+            <div className="flex items-center gap-2 text-[11px] font-mono text-primary font-bold uppercase tracking-widest">
+              <Sparkles className="w-3.5 h-3.5 text-primary" />
+              <span>Step-by-Step LaTeX Derivation</span>
+            </div>
+            <div className="text-base text-white/90 leading-relaxed font-light">
               <MathText text={question.solution_text} />
             </div>
           </motion.div>

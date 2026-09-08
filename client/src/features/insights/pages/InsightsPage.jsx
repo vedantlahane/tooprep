@@ -94,7 +94,7 @@ export default function InsightsPage() {
           </p>
           <button
             onClick={() => navigate('/')}
-            className="px-8 py-3.5 bg-primary text-white text-xs font-mono font-bold uppercase tracking-widest hover:brightness-110 transition-all rounded-sm"
+            className="px-8 py-3.5 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest hover:brightness-110 transition-all rounded-sm shadow-md shadow-primary/20 cursor-pointer"
           >
             Open Knowledge Map
           </button>
@@ -130,7 +130,7 @@ export default function InsightsPage() {
           </button>
           <button
             onClick={() => navigate('/evaluate')}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-white hover:brightness-110 text-xs font-mono uppercase tracking-wider font-semibold rounded-sm transition-all"
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-black hover:brightness-110 text-xs font-mono uppercase tracking-wider font-bold rounded-sm transition-all shadow-md shadow-primary/20 cursor-pointer"
           >
             <Timer className="w-3.5 h-3.5" />
             take mock test
@@ -169,24 +169,25 @@ export default function InsightsPage() {
         </div>
       )}
 
-      {/* Status Summary Live Tiles */}
+      {/* Status Summary Live Tiles - Windows 10 Mobile Live Tiles */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {[
-          { label: 'overconfident', count: insights.overconfident.length, bg: 'bg-status-overconfident', desc: 'Negative mark risk', icon: AlertTriangle },
-          { label: 'weak aligned', count: insights.weakAligned.length, bg: 'bg-status-weak', desc: 'Needs foundation', icon: TrendingDown },
-          { label: 'underconfident', count: insights.underconfident.length, bg: 'bg-status-underconfident', desc: 'Ready for mocks', icon: TrendingUp },
-          { label: 'aligned', count: insights.aligned.length, bg: 'bg-status-aligned', desc: 'Calibrated mastery', icon: CheckCircle2 },
-          { label: 'untested', count: insights.noData.length, bg: 'bg-surface-container', desc: 'Needs mock exam', icon: HelpCircle },
+          { label: 'overconfident', count: insights.overconfident.length, accent: 'bg-status-overconfident', textAccent: 'text-status-overconfident', bgTint: 'bg-status-overconfident/10 border-status-overconfident/30', desc: 'Negative mark risk', icon: AlertTriangle },
+          { label: 'weak aligned', count: insights.weakAligned.length, accent: 'bg-status-weak', textAccent: 'text-status-weak', bgTint: 'bg-status-weak/10 border-status-weak/30', desc: 'Needs foundation', icon: TrendingDown },
+          { label: 'underconfident', count: insights.underconfident.length, accent: 'bg-status-underconfident', textAccent: 'text-status-underconfident', bgTint: 'bg-status-underconfident/10 border-status-underconfident/30', desc: 'Ready for mocks', icon: TrendingUp },
+          { label: 'aligned', count: insights.aligned.length, accent: 'bg-status-aligned', textAccent: 'text-status-aligned', bgTint: 'bg-status-aligned/10 border-status-aligned/30', desc: 'Calibrated mastery', icon: CheckCircle2 },
+          { label: 'untested', count: insights.noData.length, accent: 'bg-white/30', textAccent: 'text-white/60', bgTint: 'bg-surface-container/60 border-white/10', desc: 'Needs mock exam', icon: HelpCircle },
         ].map(s => {
           const TileIcon = s.icon;
           return (
-            <div key={s.label} className={`p-5 rounded-sm flex flex-col justify-between relative overflow-hidden group border border-white/10 ${s.bg}`}>
-              <TileIcon className="absolute top-3 right-3 opacity-25 w-7 h-7 group-hover:scale-125 transition-transform" />
+            <div key={s.label} className={`p-5 rounded-sm flex flex-col justify-between relative overflow-hidden group acrylic-glass border shadow-md ${s.bgTint}`}>
+              <div className={`absolute top-0 left-0 right-0 h-1 ${s.accent}`} />
+              <TileIcon className="absolute top-3.5 right-3.5 opacity-20 w-6 h-6 group-hover:scale-125 transition-transform" />
               <div>
-                <div className="text-3xl font-light font-mono text-white mb-1">{s.count}</div>
+                <div className={`text-3xl font-light font-sans mb-1 tracking-tight ${s.textAccent}`}>{s.count}</div>
                 <div className="text-xs font-mono uppercase tracking-widest text-white/90 font-semibold">{s.label}</div>
               </div>
-              <div className="text-[10px] font-mono text-white/60 uppercase tracking-wider mt-3">{s.desc}</div>
+              <div className="text-[10px] font-mono text-white/50 uppercase tracking-wider mt-3">{s.desc}</div>
             </div>
           );
         })}

@@ -161,34 +161,38 @@ export default function TopicDetailPage() {
         </div>
       </div>
 
-      {/* KPI Tiles */}
+      {/* KPI Tiles - Windows 10 Mobile Live Tiles */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="p-5 sm:p-6 bg-surface-container border border-white/10 rounded-sm flex flex-col justify-between">
-          <div className="text-3xl sm:text-4xl font-light text-primary font-mono mb-1">
+        <div className="p-5 acrylic-glass border border-primary/40 bg-primary/10 rounded-sm flex flex-col justify-between relative overflow-hidden shadow-md">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
+          <div className="text-3xl sm:text-4xl font-light text-primary font-sans mb-1 mt-0.5 tracking-tight">
             {topic.confidence ? `${topic.confidence}/10` : '—'}
           </div>
-          <div className="text-[11px] font-mono uppercase tracking-widest text-white/50">CONFIDENCE</div>
+          <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 font-semibold">CONFIDENCE</div>
         </div>
 
-        <div className="p-5 sm:p-6 bg-surface-container border border-white/10 rounded-sm flex flex-col justify-between">
-          <div className="text-3xl sm:text-4xl font-light text-white font-mono mb-1">
+        <div className="p-5 acrylic-glass border border-white/10 rounded-sm flex flex-col justify-between relative overflow-hidden shadow-md">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
+          <div className="text-3xl sm:text-4xl font-light text-white font-sans mb-1 mt-0.5 tracking-tight">
             {topic.evaluation_accuracy !== null ? `${topic.evaluation_accuracy}%` : '—'}
           </div>
-          <div className="text-[11px] font-mono uppercase tracking-widest text-white/50">EVAL ACCURACY</div>
+          <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 font-semibold">EVAL ACCURACY</div>
         </div>
 
-        <div className="p-5 sm:p-6 bg-surface-container border border-white/10 rounded-sm flex flex-col justify-between">
-          <div className={`text-3xl sm:text-4xl font-light font-mono mb-1 ${getStatusColor(topic.status)}`}>
+        <div className="p-5 acrylic-glass border border-white/10 rounded-sm flex flex-col justify-between relative overflow-hidden shadow-md">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
+          <div className={`text-3xl sm:text-4xl font-light font-sans mb-1 mt-0.5 tracking-tight ${getStatusColor(topic.status)}`}>
             {topic.gap !== null ? (topic.gap >= 0 ? `+${topic.gap}%` : `${topic.gap}%`) : '—'}
           </div>
-          <div className="text-[11px] font-mono uppercase tracking-widest text-white/50">PERFORMANCE GAP</div>
+          <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 font-semibold">PERFORMANCE GAP</div>
         </div>
 
-        <div className="p-5 sm:p-6 bg-surface-container border border-white/10 rounded-sm flex flex-col justify-between">
-          <div className={`text-xl sm:text-2xl font-light font-mono uppercase tracking-wider mb-1 ${getStatusColor(topic.status)}`}>
+        <div className="p-5 acrylic-glass border border-white/10 rounded-sm flex flex-col justify-between relative overflow-hidden shadow-md">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
+          <div className={`text-xl sm:text-2xl font-light font-sans uppercase tracking-wider mb-1 mt-0.5 ${getStatusColor(topic.status)}`}>
             {topic.status?.replace('_', ' ')}
           </div>
-          <div className="text-[11px] font-mono uppercase tracking-widest text-white/50">STATUS</div>
+          <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 font-semibold">STATUS</div>
         </div>
       </div>
 
@@ -202,7 +206,7 @@ export default function TopicDetailPage() {
           <button
             onClick={handleSetConfidence}
             disabled={confidenceLoading}
-            className="mt-6 px-8 py-3 bg-primary text-white text-label-sm-mono font-semibold uppercase tracking-wider hover:bg-primary-fixed-dim transition-colors rounded-sm disabled:opacity-50"
+            className="mt-6 px-8 py-3 bg-primary text-black text-xs font-mono font-bold uppercase tracking-wider hover:brightness-110 shadow-md shadow-primary/20 transition-all rounded-sm disabled:opacity-50 cursor-pointer"
           >
             {confidenceLoading ? 'Saving...' : 'Set Confidence'}
           </button>
@@ -210,7 +214,7 @@ export default function TopicDetailPage() {
       )}
 
       {/* Recommendation Card */}
-      <div className="rounded-sm border border-white/10 bg-surface-container p-6">
+      <div className="acrylic-glass rounded-sm border border-white/10 p-6 shadow-md">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-label-sm-mono uppercase tracking-[0.18em] text-on-surface-variant">Study Recommendation</h3>
           <span className={`text-label-sm-mono uppercase tracking-[0.18em] font-bold ${getStatusColor(topic.status)}`}>
@@ -221,27 +225,27 @@ export default function TopicDetailPage() {
       </div>
 
       {/* Action Hub */}
-      <div className="flex gap-4 flex-wrap md:flex-nowrap">
+      <div className="flex gap-3 flex-wrap md:flex-nowrap">
         <button
           onClick={() => setShowDrill(true)}
-          className="flex-1 py-4 border-2 border-status-aligned text-status-aligned text-label-sm-mono font-semibold uppercase tracking-widest hover:bg-status-aligned/10 transition-colors rounded-sm flex items-center justify-center gap-2"
+          className="flex-1 py-3.5 border border-status-aligned/40 bg-status-aligned/10 text-status-aligned text-xs font-mono font-bold uppercase tracking-wider hover:bg-status-aligned hover:text-black transition-all rounded-sm flex items-center justify-center gap-2 cursor-pointer shadow-sm"
         >
           <Zap className="w-4 h-4" />
-          Quick Drill
+          <span>Quick Drill</span>
         </button>
         <button
           onClick={() => navigate(`/practice?topic=${id}`)}
-          className="flex-1 py-4 border-2 border-primary text-primary text-label-sm-mono font-semibold uppercase tracking-widest hover:bg-primary/10 transition-colors rounded-sm flex items-center justify-center gap-2"
+          className="flex-1 py-3.5 border border-primary/40 bg-primary/10 text-primary text-xs font-mono font-bold uppercase tracking-wider hover:bg-primary hover:text-black transition-all rounded-sm flex items-center justify-center gap-2 cursor-pointer shadow-sm"
         >
           <Play className="w-4 h-4 fill-current" />
-          Practice Mode
+          <span>Practice Mode</span>
         </button>
         <button
           onClick={() => navigate(`/evaluate?topic=${id}`)}
-          className="flex-1 py-4 bg-primary text-white text-label-sm-mono font-semibold uppercase tracking-widest hover:brightness-110 transition-colors rounded-sm flex items-center justify-center gap-2"
+          className="flex-1 py-3.5 bg-primary text-black text-xs font-mono font-bold uppercase tracking-wider hover:brightness-110 shadow-lg shadow-primary/20 transition-all rounded-sm flex items-center justify-center gap-2 cursor-pointer"
         >
           <Timer className="w-4 h-4" />
-          Timed Evaluation
+          <span>Timed Evaluation</span>
         </button>
       </div>
 
@@ -255,7 +259,7 @@ export default function TopicDetailPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Confidence Trend */}
-        <div className="border border-white/10 bg-surface-container rounded-sm p-6">
+        <div className="acrylic-glass border border-white/10 rounded-sm p-6 shadow-md">
           <h3 className="text-headline-md font-light mb-4 text-on-surface">Confidence Trend</h3>
           {confidenceTrend.length > 0 ? (
             <div className="flex h-36 items-end gap-2 pt-4">
@@ -279,7 +283,7 @@ export default function TopicDetailPage() {
         </div>
 
         {/* Metrics Grid */}
-        <div className="border border-white/10 bg-surface-container rounded-sm p-6">
+        <div className="acrylic-glass border border-white/10 rounded-sm p-6 shadow-md">
           <h3 className="text-headline-md font-light mb-4 text-on-surface">Engagement Metrics</h3>
           <div className="grid grid-cols-2 gap-3">
             <div className="p-4 bg-surface-dim rounded-sm">
@@ -301,7 +305,7 @@ export default function TopicDetailPage() {
       </div>
 
       {/* Evaluation History Chart & List */}
-      <div className="border border-white/10 bg-surface-container rounded-sm p-6">
+      <div className="acrylic-glass border border-white/10 rounded-sm p-6 shadow-md">
         <h3 className="text-headline-md font-light mb-4 text-on-surface">Evaluation Accuracy Progression</h3>
         
         {/* SVG Sparkline Chart */}

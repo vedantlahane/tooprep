@@ -155,14 +155,14 @@ export default function EvaluationPage() {
   if (!evaluation) {
     return (
       <div className="w-full max-w-4xl mx-auto animate-fade-in space-y-8 text-left">
-        <div>
-          <div className="text-label-sm-mono uppercase tracking-[0.25em] text-primary text-xs">
+        <div className="border-b border-white/10 pb-5">
+          <div className="text-xs font-mono uppercase tracking-[0.2em] text-primary font-bold">
             Exam Simulation &middot; Timed Calibration
           </div>
-          <h1 className="text-4xl md:text-5xl font-extralight text-white tracking-tight mt-1">
+          <h1 className="text-3xl md:text-5xl font-light text-white tracking-tight mt-1">
             Mock Evaluation
           </h1>
-          <p className="text-body-md text-white/60 font-light mt-2">
+          <p className="text-sm md:text-base text-white/60 font-light mt-2 max-w-2xl leading-relaxed">
             Simulate real exam conditions. Solutions and correct answers are withheld until submission to accurately benchmark your calibration gap.
           </p>
         </div>
@@ -173,7 +173,7 @@ export default function EvaluationPage() {
           </div>
         )}
 
-        <div className="acrylic-glass p-6 md:p-8 rounded-sm border border-outline-variant space-y-6">
+        <div className="acrylic-glass p-6 md:p-8 rounded-sm border border-white/10 space-y-6 shadow-xl">
           {/* Topic Selector with Hierarchical TopicPicker */}
           <div className="space-y-2">
             <label className="block text-label-sm-mono text-white/80 uppercase tracking-widest text-xs font-bold">
@@ -197,10 +197,10 @@ export default function EvaluationPage() {
                 <button
                   key={n}
                   onClick={() => setQuestionCount(n)}
-                  className={`py-2.5 rounded-sm border text-xs font-mono font-bold uppercase tracking-wider transition-all ${
+                  className={`py-2.5 rounded-sm border text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer ${
                     questionCount === n
-                      ? 'bg-error text-white border-error shadow-lg shadow-error/20'
-                      : 'bg-surface-dim border-outline-variant text-white/60 hover:border-white/30 hover:text-white'
+                      ? 'bg-primary border-primary text-black font-bold shadow-md shadow-primary/20'
+                      : 'bg-surface-container border-white/10 text-white/60 hover:border-white/30 hover:text-white'
                   }`}
                 >
                   {n}
@@ -224,10 +224,10 @@ export default function EvaluationPage() {
                 <button
                   key={val}
                   onClick={() => setDurationSeconds(val)}
-                  className={`py-3 rounded-sm border text-xs font-mono font-bold uppercase tracking-wider transition-all ${
+                  className={`py-2.5 rounded-sm border text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer ${
                     durationSeconds === val
-                      ? 'bg-error text-white border-error shadow-lg shadow-error/20'
-                      : 'bg-surface-dim border-outline-variant text-white/60 hover:border-white/30 hover:text-white'
+                      ? 'bg-primary border-primary text-black font-bold shadow-md shadow-primary/20'
+                      : 'bg-surface-container border-white/10 text-white/60 hover:border-white/30 hover:text-white'
                   }`}
                 >
                   {label}
@@ -252,7 +252,7 @@ export default function EvaluationPage() {
             <button
               onClick={startEvaluation}
               disabled={!selectedTopic || loading}
-              className="w-full py-3.5 bg-error text-white text-xs font-mono font-bold uppercase tracking-widest rounded-sm hover:brightness-110 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-error/20"
+              className="w-full py-3.5 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest rounded-sm hover:brightness-110 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-primary/20 cursor-pointer"
             >
               <TimerIcon className="w-4 h-4 stroke-[2]" />
               <span>{loading ? 'Assembling Question Set...' : 'Begin Timed Evaluation'}</span>
@@ -314,7 +314,8 @@ export default function EvaluationPage() {
                 selectedAnswer={answers[currentQuestion?.id] || null}
                 onSelectAnswer={handleSelectAnswer}
                 questionNumber={currentIndex + 1}
-                isMarked={markedForReview.has(currentQuestion?.id)}
+                markedForReview={markedForReview.has(currentQuestion?.id)}
+                onMarkForReview={toggleMarkForReview}
               />
             </motion.div>
           </AnimatePresence>
@@ -354,7 +355,7 @@ export default function EvaluationPage() {
         </div>
 
         {/* Question Palette Drawer (Desktop) */}
-        <div className="acrylic-glass p-5 rounded-sm border border-outline-variant space-y-4">
+        <div className="acrylic-glass p-5 rounded-sm border border-white/10 space-y-4 shadow-xl">
           <div className="text-xs font-mono uppercase tracking-widest text-white/80 font-bold border-b border-white/10 pb-2">
             Question Palette
           </div>
@@ -365,13 +366,13 @@ export default function EvaluationPage() {
               const isMarked = markedForReview.has(q.id);
               const isCurrent = idx === currentIndex;
 
-              let btnStyle = 'bg-surface-dim border-outline-variant text-white/50 hover:text-white';
+              let btnStyle = 'bg-black/40 border-white/10 text-white/50 hover:border-white/30 hover:text-white';
               if (isCurrent) {
-                btnStyle = 'ring-2 ring-primary text-white font-bold bg-primary/20 border-primary';
+                btnStyle = 'bg-primary text-black font-bold ring-2 ring-primary ring-offset-2 ring-offset-black shadow-md shadow-primary/30';
               } else if (isMarked) {
-                btnStyle = 'bg-status-weak/20 border-status-weak/50 text-status-weak font-bold';
+                btnStyle = 'bg-[#FF9500]/20 border-[#FF9500] text-[#FF9500] font-bold';
               } else if (isAnswered) {
-                btnStyle = 'bg-status-aligned/20 border-status-aligned/50 text-status-aligned font-bold';
+                btnStyle = 'bg-status-aligned/20 border-status-aligned text-status-aligned font-bold';
               }
 
               return (

@@ -184,7 +184,7 @@ export default function ResultsPage() {
             <button
               onClick={handleConfidenceSubmit}
               disabled={confidenceLoading}
-              className="flex-1 py-3 bg-primary text-white text-xs font-mono font-bold uppercase tracking-widest hover:brightness-110 transition-all rounded-sm disabled:opacity-50"
+              className="flex-1 py-3 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest hover:brightness-110 transition-all rounded-sm disabled:opacity-50 shadow-md shadow-primary/20 cursor-pointer"
             >
               {confidenceLoading ? 'Saving...' : 'Save Updated Rating'}
             </button>
@@ -246,54 +246,59 @@ export default function ResultsPage() {
           >
             <motion.div
               variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}
-              className="p-4 bg-surface-container border border-white/10 rounded-sm text-center"
+              className="p-4 acrylic-glass border border-primary/40 bg-primary/10 rounded-sm text-left relative overflow-hidden shadow-md"
             >
-              <div className="text-2xl md:text-3xl font-light text-primary font-mono">{summary.correct}/{summary.total_questions}</div>
-              <div className="text-[11px] font-mono uppercase tracking-widest text-white/50 mt-1">Score</div>
+              <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
+              <div className="text-2xl md:text-3xl font-light text-primary font-sans mt-0.5">{summary.correct}/{summary.total_questions}</div>
+              <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-1 font-semibold">Total Score</div>
             </motion.div>
 
             <motion.div
               variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}
-              className="p-4 bg-surface-container border border-white/10 rounded-sm text-center"
+              className="p-4 acrylic-glass border border-white/10 rounded-sm text-left relative overflow-hidden shadow-md"
             >
-              <div className={`text-2xl md:text-3xl font-light font-mono ${
+              <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
+              <div className={`text-2xl md:text-3xl font-light font-sans mt-0.5 ${
                 summary.accuracy >= 70 ? 'text-status-aligned' :
                 summary.accuracy >= 40 ? 'text-status-weak' : 'text-error'
               }`}>
                 {summary.accuracy}%
               </div>
-              <div className="text-[11px] font-mono uppercase tracking-widest text-white/50 mt-1">Accuracy</div>
+              <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-1 font-semibold">Accuracy</div>
             </motion.div>
 
             <motion.div
               variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}
-              className="p-4 bg-surface-container border border-white/10 rounded-sm text-center"
+              className="p-4 acrylic-glass border border-white/10 rounded-sm text-left relative overflow-hidden shadow-md"
             >
-              <div className="text-2xl md:text-3xl font-light text-white font-mono">{summary.attempt_rate}%</div>
-              <div className="text-[11px] font-mono uppercase tracking-widest text-white/50 mt-1">Attempt Rate</div>
+              <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
+              <div className="text-2xl md:text-3xl font-light text-white font-sans mt-0.5">{summary.attempt_rate}%</div>
+              <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-1 font-semibold">Attempt Rate</div>
             </motion.div>
 
             <motion.div
               variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}
-              className="p-4 bg-surface-container border border-white/10 rounded-sm text-center"
+              className="p-4 acrylic-glass border border-white/10 rounded-sm text-left relative overflow-hidden shadow-md"
             >
-              <div className="text-2xl md:text-3xl font-light text-white font-mono">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
+              <div className="text-2xl md:text-3xl font-light text-white font-sans mt-0.5">
                 {Math.floor(summary.avg_time_seconds / 60)}:{String(summary.avg_time_seconds % 60).padStart(2, '0')}
               </div>
-              <div className="text-[11px] font-mono uppercase tracking-widest text-white/50 mt-1">Avg Time/Q</div>
+              <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-1 font-semibold">Avg Time/Q</div>
             </motion.div>
 
             <motion.div
               variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}
-              className="p-4 bg-surface-container border border-white/10 rounded-sm text-center col-span-2 sm:col-span-1"
+              className="p-4 acrylic-glass border border-white/10 rounded-sm text-left col-span-2 sm:col-span-1 relative overflow-hidden shadow-md"
             >
-              <div className={`text-2xl md:text-3xl font-light font-mono ${
+              <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
+              <div className={`text-2xl md:text-3xl font-light font-sans mt-0.5 ${
                 summary.pyq_accuracy !== null && summary.pyq_accuracy >= 70 ? 'text-status-aligned' :
                 summary.pyq_accuracy !== null && summary.pyq_accuracy >= 40 ? 'text-status-weak' : 'text-white/50'
               }`}>
                 {summary.pyq_accuracy !== null ? `${summary.pyq_accuracy}%` : '—'}
               </div>
-              <div className="text-[11px] font-mono uppercase tracking-widest text-white/50 mt-1">PYQ Accuracy</div>
+              <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-1 font-semibold">PYQ Accuracy</div>
             </motion.div>
           </motion.div>
 
@@ -429,7 +434,7 @@ export default function ResultsPage() {
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => navigate(`/topics/${topicId}`)}
-            className="flex-1 py-3.5 bg-primary text-white text-xs font-mono uppercase tracking-widest font-semibold hover:brightness-110 transition-all rounded-sm text-center cursor-pointer"
+            className="flex-1 py-3.5 bg-primary text-black text-xs font-mono uppercase tracking-widest font-bold hover:brightness-110 transition-all rounded-sm text-center shadow-md shadow-primary/20 cursor-pointer"
           >
             View Full Topic Telemetry
           </motion.button>

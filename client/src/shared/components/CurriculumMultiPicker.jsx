@@ -82,12 +82,10 @@ export default function CurriculumMultiPicker({
 
     if (isSelected) {
       nextChapters = selectedChapters.filter(id => id !== chapterId);
-      // Remove all topics belonging to this chapter
       const chapterTopicIds = (chapter.topics || []).map(t => t.id);
       nextTopics = nextTopics.filter(id => !chapterTopicIds.includes(id));
     } else {
       nextChapters = [...selectedChapters, chapterId];
-      // Add all topics belonging to this chapter
       const chapterTopicIds = (chapter.topics || []).map(t => t.id);
       chapterTopicIds.forEach(id => {
         if (!nextTopics.includes(id)) nextTopics.push(id);
@@ -147,10 +145,10 @@ export default function CurriculumMultiPicker({
             onChaptersChange([]);
             onTopicsChange([]);
           }}
-          className={`px-3 py-1 text-xs font-mono uppercase tracking-wider transition-colors rounded-none border ${
+          className={`px-3 py-1.5 text-xs font-mono uppercase tracking-wider transition-all rounded-sm border cursor-pointer ${
             !selectedSubject
-              ? 'bg-primary border-primary text-black font-bold'
-              : 'border-outline-variant bg-surface text-white/60 hover:text-white'
+              ? 'bg-primary border-primary text-black font-bold shadow-sm'
+              : 'border-white/10 bg-surface-container/60 text-white/60 hover:text-white hover:border-white/30'
           }`}
         >
           All Subjects
@@ -166,10 +164,10 @@ export default function CurriculumMultiPicker({
                 onChaptersChange([]);
                 onTopicsChange([]);
               }}
-              className={`px-3 py-1 text-xs font-mono uppercase tracking-wider transition-colors rounded-none border ${
+              className={`px-3 py-1.5 text-xs font-mono uppercase tracking-wider transition-all rounded-sm border cursor-pointer ${
                 isSelected
-                  ? 'bg-primary border-primary text-black font-bold'
-                  : 'border-outline-variant bg-surface text-white/60 hover:text-white'
+                  ? 'bg-primary border-primary text-black font-bold shadow-sm'
+                  : 'border-white/10 bg-surface-container/60 text-white/60 hover:text-white hover:border-white/30'
               }`}
             >
               {s.name}
@@ -181,22 +179,22 @@ export default function CurriculumMultiPicker({
       {/* Two Column Grid: Chapters on Left, Topics on Right */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* ── Chapters Multi-Select Column ── */}
-        <div className="border border-outline-variant bg-surface-container/70 p-4 space-y-3">
-          <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-2">
+        <div className="acrylic-glass border border-white/10 rounded-sm p-4 space-y-3 shadow-lg">
+          <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-2.5">
             <div className="flex items-center gap-2">
               <Layers className="w-3.5 h-3.5 text-primary" />
               <span className="text-xs font-mono font-bold uppercase tracking-wider text-white">
                 Chapters
               </span>
-              <span className="text-[11px] font-mono text-primary font-bold px-1.5 py-0.2 rounded bg-primary/10 border border-primary/30">
+              <span className="text-[10px] font-mono text-primary font-bold px-1.5 py-0.5 rounded-xs bg-primary/10 border border-primary/30">
                 {selectedChapters.length} / {availableChapters.length}
               </span>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={handleSelectAllChapters}
-                className="text-[10px] font-mono uppercase text-primary hover:underline px-1.5 py-0.5"
+                className="text-[10px] font-mono uppercase text-primary hover:underline px-1 py-0.5 cursor-pointer"
               >
                 All
               </button>
@@ -204,7 +202,7 @@ export default function CurriculumMultiPicker({
               <button
                 type="button"
                 onClick={handleClearChapters}
-                className="text-[10px] font-mono uppercase text-white/40 hover:text-white px-1.5 py-0.5"
+                className="text-[10px] font-mono uppercase text-white/40 hover:text-white px-1 py-0.5 cursor-pointer"
               >
                 Clear
               </button>
@@ -213,18 +211,18 @@ export default function CurriculumMultiPicker({
 
           {/* Chapter search */}
           <div className="relative">
-            <Search className="w-3 h-3 text-white/40 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={chapterSearch}
               onChange={e => setChapterSearch(e.target.value)}
               placeholder="Filter chapters..."
-              className="w-full pl-8 pr-2.5 py-1.5 bg-black/60 border border-outline-variant text-[11px] font-mono text-white placeholder:text-white/30 outline-none focus:border-primary"
+              className="w-full pl-8 pr-3 py-1.5 bg-black/50 border border-white/10 rounded-sm text-xs font-mono text-white placeholder:text-white/30 outline-none focus:border-primary/60 transition-colors"
             />
           </div>
 
           {/* Chapter list */}
-          <div className="max-h-56 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+          <div className="max-h-56 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
             {filteredChapters.length === 0 ? (
               <div className="py-6 text-center text-xs font-mono text-white/40">No chapters found</div>
             ) : (
@@ -235,20 +233,20 @@ export default function CurriculumMultiPicker({
                 return (
                   <label
                     key={chapterId}
-                    className={`flex items-center justify-between p-2 text-xs font-mono border transition-colors cursor-pointer select-none ${
+                    className={`flex items-center justify-between p-2.5 text-xs font-mono rounded-sm border transition-all cursor-pointer select-none ${
                       isSelected
-                        ? 'border-primary/60 bg-primary/10 text-white font-medium'
-                        : 'border-white/5 bg-surface-dim/40 text-white/70 hover:bg-surface-bright/50 hover:text-white'
+                        ? 'border-primary/60 bg-primary/10 text-white font-medium shadow-sm'
+                        : 'border-white/5 bg-surface-dim/40 text-white/70 hover:bg-surface-bright/50 hover:text-white hover:border-white/15'
                     }`}
                   >
-                    <div className="flex items-center gap-2 min-w-0 pr-2">
+                    <div className="flex items-center gap-2.5 min-w-0 pr-2">
                       <input
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => handleToggleChapter(c)}
-                        className="rounded-none accent-primary shrink-0"
+                        className="rounded-xs accent-primary shrink-0 cursor-pointer w-3.5 h-3.5"
                       />
-                      <span className="truncate text-[11px]">{c.name}</span>
+                      <span className="truncate text-xs">{c.name}</span>
                     </div>
                     <span className="text-[10px] text-white/40 font-mono shrink-0">
                       {topicCount} topics
@@ -261,22 +259,22 @@ export default function CurriculumMultiPicker({
         </div>
 
         {/* ── Topics Multi-Select Column ── */}
-        <div className="border border-outline-variant bg-surface-container/70 p-4 space-y-3">
-          <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-2">
+        <div className="acrylic-glass border border-white/10 rounded-sm p-4 space-y-3 shadow-lg">
+          <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-2.5">
             <div className="flex items-center gap-2">
               <BookOpen className="w-3.5 h-3.5 text-primary" />
               <span className="text-xs font-mono font-bold uppercase tracking-wider text-white">
                 Topics
               </span>
-              <span className="text-[11px] font-mono text-primary font-bold px-1.5 py-0.2 rounded bg-primary/10 border border-primary/30">
+              <span className="text-[10px] font-mono text-primary font-bold px-1.5 py-0.5 rounded-xs bg-primary/10 border border-primary/30">
                 {selectedTopics.length} / {availableTopics.length}
               </span>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={handleSelectAllTopics}
-                className="text-[10px] font-mono uppercase text-primary hover:underline px-1.5 py-0.5"
+                className="text-[10px] font-mono uppercase text-primary hover:underline px-1 py-0.5 cursor-pointer"
               >
                 All
               </button>
@@ -284,7 +282,7 @@ export default function CurriculumMultiPicker({
               <button
                 type="button"
                 onClick={handleClearTopics}
-                className="text-[10px] font-mono uppercase text-white/40 hover:text-white px-1.5 py-0.5"
+                className="text-[10px] font-mono uppercase text-white/40 hover:text-white px-1 py-0.5 cursor-pointer"
               >
                 Clear
               </button>
@@ -293,18 +291,18 @@ export default function CurriculumMultiPicker({
 
           {/* Topic search */}
           <div className="relative">
-            <Search className="w-3 h-3 text-white/40 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={topicSearch}
               onChange={e => setTopicSearch(e.target.value)}
               placeholder="Filter topics by name..."
-              className="w-full pl-8 pr-2.5 py-1.5 bg-black/60 border border-outline-variant text-[11px] font-mono text-white placeholder:text-white/30 outline-none focus:border-primary"
+              className="w-full pl-8 pr-3 py-1.5 bg-black/50 border border-white/10 rounded-sm text-xs font-mono text-white placeholder:text-white/30 outline-none focus:border-primary/60 transition-colors"
             />
           </div>
 
           {/* Topic list */}
-          <div className="max-h-56 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+          <div className="max-h-56 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
             {filteredTopics.length === 0 ? (
               <div className="py-6 text-center text-xs font-mono text-white/40">
                 {availableTopics.length === 0 ? 'Select a chapter to show topics' : 'No topics found'}
@@ -315,26 +313,26 @@ export default function CurriculumMultiPicker({
                 return (
                   <label
                     key={t.id}
-                    className={`flex items-center justify-between p-2 text-xs font-mono border transition-colors cursor-pointer select-none ${
+                    className={`flex items-center justify-between p-2.5 text-xs font-mono rounded-sm border transition-all cursor-pointer select-none ${
                       isSelected
-                        ? 'border-primary/60 bg-primary/10 text-white font-medium'
-                        : 'border-white/5 bg-surface-dim/40 text-white/70 hover:bg-surface-bright/50 hover:text-white'
+                        ? 'border-primary/60 bg-primary/10 text-white font-medium shadow-sm'
+                        : 'border-white/5 bg-surface-dim/40 text-white/70 hover:bg-surface-bright/50 hover:text-white hover:border-white/15'
                     }`}
                   >
-                    <div className="flex items-center gap-2 min-w-0 pr-2">
+                    <div className="flex items-center gap-2.5 min-w-0 pr-2">
                       <input
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => handleToggleTopic(t.id)}
-                        className="rounded-none accent-primary shrink-0"
+                        className="rounded-xs accent-primary shrink-0 cursor-pointer w-3.5 h-3.5"
                       />
                       <div className="min-w-0 truncate">
-                        <div className="truncate text-[11px]">{t.name}</div>
-                        <div className="text-[9px] text-white/40 truncate">{t.chapterName}</div>
+                        <div className="truncate text-xs">{t.name}</div>
+                        <div className="text-[10px] text-white/40 truncate">{t.chapterName}</div>
                       </div>
                     </div>
                     {t.confidence !== undefined && t.confidence !== null && (
-                      <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-surface-container text-primary shrink-0 border border-primary/20">
+                      <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-xs bg-surface-container text-primary shrink-0 border border-primary/20">
                         {t.confidence}/10
                       </span>
                     )}
@@ -347,7 +345,7 @@ export default function CurriculumMultiPicker({
       </div>
 
       {/* Scope Summary Footer */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 bg-black/50 border border-outline-variant text-xs font-mono">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-surface-container/70 border border-white/10 rounded-sm text-xs font-mono">
         <div className="flex items-center gap-2 flex-wrap text-white/70">
           <span className="text-[10px] uppercase tracking-widest text-white/40">Active Scope:</span>
           <span className="text-primary font-bold">
@@ -360,11 +358,11 @@ export default function CurriculumMultiPicker({
         </div>
 
         {(selectedChapters.length > 0 || selectedTopics.length > 0) && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setShowSelectedChips(v => !v)}
-              className="text-[10px] font-mono uppercase text-white/60 hover:text-primary flex items-center gap-1"
+              className="text-[10px] font-mono uppercase text-white/60 hover:text-primary flex items-center gap-1 cursor-pointer"
             >
               <span>{showSelectedChips ? 'Hide Tags' : 'Show Tags'}</span>
               {showSelectedChips ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
@@ -372,7 +370,7 @@ export default function CurriculumMultiPicker({
             <button
               type="button"
               onClick={handleResetAll}
-              className="text-[10px] font-mono uppercase text-error hover:underline flex items-center gap-0.5"
+              className="text-[10px] font-mono uppercase text-error hover:underline flex items-center gap-0.5 cursor-pointer"
             >
               <RotateCcw className="w-3 h-3" />
               <span>Reset</span>
@@ -383,24 +381,24 @@ export default function CurriculumMultiPicker({
 
       {/* Active Selected Chips Dropdown */}
       {showSelectedChips && selectedTopics.length > 0 && (
-        <div className="p-3 bg-surface-container border border-outline-variant rounded-none space-y-2 animate-fade-in">
+        <div className="p-3 bg-surface-container/90 border border-white/10 rounded-sm space-y-2 animate-fade-in shadow-inner">
           <div className="text-[10px] font-mono text-white/50 uppercase tracking-wider">
             Selected Topics ({selectedTopics.length}):
           </div>
-          <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
+          <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1 custom-scrollbar">
             {selectedTopics.map(id => {
               const topic = availableTopics.find(t => t.id === id);
               if (!topic) return null;
               return (
                 <span
                   key={id}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 border border-primary/40 text-primary text-[10px] font-mono"
+                  className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-primary/10 border border-primary/30 text-primary text-[10px] font-mono rounded-xs"
                 >
-                  <span className="truncate max-w-[160px]">{topic.name}</span>
+                  <span className="truncate max-w-[180px]">{topic.name}</span>
                   <button
                     type="button"
                     onClick={() => handleToggleTopic(id)}
-                    className="hover:text-white transition-colors"
+                    className="hover:text-white transition-colors cursor-pointer"
                   >
                     <X className="w-3 h-3" />
                   </button>

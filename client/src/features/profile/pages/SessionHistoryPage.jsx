@@ -150,7 +150,7 @@ export default function SessionHistoryPage() {
           </button>
           <button
             onClick={() => navigate('/evaluate')}
-            className="px-4 py-2 bg-primary text-white hover:brightness-110 text-xs font-mono uppercase tracking-wider font-semibold rounded-sm transition-all"
+            className="px-4 py-2 bg-primary text-black hover:brightness-110 text-xs font-mono uppercase tracking-wider font-bold rounded-sm transition-all shadow-md shadow-primary/20 cursor-pointer"
           >
             take mock
           </button>
@@ -172,7 +172,7 @@ export default function SessionHistoryPage() {
           </p>
           <button
             onClick={() => navigate('/practice')}
-            className="px-6 py-3 bg-primary text-white text-xs font-mono uppercase tracking-widest font-bold rounded-sm hover:brightness-110 transition-all"
+            className="px-6 py-3 bg-primary text-black text-xs font-mono uppercase tracking-widest font-bold rounded-sm hover:brightness-110 transition-all shadow-md shadow-primary/20 cursor-pointer"
           >
             Start Practice
           </button>
@@ -182,15 +182,17 @@ export default function SessionHistoryPage() {
           {/* Analytics KPI Cards */}
           {analytics && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="acrylic-glass border border-white/10 rounded-sm p-4 text-center">
-                <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest mb-1">Total Sessions</div>
-                <div className="text-2xl md:text-3xl font-light font-mono text-primary">{analytics.totalSessions}</div>
+              <div className="acrylic-glass border border-primary/40 bg-primary/10 rounded-sm p-4 text-center relative overflow-hidden shadow-md">
+                <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
+                <div className="text-[10px] font-mono text-white/60 uppercase tracking-widest mb-1 font-semibold">Total Sessions</div>
+                <div className="text-2xl md:text-3xl font-light font-sans text-primary">{analytics.totalSessions}</div>
                 <div className="text-[10px] font-mono text-white/40 mt-1">evals & drills</div>
               </div>
 
-              <div className="acrylic-glass border border-white/10 rounded-sm p-4 text-center">
-                <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest mb-1">Time Invested</div>
-                <div className="text-2xl md:text-3xl font-light font-mono text-white">{analytics.totalHours}h</div>
+              <div className="acrylic-glass border border-white/10 rounded-sm p-4 text-center relative overflow-hidden shadow-md">
+                <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
+                <div className="text-[10px] font-mono text-white/60 uppercase tracking-widest mb-1 font-semibold">Time Invested</div>
+                <div className="text-2xl md:text-3xl font-light font-sans text-white">{analytics.totalHours}h</div>
                 <div className="text-[10px] font-mono text-white/40 mt-1">active testing</div>
               </div>
 

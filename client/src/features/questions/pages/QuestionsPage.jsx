@@ -27,14 +27,14 @@ import Icon, {
 const DIFFICULTIES = ['All', 'Easy', 'Medium', 'Hard'];
 
 const DIFFICULTY_STYLES = {
-  Easy: 'bg-status-aligned/20 text-status-aligned border-status-aligned/40',
-  Medium: 'bg-status-weak/20 text-status-weak border-status-weak/40',
-  Hard: 'bg-error/20 text-error border-error/40',
+  Easy: 'bg-status-aligned/15 text-status-aligned border-status-aligned/30',
+  Medium: 'bg-status-weak/15 text-status-weak border-status-weak/30',
+  Hard: 'bg-error/15 text-error border-error/30',
 };
 
 const SOURCE_STYLES = {
-  PYQ: 'bg-primary/15 text-primary border-primary/40',
-  default: 'bg-surface-container text-white/60 border-outline-variant',
+  PYQ: 'bg-primary/10 text-primary border-primary/30',
+  default: 'bg-surface-container text-white/60 border-white/10',
 };
 
 const QuestionBrowserCard = memo(function QuestionBrowserCard({ q, onPracticeTopic, isAdmin, onEditQuestion }) {
@@ -47,16 +47,16 @@ const QuestionBrowserCard = memo(function QuestionBrowserCard({ q, onPracticeTop
   const srcStyle = q.source_type === 'PYQ' ? SOURCE_STYLES.PYQ : SOURCE_STYLES.default;
 
   return (
-    <div className="acrylic-glass border border-outline-variant rounded-sm overflow-hidden hover:border-primary/50 transition-all duration-200 space-y-0 shadow-lg animate-slide-up hover-lift">
+    <div className="acrylic-glass border border-white/10 rounded-sm overflow-hidden hover:border-primary/40 transition-all duration-200 space-y-0 shadow-xl animate-slide-up hover-lift">
       {/* Header badges */}
-      <div className="flex items-center gap-2 px-5 py-3 border-b border-white/5 flex-wrap bg-surface-container/60 text-xs font-mono">
+      <div className="flex items-center gap-2 px-5 py-3 border-b border-white/10 flex-wrap bg-surface-container/70 text-xs font-mono">
         {q.difficulty && (
-          <span className={`px-2 py-0.5 border rounded-sm uppercase tracking-wider text-[10px] font-bold ${diffStyle}`}>
+          <span className={`px-2 py-0.5 border rounded-xs uppercase tracking-wider text-[10px] font-bold ${diffStyle}`}>
             {q.difficulty}
           </span>
         )}
         {q.source_type && (
-          <span className={`px-2 py-0.5 border rounded-sm uppercase tracking-wider text-[10px] font-bold ${srcStyle}`}>
+          <span className={`px-2 py-0.5 border rounded-xs uppercase tracking-wider text-[10px] font-bold ${srcStyle}`}>
             {q.source_type}
           </span>
         )}
@@ -66,7 +66,7 @@ const QuestionBrowserCard = memo(function QuestionBrowserCard({ q, onPracticeTop
           </span>
         )}
         {q.has_diagram && (
-          <span className="px-2 py-0.5 rounded-sm bg-primary/10 border border-primary/30 text-primary uppercase text-[10px]">
+          <span className="px-2 py-0.5 rounded-xs bg-primary/10 border border-primary/30 text-primary uppercase text-[10px]">
             Diagram
           </span>
         )}
@@ -74,7 +74,7 @@ const QuestionBrowserCard = memo(function QuestionBrowserCard({ q, onPracticeTop
         {isAdmin && (
           <button
             onClick={() => onEditQuestion(q)}
-            className="ml-auto flex items-center gap-1 px-2.5 py-0.5 bg-primary/10 border border-primary/40 text-primary hover:bg-primary hover:text-white transition-colors text-[10px] uppercase tracking-wider font-bold rounded-none"
+            className="ml-auto flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 border border-primary/40 text-primary hover:bg-primary hover:text-black transition-all text-[10px] uppercase tracking-wider font-bold rounded-sm cursor-pointer"
             title="Edit this question in Admin Editor"
           >
             <Edit3 className="w-3 h-3" />
@@ -85,7 +85,7 @@ const QuestionBrowserCard = memo(function QuestionBrowserCard({ q, onPracticeTop
 
       {/* Question stem */}
       <div className="px-5 py-4">
-        <div className="text-body-lg text-white font-light leading-relaxed">
+        <div className="text-lg md:text-xl text-white font-light leading-relaxed tracking-tight">
           <MathText text={q.question_text || q.text || ''} />
         </div>
       </div>
@@ -102,13 +102,15 @@ const QuestionBrowserCard = memo(function QuestionBrowserCard({ q, onPracticeTop
             return (
               <div
                 key={letter}
-                className={`flex items-start gap-3 px-4 py-2.5 rounded-sm border transition-colors ${
+                className={`flex items-start gap-3 px-4 py-3 rounded-sm border transition-all ${
                   isCorrect
-                    ? 'border-status-aligned bg-status-aligned/10 text-status-aligned'
-                    : 'border-outline-variant/60 bg-surface-dim/70 text-white'
+                    ? 'border-status-aligned/60 bg-status-aligned/10 text-white ring-1 ring-status-aligned/40 shadow-sm'
+                    : 'border-white/10 bg-black/40 text-white/90 hover:border-white/25'
                 }`}
               >
-                <span className={`text-xs font-mono font-bold uppercase shrink-0 mt-0.5 ${isCorrect ? 'text-status-aligned' : 'text-primary'}`}>
+                <span className={`w-6 h-6 rounded-xs flex items-center justify-center text-xs font-mono font-bold uppercase shrink-0 mt-0.5 ${
+                    isCorrect ? 'bg-status-aligned text-black' : 'bg-white/5 border border-white/10 text-primary'
+                  }`}>
                   {letter}.
                 </span>
                 <div className="text-sm font-light flex-1 min-w-0">
@@ -154,7 +156,7 @@ const QuestionBrowserCard = memo(function QuestionBrowserCard({ q, onPracticeTop
       </div>
 
       {showAnswer && (
-        <div className="px-5 pb-5 pt-2 border-t border-outline-variant bg-surface-container/40 space-y-3 animate-slide-down">
+        <div className="px-5 pb-5 pt-3 border-t border-white/10 bg-surface-container/50 space-y-3 animate-slide-down">
           {!hasAnswer ? (
             <p className="text-xs font-mono text-white/50 italic font-light">
               Answer is withheld for evaluation integrity. Complete a practice drill on this topic to view full solution steps.
@@ -168,7 +170,7 @@ const QuestionBrowserCard = memo(function QuestionBrowserCard({ q, onPracticeTop
                 </span>
               </div>
               {q.solution_text && (
-                <div className="p-4 bg-black/40 rounded border border-outline-variant space-y-2">
+                <div className="p-4 bg-surface-dim/90 rounded-sm border border-primary/30 space-y-2 shadow-inner">
                   <div className="text-[10px] font-mono text-primary uppercase tracking-widest font-bold">
                     Step-by-Step LaTeX Derivation
                   </div>
@@ -302,13 +304,13 @@ export default function QuestionsPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-white/10 pb-5">
         <div>
-          <div className="text-xs text-primary font-semibold uppercase tracking-wider">
+          <div className="text-xs text-primary font-mono uppercase tracking-[0.2em] font-bold">
             Question Archive &middot; Verified Curriculum Pool
           </div>
-          <h1 className="text-3xl md:text-5xl font-extralight text-white tracking-tight mt-1">
+          <h1 className="text-3xl md:text-5xl font-light text-white tracking-tight mt-1">
             Question Bank
           </h1>
-          <p className="text-body-md text-white/60 font-light mt-1">
+          <p className="text-sm md:text-base text-white/60 font-light mt-1">
             Browse official JEE Main PYQ papers across multiple chapters and curriculum topics.
           </p>
         </div>
@@ -318,14 +320,14 @@ export default function QuestionsPage() {
             <>
               <button
                 onClick={handleCreateNewQuestion}
-                className="px-4 py-2 bg-primary text-white text-xs font-mono uppercase tracking-wider font-bold flex items-center gap-1.5 hover:brightness-110 shadow"
+                className="px-4 py-2 bg-primary text-black text-xs font-mono uppercase tracking-wider font-bold flex items-center gap-1.5 hover:brightness-110 shadow-md shadow-primary/20 rounded-sm cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>+ New Question</span>
               </button>
               <button
                 onClick={() => navigate('/admin/questions')}
-                className="px-4 py-2 border border-status-weak/50 text-status-weak hover:bg-status-weak hover:text-black text-xs font-mono uppercase tracking-wider font-bold transition-colors"
+                className="px-4 py-2 border border-status-weak/50 text-status-weak hover:bg-status-weak hover:text-black text-xs font-mono uppercase tracking-wider font-bold transition-colors rounded-sm cursor-pointer"
               >
                 Admin Manager
               </button>
@@ -336,14 +338,14 @@ export default function QuestionsPage() {
             <>
               <button
                 onClick={() => navigate(`/practice?topic=${selectedTopics[0]}`)}
-                className="px-4 py-2 bg-surface-container border border-outline-variant hover:border-primary text-white rounded-sm text-xs font-mono uppercase tracking-wider flex items-center gap-1.5 transition-colors"
+                className="px-4 py-2 bg-surface-container border border-white/15 hover:border-primary text-white rounded-sm text-xs font-mono uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <Play className="w-3.5 h-3.5 fill-current text-primary" />
                 <span>Drill Selected</span>
               </button>
               <button
                 onClick={() => navigate(`/evaluate?topic=${selectedTopics[0]}`)}
-                className="px-4 py-2 bg-primary text-black rounded-sm text-xs font-mono uppercase tracking-wider font-bold hover:brightness-110 flex items-center gap-1.5 transition-colors"
+                className="px-4 py-2 bg-primary text-black rounded-sm text-xs font-mono uppercase tracking-wider font-bold hover:brightness-110 flex items-center gap-1.5 transition-colors shadow-md shadow-primary/20 cursor-pointer"
               >
                 <Timer className="w-3.5 h-3.5 stroke-[2]" />
                 <span>Mock Test</span>
@@ -354,7 +356,7 @@ export default function QuestionsPage() {
       </div>
 
       {/* Multi-Curriculum Filter Card */}
-      <div className="acrylic-glass p-5 rounded-sm border border-outline-variant space-y-4">
+      <div className="acrylic-glass p-5 rounded-sm border border-white/10 space-y-4 shadow-xl">
         <CurriculumMultiPicker
           hierarchy={hierarchy}
           selectedSubject={selectedSubject}
@@ -373,10 +375,10 @@ export default function QuestionsPage() {
               <button
                 key={d}
                 onClick={() => setSelectedDifficulty(d)}
-                className={`px-3 py-1 rounded-sm text-xs font-mono uppercase tracking-wider transition-colors ${
+                className={`px-3.5 py-1.5 rounded-sm text-xs font-mono uppercase tracking-wider transition-all cursor-pointer ${
                   selectedDifficulty === d
-                    ? 'bg-primary text-black font-bold'
-                    : 'bg-surface border border-outline-variant text-white/60 hover:text-white'
+                    ? 'bg-primary border border-primary text-black font-bold shadow-sm'
+                    : 'bg-surface-container border border-white/10 text-white/60 hover:text-white hover:border-white/30'
                 }`}
               >
                 {d}
@@ -391,7 +393,7 @@ export default function QuestionsPage() {
               value={searchFilter}
               onChange={e => setSearchFilter(e.target.value)}
               placeholder="Search in questions or derivations..."
-              className="w-full bg-black/50 border border-outline-variant rounded-sm pl-8 pr-3 py-1.5 text-xs font-mono text-white placeholder:text-white/30 outline-none focus:border-primary"
+              className="w-full bg-black/50 border border-white/10 rounded-sm pl-8 pr-3 py-1.5 text-xs font-mono text-white placeholder:text-white/30 outline-none focus:border-primary/60 transition-colors"
             />
           </div>
         </div>
@@ -452,12 +454,12 @@ export default function QuestionsPage() {
                 <button
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="px-2 py-1 border border-outline-variant text-white/70 disabled:opacity-20 hover:border-primary transition-colors cursor-pointer disabled:cursor-not-allowed flex items-center gap-0.5"
+                  className="px-2.5 py-1 border border-white/10 rounded-sm text-white/70 disabled:opacity-20 hover:border-primary hover:text-white transition-colors cursor-pointer disabled:cursor-not-allowed flex items-center gap-0.5"
                   title="Previous Page"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
                 </button>
-                <span className="px-2.5 py-1 bg-surface-container border border-outline-variant text-primary font-bold">
+                <span className="px-2.5 py-1 bg-surface-container border border-white/10 rounded-sm text-primary font-bold">
                   {currentPage} / {totalPages}
                 </span>
                 <button
@@ -494,7 +496,7 @@ export default function QuestionsPage() {
 
           {/* Bottom Pagination Toolbar if multiple pages */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between p-3 border border-outline-variant bg-surface-dim text-xs font-mono">
+            <div className="flex items-center justify-between p-3 border border-white/10 bg-surface-container/70 rounded-sm text-xs font-mono shadow-md">
               <span className="text-white/50">
                 Page {currentPage} of {totalPages}
               </span>
@@ -505,12 +507,12 @@ export default function QuestionsPage() {
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                   disabled={currentPage === 1}
-                  className="px-3 py-1.5 border border-outline-variant text-white/70 disabled:opacity-20 hover:border-primary transition-colors cursor-pointer disabled:cursor-not-allowed flex items-center gap-1"
+                  className="px-3 py-1.5 border border-white/10 rounded-sm text-white/70 disabled:opacity-20 hover:border-primary hover:text-white transition-colors cursor-pointer disabled:cursor-not-allowed flex items-center gap-1"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
                   <span>Prev</span>
                 </button>
-                <span className="px-3 py-1.5 bg-surface-container border border-outline-variant text-primary font-bold">
+                <span className="px-3 py-1.5 bg-surface-container border border-white/10 rounded-sm text-primary font-bold">
                   {currentPage} / {totalPages}
                 </span>
                 <button

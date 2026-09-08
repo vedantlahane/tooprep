@@ -80,7 +80,7 @@ const TableRow = memo(function TableRow({
             type="checkbox"
             checked={Boolean(isSelected)}
             onChange={() => onToggleSelect(q.id)}
-            className="w-4 h-4 accent-[#00BFFF] cursor-pointer"
+            className="w-4 h-4 accent-primary cursor-pointer"
           />
         </td>
 
@@ -347,7 +347,7 @@ export default function AdminQuestionsTableView({
                 type="checkbox"
                 checked={allSelected}
                 onChange={onSelectAll}
-                className="w-4 h-4 accent-[#00BFFF] cursor-pointer"
+                className="w-4 h-4 accent-primary cursor-pointer"
                 title="Select all on this page"
               />
             </th>

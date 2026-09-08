@@ -296,14 +296,14 @@ export default function PracticePage() {
 
     return (
       <div className="w-full min-w-0 animate-fade-in space-y-6 text-left">
-        <div>
-          <div className="text-label-sm-mono uppercase tracking-[0.25em] text-primary text-xs">
+        <div className="border-b border-white/10 pb-5">
+          <div className="text-xs font-mono uppercase tracking-[0.2em] text-primary font-bold">
             Training Facility &middot; Problem Drill
           </div>
-          <h1 className="text-4xl md:text-5xl font-extralight text-white tracking-tight mt-1">
+          <h1 className="text-3xl md:text-5xl font-light text-white tracking-tight mt-1">
             Practice Mode
           </h1>
-          <p className="text-body-md text-white/60 font-light mt-2">
+          <p className="text-sm md:text-base text-white/60 font-light mt-2 max-w-2xl leading-relaxed">
             Continuous self-paced drill. Select multiple chapters and topics to customize your problem set.
             Answers and full step-by-step LaTeX derivations are revealed immediately after every submission.
           </p>
@@ -315,7 +315,7 @@ export default function PracticePage() {
           </div>
         )}
 
-        <div className="acrylic-glass p-6 md:p-8 rounded-sm border border-outline-variant space-y-6">
+        <div className="acrylic-glass p-6 md:p-8 rounded-sm border border-white/10 space-y-6 shadow-xl">
           <div className="space-y-1">
             <h2 className="text-xs font-mono font-bold uppercase tracking-widest text-white/90">
               1. Choose Curriculum Scope (Multi-Select)
@@ -340,7 +340,7 @@ export default function PracticePage() {
             <button
               onClick={startPractice}
               disabled={loading || !hasSelection}
-              className="w-full py-4 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest rounded-sm hover:brightness-110 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-primary/20 cursor-pointer"
+              className="w-full py-3.5 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest rounded-sm hover:brightness-110 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-primary/20 cursor-pointer"
             >
               <Play className="w-4 h-4 fill-current" />
               <span>{loading ? 'Preparing Drill Pool...' : 'Start Practice Drill'}</span>
@@ -364,25 +364,29 @@ export default function PracticePage() {
           </h1>
         </div>
 
-        {/* Scorecard Tiles */}
+        {/* Scorecard Tiles - Windows 10 Mobile Live Tiles */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="acrylic-glass p-5 rounded-sm border border-primary/40 bg-primary/10">
-            <div className="text-3xl font-mono font-light text-primary">{summary.correct}/{summary.total_questions}</div>
-            <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-1">Score</div>
+          <div className="acrylic-glass p-5 rounded-sm border border-primary/40 bg-primary/10 relative overflow-hidden shadow-md">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
+            <div className="text-3xl sm:text-4xl font-light text-primary tracking-tight font-sans mt-1">{summary.correct}/{summary.total_questions}</div>
+            <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-2 font-semibold">Total Score</div>
           </div>
-          <div className="acrylic-glass p-5 rounded-sm border border-outline-variant">
-            <div className="text-3xl font-mono font-light text-white">{summary.accuracy}%</div>
-            <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-1">Accuracy</div>
+          <div className="acrylic-glass p-5 rounded-sm border border-white/10 relative overflow-hidden shadow-md">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
+            <div className="text-3xl sm:text-4xl font-light text-white tracking-tight font-sans mt-1">{summary.accuracy}%</div>
+            <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-2 font-semibold">Accuracy</div>
           </div>
-          <div className="acrylic-glass p-5 rounded-sm border border-outline-variant">
-            <div className="text-3xl font-mono font-light text-white">
+          <div className="acrylic-glass p-5 rounded-sm border border-white/10 relative overflow-hidden shadow-md">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
+            <div className="text-3xl sm:text-4xl font-light text-white tracking-tight font-sans mt-1">
               {Math.floor(summary.avg_time_seconds / 60)}:{String(summary.avg_time_seconds % 60).padStart(2, '0')}
             </div>
-            <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-1">Avg Time / Q</div>
+            <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-2 font-semibold">Avg Time / Q</div>
           </div>
-          <div className="acrylic-glass p-5 rounded-sm border border-outline-variant">
-            <div className="text-3xl font-mono font-light text-white">{summary.total_questions}</div>
-            <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-1">Total Solved</div>
+          <div className="acrylic-glass p-5 rounded-sm border border-white/10 relative overflow-hidden shadow-md">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
+            <div className="text-3xl sm:text-4xl font-light text-white tracking-tight font-sans mt-1">{summary.total_questions}</div>
+            <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-2 font-semibold">Total Solved</div>
           </div>
         </div>
 
@@ -459,23 +463,23 @@ export default function PracticePage() {
           <button
             type="button"
             onClick={() => setPaletteOpen(!paletteOpen)}
-            className="px-2.5 py-1 bg-surface-container border border-white/15 hover:border-primary text-white/80 hover:text-primary text-[11px] font-mono rounded-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="px-3 py-1.5 bg-surface-container border border-white/15 hover:border-primary/50 text-white text-xs font-mono rounded-sm flex items-center gap-2 transition-all cursor-pointer shadow-sm"
             title="Toggle Question Palette"
           >
             <Grid className="w-3.5 h-3.5 text-primary" />
             <span>Palette ({paletteStats.answered}/{questions.length})</span>
-            {paletteOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            {paletteOpen ? <ChevronUp className="w-3 h-3 text-primary" /> : <ChevronDown className="w-3 h-3" />}
           </button>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="text-xs font-mono uppercase tracking-widest text-white/60">
-            Score: <span className="text-primary font-bold">{paletteStats.correct}</span>/{paletteStats.answered}
+          <div className="px-2.5 py-1 bg-primary/10 border border-primary/30 rounded-sm text-primary font-mono text-xs font-bold">
+            Score: <span>{paletteStats.correct}</span>/{paletteStats.answered}
           </div>
           <button
             type="button"
             onClick={completePractice}
-            className="text-[10px] font-mono uppercase tracking-wider text-status-weak hover:text-white px-2.5 py-1 border border-status-weak/40 hover:border-white/50 transition-colors cursor-pointer"
+            className="px-3 py-1.5 border border-status-weak/40 text-status-weak hover:bg-status-weak hover:text-black rounded-sm text-xs font-mono uppercase tracking-wider font-bold transition-all cursor-pointer"
             title="Finish session early with current score"
           >
             Finish Drill
@@ -490,30 +494,30 @@ export default function PracticePage() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden border border-white/15 bg-surface-container/90 rounded-sm p-4 space-y-3"
+            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            className="overflow-hidden border border-white/10 acrylic-glass rounded-sm p-4 space-y-3.5 shadow-xl"
           >
             <div className="flex items-center justify-between flex-wrap gap-2 text-[10px] font-mono uppercase tracking-wider">
               <span className="text-white/60 font-bold">Question Palette (Click to jump):</span>
               <div className="flex items-center gap-2.5 flex-wrap">
-                <span className="flex items-center gap-1 text-white">
-                  <span className="w-2.5 h-2.5 rounded-xs ring-1 ring-primary bg-primary/30 inline-block" />
+                <span className="flex items-center gap-1.5 text-white">
+                  <span className="w-2.5 h-2.5 rounded-xs bg-primary inline-block" />
                   <span>Current</span>
                 </span>
-                <span className="flex items-center gap-1 text-status-aligned">
-                  <span className="w-2.5 h-2.5 rounded-xs bg-status-aligned/40 border border-status-aligned inline-block" />
+                <span className="flex items-center gap-1.5 text-status-aligned">
+                  <span className="w-2.5 h-2.5 rounded-xs bg-status-aligned/30 border border-status-aligned inline-block" />
                   <span>Correct ({paletteStats.correct})</span>
                 </span>
-                <span className="flex items-center gap-1 text-error">
-                  <span className="w-2.5 h-2.5 rounded-xs bg-error/40 border border-error inline-block" />
+                <span className="flex items-center gap-1.5 text-error">
+                  <span className="w-2.5 h-2.5 rounded-xs bg-error/30 border border-error inline-block" />
                   <span>Incorrect ({paletteStats.incorrect})</span>
                 </span>
-                <span className="flex items-center gap-1 text-[#FF8C00]">
-                  <span className="w-2.5 h-2.5 rounded-xs bg-[#FF8C00]/40 border border-[#FF8C00] inline-block" />
+                <span className="flex items-center gap-1.5 text-[#FF9500]">
+                  <span className="w-2.5 h-2.5 rounded-xs bg-[#FF9500]/30 border border-[#FF9500] inline-block" />
                   <span>Flagged ({paletteStats.flagged})</span>
                 </span>
-                <span className="flex items-center gap-1 text-white/40">
-                  <span className="w-2.5 h-2.5 rounded-xs bg-black/50 border border-white/10 inline-block" />
+                <span className="flex items-center gap-1.5 text-white/40">
+                  <span className="w-2.5 h-2.5 rounded-xs bg-black/50 border border-white/15 inline-block" />
                   <span>Unanswered ({paletteStats.unanswered})</span>
                 </span>
               </div>
@@ -529,17 +533,17 @@ export default function PracticePage() {
                 const isCorrect = Boolean(st?.correct);
                 const isFlagged = Boolean(st?.isFlagged);
 
-                let cellClass = 'bg-black/50 border-white/10 text-white/50 hover:border-white/40';
+                let cellClass = 'bg-black/40 border-white/10 text-white/50 hover:border-white/40 hover:text-white';
                 if (isCurrent) {
-                  cellClass = 'bg-primary/25 border-primary text-primary font-bold ring-2 ring-primary ring-offset-1 ring-offset-black';
+                  cellClass = 'bg-primary text-black font-bold ring-2 ring-primary ring-offset-2 ring-offset-black shadow-md shadow-primary/30';
                 } else if (isSubmitted) {
                   if (isCorrect) {
-                    cellClass = 'bg-status-aligned/20 border-status-aligned/60 text-status-aligned font-bold hover:bg-status-aligned/30';
+                    cellClass = 'bg-status-aligned/20 border-status-aligned text-status-aligned font-bold hover:bg-status-aligned/30';
                   } else {
-                    cellClass = 'bg-error/20 border-error/60 text-error font-bold hover:bg-error/30';
+                    cellClass = 'bg-error/20 border-error text-error font-bold hover:bg-error/30';
                   }
                 } else if (isFlagged) {
-                  cellClass = 'bg-[#FF8C00]/20 border-[#FF8C00] text-[#FF8C00] font-bold';
+                  cellClass = 'bg-[#FF9500]/20 border-[#FF9500] text-[#FF9500] font-bold';
                 }
 
                 return (
@@ -547,12 +551,12 @@ export default function PracticePage() {
                     key={idx}
                     type="button"
                     onClick={() => handleGoToQuestion(idx)}
-                    className={`relative py-2 px-1 text-center font-mono text-xs rounded-xs border transition-all cursor-pointer ${cellClass}`}
+                    className={`relative py-2 px-1 text-center font-mono text-xs rounded-sm border transition-all cursor-pointer ${cellClass}`}
                     title={`Question ${qNum}${isSubmitted ? (isCorrect ? ' (Correct)' : ' (Incorrect)') : ''}${isFlagged ? ' (Flagged for Review)' : ''}`}
                   >
                     <span>{qNum}</span>
                     {isFlagged && (
-                      <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#FF8C00]" />
+                      <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#FF9500]" />
                     )}
                   </button>
                 );
@@ -625,7 +629,7 @@ export default function PracticePage() {
             type="button"
             onClick={handlePrevious}
             disabled={currentIndex === 0}
-            className="px-4 py-3 bg-surface-container border border-white/15 hover:border-white/50 text-white text-xs font-mono uppercase tracking-wider rounded-sm disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="px-4 py-2.5 bg-surface-container border border-white/15 hover:border-white/40 text-white text-xs font-mono uppercase tracking-wider rounded-sm disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
           >
             <ChevronLeft className="w-4 h-4" />
             <span>Previous</span>
@@ -634,10 +638,10 @@ export default function PracticePage() {
           <button
             type="button"
             onClick={handleToggleFlag}
-            className={`px-3.5 py-3 border text-xs font-mono uppercase tracking-wider rounded-sm flex items-center gap-1.5 transition-colors cursor-pointer ${
+            className={`px-3.5 py-2.5 border text-xs font-mono uppercase tracking-wider rounded-sm flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm ${
               isCurrentFlagged
-                ? 'bg-[#FF8C00]/20 border-[#FF8C00] text-[#FF8C00] font-bold'
-                : 'bg-surface-container border-white/15 text-white/60 hover:text-white hover:border-white/40'
+                ? 'bg-[#FF9500]/20 border-[#FF9500] text-[#FF9500] font-bold'
+                : 'bg-surface-container border-white/15 text-white/60 hover:text-white hover:border-white/30'
             }`}
             title="Mark this question to review later"
           >
@@ -654,7 +658,7 @@ export default function PracticePage() {
               whileTap={!currentSelectedAnswer || loading ? {} : { scale: 0.98 }}
               onClick={handleSubmitAnswer}
               disabled={!currentSelectedAnswer || loading}
-              className="flex-1 sm:flex-none px-6 py-3 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest rounded-sm hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-primary/20 cursor-pointer"
+              className="flex-1 sm:flex-none px-6 py-2.5 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest rounded-sm hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-primary/20 cursor-pointer"
             >
               {loading ? 'Submitting...' : 'Submit & Reveal'}
             </motion.button>
@@ -678,7 +682,7 @@ export default function PracticePage() {
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleNext}
-            className="flex-1 sm:flex-none px-5 py-3 bg-surface-container border border-primary/40 hover:border-primary text-primary hover:text-white text-xs font-mono uppercase tracking-wider rounded-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            className="flex-1 sm:flex-none px-5 py-2.5 bg-surface-bright border border-white/20 hover:border-primary text-white hover:text-primary text-xs font-mono uppercase tracking-wider rounded-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-sm"
           >
             <span>{currentIndex < questions.length - 1 ? 'Next Question' : 'Complete Drill'}</span>
             <ChevronRight className="w-4 h-4" />
