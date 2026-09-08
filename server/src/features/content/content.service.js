@@ -242,6 +242,74 @@ export const contentService = {
     return reviewed;
   },
 
+  async bulkAcceptCandidates(jobId, candidateItems, actorId) {
+    if (!Array.isArray(candidateItems) || candidateItems.length === 0) {
+      throw applicationError('An array of candidates to accept is required', 400);
+    }
+    const accepted = [];
+    const failed = [];
+
+    for (const item of candidateItems) {
+      const candidateKey = item.candidate_key || item.candidateKey;
+      const draft = item.draft || item;
+      try {
+        const res = await this.acceptCandidate(jobId, candidateKey, draft, actorId);
+        accepted.push({ candidate_key: candidateKey, success: true, question_id: res.question?.question_id });
+      } catch (err) {
+        failed.push({ candidate_key: candidateKey, success: false, error: err.message });
+      }
+    }
+
+    return {
+      total: candidateItems.length,
+      accepted_count: accepted.length,
+      failed_count: failed.length,
+      accepted,
+      failed
+    };
+  },
+
+  async bulkRejectCandidates(jobId, candidateKeys, reason, actorId) {
+    if (!Array.isArray(candidateKeys) || candidateKeys.length === 0) {
+      throw applicationError('An array of candidateKeys to reject is required', 400);
+    }
+    if (typeof reason !== 'string' || reason.trim() === '') {
+      throw applicationError('A rejection reason is required', 400);
+    }
+    const result = await contentRepository.bulkUpdateCandidates(jobId, candidateKeys, {
+      status: 'REJECTED',
+      review_reason: reason,
+      reviewed_by: actorId,
+      reviewed_at: new Date()
+    });
+    return {
+      rejected_count: result.modifiedCount || 0,
+      candidate_keys: candidateKeys
+    };
+  },
+
+  async bulkAssignTopic(jobId, candidateKeys, topicId, curriculumMeta = {}, actorId) {
+    if (!Array.isArray(candidateKeys) || candidateKeys.length === 0) {
+      throw applicationError('An array of candidateKeys is required', 400);
+    }
+    if (!topicId) {
+      throw applicationError('A target topicId is required', 400);
+    }
+    const changes = {
+      suggested_topic_id: topicId
+    };
+    if (curriculumMeta.topic) changes.suggested_topic = curriculumMeta.topic;
+    if (curriculumMeta.chapter) changes.suggested_chapter = curriculumMeta.chapter;
+    if (curriculumMeta.subject) changes.subject = curriculumMeta.subject;
+
+    const result = await contentRepository.bulkUpdateCandidates(jobId, candidateKeys, changes);
+    return {
+      updated_count: result.modifiedCount || 0,
+      candidate_keys: candidateKeys,
+      topic_id: topicId
+    };
+  },
+
   async transitionQuestion(questionId, nextStatus, actorId, reason = null) {
     const question = await this.getDraft(questionId);
     assertContentTransition(question.lifecycle.status, nextStatus);

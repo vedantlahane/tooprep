@@ -17,6 +17,12 @@ export const contentService = {
     request('POST', `${base}/ingestion-jobs/${jobId}/candidates/${candidateKey}/accept`, draft),
   rejectCandidate: (jobId, candidateKey, reason) =>
     request('POST', `${base}/ingestion-jobs/${jobId}/candidates/${candidateKey}/reject`, { reason }),
+  bulkAcceptCandidates: (jobId, candidates) =>
+    request('POST', `${base}/ingestion-jobs/${jobId}/candidates/bulk-accept`, { candidates }),
+  bulkRejectCandidates: (jobId, candidateKeys, reason) =>
+    request('POST', `${base}/ingestion-jobs/${jobId}/candidates/bulk-reject`, { candidateKeys, reason }),
+  bulkAssignTopic: (jobId, candidateKeys, topicId, curriculum) =>
+    request('POST', `${base}/ingestion-jobs/${jobId}/candidates/bulk-assign-topic`, { candidateKeys, topicId, curriculum }),
   searchQuestions: (query, limit = 5) =>
     request('GET', `${base}/questions/search?q=${encodeURIComponent(query)}&limit=${limit}`),
   getFailedSyncs: () => request('GET', `${base}/syncs/failed`),

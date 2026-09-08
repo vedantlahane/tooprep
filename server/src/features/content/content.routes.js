@@ -22,6 +22,9 @@ router.post('/ingestion-jobs/upload', upload.single('file'), contentController.u
 router.get('/ingestion-jobs', contentController.listIngestionJobs);
 router.get('/ingestion-jobs/:jobId', contentController.getIngestionJob);
 router.get('/ingestion-jobs/:jobId/candidates', contentController.listCandidates);
+router.post('/ingestion-jobs/:jobId/candidates/bulk-accept', contentController.bulkAcceptCandidates);
+router.post('/ingestion-jobs/:jobId/candidates/bulk-reject', contentController.bulkRejectCandidates);
+router.post('/ingestion-jobs/:jobId/candidates/bulk-assign-topic', contentController.bulkAssignTopic);
 router.post('/ingestion-jobs/:jobId/candidates/:candidateKey/accept', contentController.acceptCandidate);
 router.post('/ingestion-jobs/:jobId/candidates/:candidateKey/reject', contentController.rejectCandidate);
 router.post('/ingestion-jobs/:jobId/transitions', contentController.transitionIngestionJob);

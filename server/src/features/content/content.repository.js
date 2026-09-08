@@ -267,5 +267,14 @@ export const contentRepository = {
       { $set: { ...changes, updated_at: new Date() } },
       { returnDocument: 'after', projection: { _id: 0 } }
     );
+  },
+
+  async bulkUpdateCandidates(jobId, candidateKeys, changes) {
+    const { extractedCandidates } = await collections();
+    return extractedCandidates.updateMany(
+      { job_id: jobId, candidate_key: { $in: candidateKeys } },
+      { $set: { ...changes, updated_at: new Date() } }
+    );
   }
 };
+

@@ -1,9 +1,15 @@
-import { useEffect, useState, useMemo, useRef, memo } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { contentService } from '../services/contentService';
 import { topicsService } from '@/features/topics/services/topicsService';
 import MathText from '@/features/questions/components/MathText';
-import { extractOptionsFromText, detectAnswerKey, isInstructionSnippet } from '../lib/candidateParser';
+import {
+  extractOptionsFromText,
+  detectAnswerKey,
+  isInstructionSnippet,
+  autoFormatAndCleanMath,
+  polishCandidateText
+} from '../lib/candidateParser';
 import {
   UploadCloud,
   FileText,
@@ -26,7 +32,18 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Crop,
-  GitMerge
+  GitMerge,
+  Keyboard,
+  CheckSquare,
+  Square,
+  Wand2,
+  Layers,
+  SlidersHorizontal,
+  RotateCcw,
+  Maximize2,
+  ZoomIn,
+  ZoomOut,
+  Tag
 } from 'lucide-react';
 
 const REJECTION_PRESETS = [
@@ -34,18 +51,40 @@ const REJECTION_PRESETS = [
   'Solutions / Answer Key Only',
   'Incomplete / Malformed Snippet',
   'Missing Visual Diagram',
-  'Duplicate Question'
+  'Duplicate Question',
+  'Non-Curriculum Material'
+];
+
+// Quick LaTeX Symbol Insertion Palette
+const LATEX_SYMBOLS = [
+  { label: 'a/b', latex: '\\frac{a}{b}', title: 'Fraction' },
+  { label: '√x', latex: '\\sqrt{x}', title: 'Square Root' },
+  { label: 'x²', latex: '^{2}', title: 'Superscript / Power' },
+  { label: 'x₀', latex: '_{0}', title: 'Subscript' },
+  { label: 'ω', latex: '\\omega', title: 'Omega (Angular Freq)' },
+  { label: 'θ', latex: '\\theta', title: 'Theta (Angle)' },
+  { label: 'α', latex: '\\alpha', title: 'Alpha' },
+  { label: 'β', latex: '\\beta', title: 'Beta' },
+  { label: 'Δ', latex: '\\Delta', title: 'Delta' },
+  { label: '→', latex: '\\rightarrow', title: 'Reaction Arrow' },
+  { label: '⇌', latex: '\\rightleftharpoons', title: 'Equilibrium Arrow' },
+  { label: '×10ⁿ', latex: '\\times 10^{n}', title: 'Scientific Notation' },
+  { label: 'Ω', latex: '\\Omega', title: 'Ohm' },
+  { label: 'µm', latex: '\\mu\\text{m}', title: 'Micrometer' },
+  { label: 'cm', latex: '\\text{cm}', title: 'Centimeter' },
+  { label: '∫', latex: '\\int', title: 'Integral' },
+  { label: '∞', latex: '\\infty', title: 'Infinity' }
 ];
 
 /**
- * Memoized Topic Select to avoid re-rendering 200+ option nodes on keystrokes
+ * Memoized Topic Select Component
  */
-const TopicSelect = memo(function TopicSelect({ value, onChange, groupedTopics }) {
+const TopicSelect = memo(function TopicSelect({ value, onChange, groupedTopics, className = '' }) {
   return (
     <select
       value={value}
       onChange={e => onChange(e.target.value)}
-      className="w-full bg-surface-container border border-outline-variant p-2.5 text-on-surface outline-none focus:border-primary rounded-sm text-xs"
+      className={`bg-surface-container border border-outline-variant p-2 text-on-surface outline-none focus:border-primary rounded-sm text-xs font-mono ${className}`}
     >
       <option value="">Select Topic in Syllabus...</option>
       {Object.entries(groupedTopics).map(([subj, tList]) => (
@@ -62,10 +101,618 @@ const TopicSelect = memo(function TopicSelect({ value, onChange, groupedTopics }
 });
 
 /**
- * Interactive Candidate Verification Component
+ * Quick LaTeX Symbol Insertion Toolbar
  */
-function CandidateCard({ candidate, jobId, groupedTopics, onReviewed, onViewPdfPage, onOpenCropper }) {
-  // Parse initial values intelligently
+function LatexSymbolBar({ onInsert }) {
+  return (
+    <div className="flex items-center gap-1 overflow-x-auto py-1 px-1.5 bg-black/60 border border-white/10 rounded-xs text-xs font-mono select-none">
+      <span className="text-[10px] text-primary uppercase font-bold px-1 shrink-0">TeX:</span>
+      {LATEX_SYMBOLS.map((sym, i) => (
+        <button
+          key={i}
+          type="button"
+          onClick={() => onInsert(sym.latex)}
+          title={sym.title}
+          className="px-1.5 py-0.5 bg-surface-dim hover:bg-primary hover:text-white border border-white/10 text-white/80 rounded-xs text-[11px] shrink-0 transition-colors cursor-pointer"
+        >
+          {sym.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Interactive Full-Screen / Modal PDF Cropping Studio
+ */
+function PdfCroppingStudioModal({ modal, onClose, onCrop, onNavigatePage }) {
+  const [target, setTarget] = useState(modal?.defaultTarget || 'stem');
+  const [selection, setSelection] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startPoint, setStartPoint] = useState(null);
+  const [cropping, setCropping] = useState(false);
+  const [cropSuccess, setCropSuccess] = useState('');
+  const [error, setError] = useState('');
+  const imgRef = useRef(null);
+
+  useEffect(() => {
+    if (modal?.defaultTarget) setTarget(modal.defaultTarget);
+    setCropSuccess('');
+    setError('');
+  }, [modal?.defaultTarget, modal?.pageNum]);
+
+  const getRelativeCoords = (e) => {
+    if (!imgRef.current) return null;
+    const rect = imgRef.current.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const x = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const y = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+    return { x, y };
+  };
+
+  const handlePointerDown = (e) => {
+    const coords = getRelativeCoords(e);
+    if (!coords) return;
+    setIsDragging(true);
+    setStartPoint(coords);
+    setSelection({ x: coords.x, y: coords.y, w: 0, h: 0 });
+    setCropSuccess('');
+    setError('');
+  };
+
+  const handlePointerMove = (e) => {
+    if (!isDragging || !startPoint) return;
+    const coords = getRelativeCoords(e);
+    if (!coords) return;
+    const x0 = Math.min(startPoint.x, coords.x);
+    const y0 = Math.min(startPoint.y, coords.y);
+    const w = Math.abs(coords.x - startPoint.x);
+    const h = Math.abs(coords.y - startPoint.y);
+    setSelection({ x: x0, y: y0, w, h });
+  };
+
+  const handlePointerUp = () => {
+    setIsDragging(false);
+    if (selection && (selection.w < 0.01 || selection.h < 0.01)) {
+      setSelection(null);
+    }
+  };
+
+  const pdfPoints = useMemo(() => {
+    if (!selection) return null;
+    const pw = modal?.width || 595.3;
+    const ph = modal?.height || 841.9;
+    const x0 = Math.round(selection.x * pw);
+    const y0 = Math.round(selection.y * ph);
+    const x1 = Math.round((selection.x + selection.w) * pw);
+    const y1 = Math.round((selection.y + selection.h) * ph);
+    const w = x1 - x0;
+    const h = y1 - y0;
+    return { x0, y0, x1, y1, w, h };
+  }, [selection, modal?.width, modal?.height]);
+
+  const handleApplyCrop = async () => {
+    if (!pdfPoints) {
+      setError('Please click & drag a selection box over the diagram first.');
+      return;
+    }
+    setCropping(true);
+    setError('');
+    setCropSuccess('');
+    try {
+      await onCrop(pdfPoints, target);
+      const targetName = target === 'stem' ? 'Question Stem' : `Option ${target.slice(3).toUpperCase()}`;
+      setCropSuccess(`✓ Diagram cropped at 300 DPI and inserted into ${targetName}!`);
+      if (target === 'stem') setTarget('optA');
+      else if (target === 'optA') setTarget('optB');
+      else if (target === 'optB') setTarget('optC');
+      else if (target === 'optC') setTarget('optD');
+      setSelection(null);
+    } catch (err) {
+      setError(err.message || 'Failed to crop diagram');
+    } finally {
+      setCropping(false);
+    }
+  };
+
+  if (!modal) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in select-none"
+      onClick={onClose}
+    >
+      <div
+        className="bg-surface-dim border border-outline-variant rounded-sm w-full max-w-5xl max-h-[94vh] flex flex-col overflow-hidden shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center px-4 sm:px-6 py-3 border-b border-outline-variant bg-surface-container">
+          <div className="flex items-center gap-2.5 min-w-0 truncate">
+            <Crop className="w-4 h-4 text-primary shrink-0" />
+            <span className="text-label-sm-mono uppercase tracking-widest text-primary font-bold text-xs truncate">
+              PDF Cropping Studio &middot; Page {modal.pageNum}
+            </span>
+            {modal.qNum && (
+              <span className="text-xs text-on-surface-variant font-mono shrink-0">
+                (Q.{modal.qNum})
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onNavigatePage(-1)}
+              disabled={modal.pageNum <= 1 || modal.loading}
+              className="px-2 py-1 text-xs font-mono border border-outline-variant rounded hover:border-primary disabled:opacity-40 flex items-center gap-1 cursor-pointer"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+              <span>P.{modal.pageNum - 1}</span>
+            </button>
+            <span className="text-xs font-mono text-primary font-bold px-1.5">
+              Page {modal.pageNum}
+            </span>
+            <button
+              onClick={() => onNavigatePage(1)}
+              disabled={modal.loading}
+              className="px-2 py-1 text-xs font-mono border border-outline-variant rounded hover:border-primary disabled:opacity-40 flex items-center gap-1 cursor-pointer"
+            >
+              <span>P.{modal.pageNum + 1}</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+
+            <div className="h-4 w-px bg-outline-variant mx-1" />
+
+            <button
+              onClick={onClose}
+              className="text-on-surface-variant hover:text-on-surface font-mono text-xs px-2.5 py-1 rounded hover:bg-surface-container transition-colors cursor-pointer"
+            >
+              ✕ Close
+            </button>
+          </div>
+        </div>
+
+        <div className="px-4 sm:px-6 py-2.5 bg-surface-container/80 border-b border-outline-variant flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-on-surface-variant text-[11px] uppercase tracking-wider font-bold">Apply Crop To:</span>
+            {[
+              { id: 'stem', label: 'Stem' },
+              { id: 'optA', label: 'Option A' },
+              { id: 'optB', label: 'Option B' },
+              { id: 'optC', label: 'Option C' },
+              { id: 'optD', label: 'Option D' }
+            ].map(t => (
+              <button
+                key={t.id}
+                onClick={() => setTarget(t.id)}
+                className={`px-2.5 py-1 rounded-sm uppercase tracking-wider text-[11px] font-bold border transition-colors cursor-pointer ${
+                  target === t.id
+                    ? 'bg-primary text-white border-primary shadow-sm'
+                    : 'bg-surface-dim border-outline-variant text-on-surface-variant hover:text-on-surface'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-3">
+            {pdfPoints && (
+              <span className="text-[11px] text-primary bg-primary/10 border border-primary/30 px-2 py-0.5 rounded-xs">
+                {pdfPoints.w} &times; {pdfPoints.h} pt
+              </span>
+            )}
+
+            {selection && (
+              <button
+                onClick={() => setSelection(null)}
+                className="text-on-surface-variant hover:text-error text-[11px] underline cursor-pointer"
+              >
+                Clear Box
+              </button>
+            )}
+
+            <button
+              onClick={handleApplyCrop}
+              disabled={!selection || cropping || modal.loading}
+              className="px-4 py-1.5 bg-primary text-white hover:bg-primary-hover disabled:opacity-40 rounded-sm font-bold uppercase tracking-wider text-xs flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+            >
+              {cropping ? (
+                <>
+                  <Sparkles className="w-3.5 h-3.5 animate-spin" />
+                  <span>Cropping 300 DPI...</span>
+                </>
+              ) : (
+                <>
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>Crop & Apply</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {cropSuccess && (
+          <div className="bg-status-aligned/10 border-b border-status-aligned/30 px-4 py-2 text-status-aligned font-mono text-xs flex items-center justify-between">
+            <span>{cropSuccess}</span>
+            <span className="text-[11px] opacity-75">Target advanced. Drag to crop another!</span>
+          </div>
+        )}
+
+        {error && (
+          <div className="bg-error/10 border-b border-error/30 px-4 py-2 text-error font-mono text-xs">
+            {error}
+          </div>
+        )}
+
+        <div
+          className="p-3 sm:p-6 overflow-auto flex-1 flex flex-col items-center justify-center bg-black/75 min-h-[360px] max-w-full relative select-none cursor-crosshair"
+          onMouseDown={handlePointerDown}
+          onMouseMove={handlePointerMove}
+          onMouseUp={handlePointerUp}
+          onTouchStart={handlePointerDown}
+          onTouchMove={handlePointerMove}
+          onTouchEnd={handlePointerUp}
+        >
+          {modal.loading ? (
+            <div className="text-center space-y-2.5 font-mono text-primary animate-pulse-soft">
+              <Sparkles className="w-7 h-7 mx-auto animate-spin" />
+              <p className="text-xs">Rendering vector page {modal.pageNum} at high resolution...</p>
+            </div>
+          ) : modal.error ? (
+            <div className="text-error font-mono text-xs border border-error/30 bg-error/10 p-4 rounded text-center">
+              Error rendering page: {modal.error}
+            </div>
+          ) : (
+            <div className="relative inline-block shadow-2xl bg-white rounded border border-outline-variant/80">
+              <img
+                ref={imgRef}
+                src={modal.dataUrl}
+                alt={`Page ${modal.pageNum}`}
+                draggable={false}
+                className="max-h-[64vh] max-w-full w-auto object-contain select-none pointer-events-none"
+              />
+
+              {selection && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: `${selection.x * 100}%`,
+                    top: `${selection.y * 100}%`,
+                    width: `${selection.w * 100}%`,
+                    height: `${selection.h * 100}%`,
+                  }}
+                  className="border-2 border-primary bg-primary/20 pointer-events-none shadow-[0_0_12px_rgba(0,191,255,0.4)]"
+                >
+                  <div className="absolute top-0 right-0 -translate-y-full bg-primary text-white text-[10px] font-mono px-1.5 py-0.5 rounded-xs tracking-wider uppercase font-bold">
+                    Target: {target.toUpperCase()}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Studio Mode Split-Screen Left Pane: Integrated PDF Viewer & Drag-to-Crop Canvas
+ */
+function StudioPdfViewer({ jobId, pageNum, onNavigatePage, onDirectCrop, activeCandidateKey, activeQNum }) {
+  const [loading, setLoading] = useState(false);
+  const [dataUrl, setDataUrl] = useState(null);
+  const [pdfMeta, setPdfMeta] = useState({ width: 595.3, height: 841.9 });
+  const [error, setError] = useState('');
+  const [zoom, setZoom] = useState(1);
+  const [selection, setSelection] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startPoint, setStartPoint] = useState(null);
+  const [cropping, setCropping] = useState(false);
+  const [successToast, setSuccessToast] = useState('');
+  const imgRef = useRef(null);
+
+  // Load PDF page image
+  useEffect(() => {
+    if (!jobId || !pageNum) return;
+    let active = true;
+    setLoading(true);
+    setError('');
+    setSelection(null);
+
+    contentService.renderPdfPage(jobId, pageNum, 150)
+      .then(res => {
+        if (!active) return;
+        setDataUrl(res.data_url);
+        setPdfMeta({ width: res.width || 595.3, height: res.height || 841.9 });
+      })
+      .catch(err => {
+        if (!active) return;
+        setError(err.message || 'Failed to render PDF page');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => { active = false; };
+  }, [jobId, pageNum]);
+
+  const getRelativeCoords = (e) => {
+    if (!imgRef.current) return null;
+    const rect = imgRef.current.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const x = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const y = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+    return { x, y };
+  };
+
+  const handlePointerDown = (e) => {
+    const coords = getRelativeCoords(e);
+    if (!coords) return;
+    setIsDragging(true);
+    setStartPoint(coords);
+    setSelection({ x: coords.x, y: coords.y, w: 0, h: 0 });
+    setSuccessToast('');
+  };
+
+  const handlePointerMove = (e) => {
+    if (!isDragging || !startPoint) return;
+    const coords = getRelativeCoords(e);
+    if (!coords) return;
+    const x0 = Math.min(startPoint.x, coords.x);
+    const y0 = Math.min(startPoint.y, coords.y);
+    const w = Math.abs(coords.x - startPoint.x);
+    const h = Math.abs(coords.y - startPoint.y);
+    setSelection({ x: x0, y: y0, w, h });
+  };
+
+  const handlePointerUp = () => {
+    setIsDragging(false);
+    if (selection && (selection.w < 0.015 || selection.h < 0.015)) {
+      setSelection(null);
+    }
+  };
+
+  const pdfPoints = useMemo(() => {
+    if (!selection) return null;
+    const pw = pdfMeta.width || 595.3;
+    const ph = pdfMeta.height || 841.9;
+    const x0 = Math.round(selection.x * pw);
+    const y0 = Math.round(selection.y * ph);
+    const x1 = Math.round((selection.x + selection.w) * pw);
+    const y1 = Math.round((selection.y + selection.h) * ph);
+    const w = x1 - x0;
+    const h = y1 - y0;
+    return { x0, y0, x1, y1, w, h };
+  }, [selection, pdfMeta]);
+
+  const executeCropToTarget = async (target) => {
+    if (!pdfPoints || !jobId) return;
+    setCropping(true);
+    try {
+      const res = await onDirectCrop(pdfPoints, target);
+      const targetLabel = target === 'stem' ? 'Question Stem' : `Option ${target.slice(3).toUpperCase()}`;
+      setSuccessToast(`✓ Cropped at 300 DPI into ${targetLabel}!`);
+      setSelection(null);
+      setTimeout(() => setSuccessToast(''), 3000);
+    } catch (err) {
+      setError(err.message || 'Crop failed');
+    } finally {
+      setCropping(false);
+    }
+  };
+
+  return (
+    <div className="h-full flex flex-col border border-outline-variant bg-[#0b0d13] rounded-sm overflow-hidden select-none">
+      {/* PDF Stage Toolbar */}
+      <div className="px-3 py-2 bg-surface-container border-b border-outline-variant flex items-center justify-between gap-2 text-xs font-mono">
+        <div className="flex items-center gap-1.5">
+          <Crop className="w-3.5 h-3.5 text-primary" />
+          <span className="text-white font-bold uppercase tracking-wider text-[11px]">
+            Source PDF Studio
+          </span>
+          {activeQNum && (
+            <span className="text-primary font-bold bg-primary/10 border border-primary/30 px-1.5 py-0.2 rounded-xs text-[10px]">
+              Q.{activeQNum}
+            </span>
+          )}
+        </div>
+
+        {/* Page Flipping Navigator */}
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => onNavigatePage(-1)}
+            disabled={pageNum <= 1 || loading}
+            className="p-1 border border-outline-variant rounded hover:border-primary disabled:opacity-30 cursor-pointer"
+            title="Previous Page"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
+          <span className="px-2 font-bold text-white text-[11px]">
+            P. {pageNum}
+          </span>
+          <button
+            onClick={() => onNavigatePage(1)}
+            disabled={loading}
+            className="p-1 border border-outline-variant rounded hover:border-primary disabled:opacity-30 cursor-pointer"
+            title="Next Page"
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+
+          <div className="h-3.5 w-px bg-white/20 mx-1" />
+
+          {/* Zoom buttons */}
+          <button
+            onClick={() => setZoom(z => Math.max(z - 0.15, 0.6))}
+            className="p-1 text-white/70 hover:text-white cursor-pointer"
+            title="Zoom out"
+          >
+            <ZoomOut className="w-3.5 h-3.5" />
+          </button>
+          <span className="text-[10px] text-white/50 min-w-[32px] text-center">
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            onClick={() => setZoom(z => Math.min(z + 0.15, 1.8))}
+            className="p-1 text-white/70 hover:text-white cursor-pointer"
+            title="Zoom in"
+          >
+            <ZoomIn className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => setZoom(1)}
+            className="px-1.5 py-0.5 text-[9px] border border-white/20 text-white/60 hover:text-white uppercase font-bold cursor-pointer"
+            title="Fit Width / 100%"
+          >
+            Fit
+          </button>
+        </div>
+      </div>
+
+      {/* Success / Notice Toast */}
+      {successToast && (
+        <div className="bg-status-aligned/20 border-b border-status-aligned/40 px-3 py-1.5 text-status-aligned text-xs font-mono flex items-center justify-between">
+          <span>{successToast}</span>
+          <span className="text-[10px] opacity-75">Instant inject complete</span>
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-error/15 border-b border-error/40 px-3 py-1.5 text-error text-xs font-mono">
+          {error}
+        </div>
+      )}
+
+      {/* Canvas Viewport */}
+      <div
+        className="flex-1 overflow-auto p-4 flex items-center justify-center relative bg-black/80 cursor-crosshair min-h-[420px]"
+        onMouseDown={handlePointerDown}
+        onMouseMove={handlePointerMove}
+        onMouseUp={handlePointerUp}
+        onTouchStart={handlePointerDown}
+        onTouchMove={handlePointerMove}
+        onTouchEnd={handlePointerUp}
+      >
+        {loading ? (
+          <div className="text-center space-y-2 text-primary font-mono text-xs animate-pulse-soft">
+            <Sparkles className="w-6 h-6 mx-auto animate-spin" />
+            <p>Rendering Page {pageNum} at high resolution...</p>
+          </div>
+        ) : dataUrl ? (
+          <div
+            style={{ transform: `scale(${zoom})`, transformOrigin: 'top center' }}
+            className="relative inline-block shadow-2xl bg-white border border-white/20 transition-transform duration-75"
+          >
+            <img
+              ref={imgRef}
+              src={dataUrl}
+              alt={`Page ${pageNum}`}
+              draggable={false}
+              className="max-w-full h-auto object-contain select-none pointer-events-none"
+            />
+
+            {/* Selection Bounding Box */}
+            {selection && (
+              <div
+                style={{
+                  position: 'absolute',
+                  left: `${selection.x * 100}%`,
+                  top: `${selection.y * 100}%`,
+                  width: `${selection.w * 100}%`,
+                  height: `${selection.h * 100}%`,
+                }}
+                className="border-2 border-primary bg-primary/20 pointer-events-none shadow-[0_0_12px_rgba(0,191,255,0.5)] z-20"
+              />
+            )}
+          </div>
+        ) : (
+          <div className="text-white/40 text-xs font-mono">No page rendered.</div>
+        )}
+
+        {/* Floating Quick Crop Action Pill Directly over Selection */}
+        {selection && pdfPoints && !isDragging && (
+          <div
+            style={{
+              position: 'absolute',
+              left: `${Math.min(Math.max(selection.x * 100, 5), 65)}%`,
+              top: `${Math.max(selection.y * 100 - 8, 2)}%`,
+            }}
+            className="z-30 bg-black/95 border-2 border-primary p-1.5 shadow-2xl rounded-sm flex items-center gap-1 font-mono text-[10px] animate-fade-in"
+            onClick={e => e.stopPropagation()}
+          >
+            <span className="text-primary font-bold px-1 uppercase">Insert To:</span>
+            <button
+              onClick={() => executeCropToTarget('stem')}
+              disabled={cropping}
+              className="px-2 py-1 bg-primary text-white hover:brightness-110 font-bold rounded-xs cursor-pointer uppercase"
+            >
+              Stem
+            </button>
+            <button
+              onClick={() => executeCropToTarget('optA')}
+              disabled={cropping}
+              className="px-2 py-1 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xs cursor-pointer uppercase"
+            >
+              (A)
+            </button>
+            <button
+              onClick={() => executeCropToTarget('optB')}
+              disabled={cropping}
+              className="px-2 py-1 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xs cursor-pointer uppercase"
+            >
+              (B)
+            </button>
+            <button
+              onClick={() => executeCropToTarget('optC')}
+              disabled={cropping}
+              className="px-2 py-1 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xs cursor-pointer uppercase"
+            >
+              (C)
+            </button>
+            <button
+              onClick={() => executeCropToTarget('optD')}
+              disabled={cropping}
+              className="px-2 py-1 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xs cursor-pointer uppercase"
+            >
+              (D)
+            </button>
+            <button
+              onClick={() => setSelection(null)}
+              className="p-1 text-white/50 hover:text-error cursor-pointer ml-1"
+              title="Cancel Selection"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Footer Hint */}
+      <div className="px-3 py-1.5 bg-surface-container border-t border-outline-variant flex items-center justify-between text-[10px] font-mono text-white/50">
+        <span>💡 Click &amp; drag over reaction arrows, benzene rings, or graphs to 300 DPI crop.</span>
+        <span>{pdfPoints ? `${pdfPoints.w} × ${pdfPoints.h} pt` : 'Ready'}</span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Main Question Candidate Verification Card Component
+ */
+function CandidateCard({
+  candidate,
+  jobId,
+  groupedTopics,
+  onReviewed,
+  onViewPdfPage,
+  onOpenCropper,
+  isSelected,
+  onToggleSelect,
+  isCompact = false
+}) {
   const initialParsed = useMemo(() => {
     let qText = candidate.question_text || candidate.raw_text || '';
     let opts = [{ id: 'A', text: '' }, { id: 'B', text: '' }, { id: 'C', text: '' }, { id: 'D', text: '' }];
@@ -100,7 +747,7 @@ function CandidateCard({ candidate, jobId, groupedTopics, onReviewed, onViewPdfP
   const [difficulty, setDifficulty] = useState('medium');
   const [topicId, setTopicId] = useState(candidate.suggested_topic_id || '');
 
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(!isCompact);
   const [reason, setReason] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -135,17 +782,20 @@ function CandidateCard({ candidate, jobId, groupedTopics, onReviewed, onViewPdfP
     }
   };
 
-  const handleAutoExtract = () => {
-    const extracted = extractOptionsFromText(questionText || candidate.raw_text);
-    if (extracted.hasOptions) {
-      setQuestionText(extracted.questionText);
-      setOptions(extracted.options);
-      const detected = detectAnswerKey(candidate.raw_text);
-      if (detected) setCorrectAnswer(detected);
-    } else {
-      setError('Could not find (A) (B) (C) (D) option pattern in the snippet.');
-      setTimeout(() => setError(''), 3500);
+  // 1-Click AI Format & Clean
+  const handleAutoCleanAndPolish = () => {
+    const polished = polishCandidateText(questionText || candidate.raw_text);
+    setQuestionText(polished.questionText);
+    if (polished.hasOptions) {
+      setOptions(polished.options);
     }
+    if (polished.correctAnswer) {
+      setCorrectAnswer(polished.correctAnswer);
+    }
+  };
+
+  const handleInsertLatex = (latex) => {
+    setQuestionText(prev => `${prev ? prev + ' ' : ''}${latex}`);
   };
 
   const handleAttachImage = (target) => {
@@ -254,6 +904,8 @@ function CandidateCard({ candidate, jobId, groupedTopics, onReviewed, onViewPdfP
           ? 'border-error/40 bg-error/5 opacity-75'
           : isInstruction
           ? 'border-status-weak/40 bg-status-weak/5'
+          : isSelected
+          ? 'border-primary bg-primary/5 ring-1 ring-primary'
           : 'border-outline-variant bg-surface-dim shadow-sm'
       }`}
     >
@@ -265,12 +917,26 @@ function CandidateCard({ candidate, jobId, groupedTopics, onReviewed, onViewPdfP
         className="hidden"
       />
 
-      {/* Header bar (always visible, acts as expand/collapse toggle) */}
+      {/* Header bar */}
       <div className="bg-surface-container px-3 sm:px-4 py-2.5 flex justify-between items-center border-b border-outline-variant flex-wrap gap-2 min-w-0">
         <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+          {onToggleSelect && (
+            <button
+              onClick={onToggleSelect}
+              className="text-white/60 hover:text-primary transition-colors cursor-pointer"
+              title={isSelected ? 'Deselect candidate' : 'Select candidate'}
+            >
+              {isSelected ? (
+                <CheckSquare className="w-4 h-4 text-primary" />
+              ) : (
+                <Square className="w-4 h-4 text-white/40" />
+              )}
+            </button>
+          )}
+
           <button
             onClick={() => setIsExpanded(prev => !prev)}
-            className="text-primary hover:text-white p-1 rounded transition-colors"
+            className="text-primary hover:text-white p-0.5 rounded transition-colors cursor-pointer"
             title={isExpanded ? 'Collapse card' : 'Expand card'}
           >
             {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -297,7 +963,7 @@ function CandidateCard({ candidate, jobId, groupedTopics, onReviewed, onViewPdfP
           )}
 
           {candidate.suggested_chapter && (
-            <span className="text-label-sm-mono text-on-surface-variant text-xs truncate max-w-[200px] sm:max-w-xs">
+            <span className="text-label-sm-mono text-on-surface-variant text-xs truncate max-w-[180px] sm:max-w-xs">
               {candidate.suggested_chapter} &rsaquo; <strong className="text-on-surface">{candidate.suggested_topic}</strong>
             </span>
           )}
@@ -328,7 +994,7 @@ function CandidateCard({ candidate, jobId, groupedTopics, onReviewed, onViewPdfP
           {onViewPdfPage && (
             <button
               onClick={() => onViewPdfPage(primaryPage, candidate.source_question_number)}
-              className="px-2 py-1 text-label-sm-mono uppercase tracking-widest border border-outline-variant hover:border-primary text-on-surface-variant hover:text-primary transition-colors rounded-sm flex items-center gap-1 text-[11px]"
+              className="px-2 py-1 text-label-sm-mono uppercase tracking-widest border border-outline-variant hover:border-primary text-on-surface-variant hover:text-primary transition-colors rounded-sm flex items-center gap-1 text-[11px] cursor-pointer"
               title="Inspect source PDF page"
             >
               <FileSearch className="w-3 h-3 text-primary" />
@@ -339,80 +1005,60 @@ function CandidateCard({ candidate, jobId, groupedTopics, onReviewed, onViewPdfP
           {onOpenCropper && (
             <button
               onClick={() => onOpenCropper(primaryPage, candidate.source_question_number, candidate.candidate_key, handleApplyCroppedImage, 'stem')}
-              className="px-2 py-1 text-label-sm-mono uppercase tracking-widest border border-primary/60 bg-primary/10 hover:bg-primary hover:text-white text-primary transition-colors rounded-sm flex items-center gap-1 text-[11px] font-bold"
+              className="px-2 py-1 text-label-sm-mono uppercase tracking-widest border border-primary/60 bg-primary/10 hover:bg-primary hover:text-white text-primary transition-colors rounded-sm flex items-center gap-1 text-[11px] font-bold cursor-pointer"
               title="Open interactive cropping studio for this candidate"
             >
               <Crop className="w-3 h-3" />
-              <span>Crop Diagram</span>
+              <span>Crop</span>
             </button>
           )}
 
+          <button
+            onClick={handleAutoCleanAndPolish}
+            className="px-2 py-1 text-label-sm-mono uppercase tracking-widest border border-status-aligned/60 bg-status-aligned/10 hover:bg-status-aligned hover:text-black text-status-aligned transition-colors rounded-sm flex items-center gap-1 text-[11px] font-bold cursor-pointer"
+            title="AI Auto-Format: standardize math, split choices, infer answer key"
+          >
+            <Wand2 className="w-3 h-3" />
+            <span>AI Format</span>
+          </button>
+
           {isExpanded && (
-            <>
-              <button
-                onClick={handleAutoExtract}
-                className="px-2 py-1 text-label-sm-mono uppercase tracking-widest border border-primary/60 text-primary hover:bg-primary hover:text-white transition-colors rounded-sm flex items-center gap-1 text-[11px]"
-                title="Auto-extract Options (A-D)"
-              >
-                <Zap className="w-3 h-3" />
-                <span>Auto (A-D)</span>
-              </button>
-
-              <div className="h-3.5 w-px bg-outline-variant mx-0.5" />
-
+            <div className="flex items-center border border-white/20 bg-surface-dim p-0.5 rounded-xs">
               <button
                 onClick={() => setViewMode('split')}
-                className={`px-2 py-1 text-label-sm-mono uppercase tracking-widest transition-colors rounded-sm text-[11px] flex items-center gap-1 ${
-                  viewMode === 'split' ? 'bg-primary text-white' : 'text-on-surface-variant hover:text-on-surface'
+                className={`px-1.5 py-0.5 text-[10px] uppercase font-mono cursor-pointer ${
+                  viewMode === 'split' ? 'bg-primary text-white font-bold' : 'text-white/50'
                 }`}
               >
-                <Sparkles className="w-3 h-3" />
-                <span>Split</span>
+                Split
               </button>
               <button
                 onClick={() => setViewMode('preview')}
-                className={`px-2 py-1 text-label-sm-mono uppercase tracking-widest transition-colors rounded-sm text-[11px] flex items-center gap-1 ${
-                  viewMode === 'preview' ? 'bg-primary text-white' : 'text-on-surface-variant hover:text-on-surface'
+                className={`px-1.5 py-0.5 text-[10px] uppercase font-mono cursor-pointer ${
+                  viewMode === 'preview' ? 'bg-primary text-white font-bold' : 'text-white/50'
                 }`}
               >
-                <Eye className="w-3 h-3" />
-                <span>Preview</span>
+                Preview
               </button>
               <button
                 onClick={() => setViewMode('editor')}
-                className={`px-2 py-1 text-label-sm-mono uppercase tracking-widest transition-colors rounded-sm text-[11px] flex items-center gap-1 ${
-                  viewMode === 'editor' ? 'bg-primary text-white' : 'text-on-surface-variant hover:text-on-surface'
+                className={`px-1.5 py-0.5 text-[10px] uppercase font-mono cursor-pointer ${
+                  viewMode === 'editor' ? 'bg-primary text-white font-bold' : 'text-white/50'
                 }`}
               >
-                <Code className="w-3 h-3" />
-                <span>Raw</span>
+                Raw
               </button>
-            </>
+            </div>
           )}
         </div>
       </div>
 
-      {/* Collapsed Snippet Summary View */}
-      {!isExpanded && (
-        <div
-          onClick={() => setIsExpanded(true)}
-          className="p-3 cursor-pointer hover:bg-surface-container/50 transition-colors flex items-center justify-between gap-4 text-xs font-mono text-on-surface-variant min-w-0"
-        >
-          <div className="truncate flex-1">
-            <span className="text-on-surface">{questionText.replace(/\n+/g, ' ').slice(0, 140)}...</span>
-          </div>
-          <span className="text-primary hover:underline uppercase tracking-wider shrink-0 text-[11px]">
-            Expand Editor &rarr;
-          </span>
-        </div>
-      )}
-
-      {/* Expanded Interactive Editor Body */}
+      {/* Expanded Editor Body */}
       {isExpanded && (
-        <div className="p-4 sm:p-5 space-y-5 min-w-0 max-w-full">
+        <div className="p-4 sm:p-5 space-y-4 min-w-0 max-w-full">
           {/* Similar Questions Alert */}
           {similarQuestions.length > 0 && (
-            <div className="bg-surface-container border border-outline-variant rounded p-3.5 space-y-2 min-w-0 overflow-hidden">
+            <div className="bg-surface-container border border-outline-variant rounded p-3 space-y-2 min-w-0 overflow-hidden">
               <div className="text-label-sm-mono text-status-weak uppercase tracking-widest flex items-center gap-2 text-xs font-bold">
                 <AlertTriangle className="w-4 h-4" />
                 Potential Duplicates in Bank
@@ -434,227 +1080,148 @@ function CandidateCard({ candidate, jobId, groupedTopics, onReviewed, onViewPdfP
                   <label className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest text-xs font-bold">
                     Question Stem (LaTeX / Markdown)
                   </label>
-                  <div className="flex items-center gap-3">
-                    {onOpenCropper && (
-                      <button
-                        onClick={() => onOpenCropper(primaryPage, candidate.source_question_number, candidate.candidate_key, handleApplyCroppedImage, 'stem')}
-                        className="text-label-sm-mono text-primary hover:underline uppercase tracking-widest text-xs flex items-center gap-1 font-bold"
-                        title="Crop stem diagram from source PDF"
-                      >
-                        <Crop className="w-3.5 h-3.5" />
-                        <span>Crop PDF</span>
-                      </button>
-                    )}
-
+                  <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleAttachImage('stem')}
                       disabled={uploadingImage}
-                      className="text-label-sm-mono text-on-surface-variant hover:text-primary hover:underline uppercase tracking-widest text-xs flex items-center gap-1"
-                      title="Upload or attach diagram image"
+                      className="text-label-sm-mono text-on-surface-variant hover:text-primary uppercase tracking-widest text-[11px] flex items-center gap-1 cursor-pointer"
                     >
-                      <ImageIcon className="w-3.5 h-3.5" />
-                      <span>{uploadingImage && targetImageField === 'stem' ? 'Uploading...' : 'Attach Image'}</span>
-                    </button>
-
-                    <button
-                      onClick={findSimilar}
-                      disabled={searchingSimilar}
-                      className="text-label-sm-mono text-on-surface-variant hover:text-primary hover:underline uppercase tracking-widest text-xs flex items-center gap-1"
-                    >
-                      <Search className="w-3.5 h-3.5" />
-                      <span>{searchingSimilar ? 'Checking...' : 'Find Duplicates'}</span>
+                      <ImageIcon className="w-3 h-3" />
+                      <span>{uploadingImage && targetImageField === 'stem' ? 'Uploading...' : 'Upload Image'}</span>
                     </button>
                   </div>
                 </div>
+
+                {/* LaTeX Quick Insertion Toolbar */}
+                <LatexSymbolBar onInsert={handleInsertLatex} />
 
                 <textarea
                   value={questionText}
                   onChange={e => setQuestionText(e.target.value)}
-                  rows="3"
-                  className="w-full max-w-full bg-surface-container border border-outline-variant p-3 text-on-surface outline-none focus:border-primary font-mono text-xs sm:text-sm rounded-sm box-border"
-                  placeholder="Type or paste question LaTeX..."
+                  rows={4}
+                  className="w-full bg-surface-container border border-outline-variant p-3 text-on-surface rounded-sm font-mono text-xs outline-none focus:border-primary transition-colors leading-relaxed"
+                  placeholder="Enter question text with LaTeX formulas ($...$)..."
                 />
 
-                {viewMode === 'split' && (
-                  <div className="p-3.5 bg-surface-container/70 border border-outline-variant/60 rounded-sm min-w-0 max-w-full overflow-hidden">
-                    <div className="text-[11px] text-primary font-mono uppercase tracking-widest mb-1.5 flex items-center gap-1 font-bold">
-                      <Sparkles className="w-3 h-3 text-primary" />
-                      <span>Rendered Question Preview</span>
+                {/* Live MathText Preview when in split view */}
+                {viewMode === 'split' && questionText && (
+                  <div className="p-3 bg-surface-container/50 border border-outline-variant rounded-sm text-sm">
+                    <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest pb-1 border-b border-white/5 mb-2">
+                      Live KaTeX Preview:
                     </div>
-                    <div className="text-body-sm sm:text-body-md text-on-surface leading-relaxed overflow-x-auto max-w-full">
-                      <MathText text={questionText || '—'} />
-                    </div>
+                    <MathText text={questionText} />
                   </div>
                 )}
               </div>
 
-              {/* Options Matrix */}
-              <div className="space-y-2.5 min-w-0 max-w-full">
+              {/* Multiple Choice Options (A-D) */}
+              <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <label className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest text-xs font-bold block">
-                    Options & Correct Answer
+                  <label className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest text-xs font-bold">
+                    Choices &amp; Answer Key
                   </label>
-                  <span className="text-label-sm-mono text-on-surface-variant text-[11px]">
-                    Select radio button for correct option
+                  <span className="text-[11px] font-mono text-primary font-bold">
+                    Correct: Option {correctAnswer}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 min-w-0 max-w-full">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {options.map((opt, i) => (
                     <div
                       key={opt.id}
-                      className={`flex items-start gap-2.5 p-3 border rounded-sm transition-colors min-w-0 max-w-full overflow-hidden ${
+                      className={`p-2.5 border rounded-sm transition-colors ${
                         correctAnswer === opt.id
-                          ? 'border-status-aligned bg-status-aligned/5 shadow-sm'
+                          ? 'border-status-aligned bg-status-aligned/5 ring-1 ring-status-aligned'
                           : 'border-outline-variant bg-surface-container'
                       }`}
                     >
-                      <input
-                        type="radio"
-                        name={`correct-${candidate.candidate_key}`}
-                        checked={correctAnswer === opt.id}
-                        onChange={() => setCorrectAnswer(opt.id)}
-                        className="mt-1 accent-status-aligned cursor-pointer w-4 h-4 shrink-0"
-                      />
-                      <div className="flex-1 min-w-0 space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-label-sm-mono text-on-surface font-bold text-xs">Option {opt.id}</span>
-                          <div className="flex items-center gap-2">
-                            {onOpenCropper && (
-                              <button
-                                onClick={() => onOpenCropper(primaryPage, candidate.source_question_number, candidate.candidate_key, handleApplyCroppedImage, `opt${opt.id}`)}
-                                className="text-label-sm-mono text-primary hover:underline text-[10px] uppercase tracking-wider flex items-center gap-0.5 font-bold"
-                                title={`Crop diagram from PDF for Option ${opt.id}`}
-                              >
-                                <Crop className="w-3 h-3" />
-                                <span>Crop</span>
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handleAttachImage(`opt${opt.id}`)}
-                              className="text-label-sm-mono text-on-surface-variant hover:text-primary text-[10px] uppercase tracking-wider flex items-center gap-0.5"
-                              title={`Attach diagram to Option ${opt.id}`}
-                            >
-                              <ImageIcon className="w-3 h-3" />
-                              <span>Image</span>
-                            </button>
-                            {correctAnswer === opt.id && (
-                              <span className="text-[10px] text-status-aligned font-mono font-bold uppercase tracking-wider">
-                                Correct
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        <textarea
-                          value={opt.text}
-                          onChange={e => updateOption(i, e.target.value)}
-                          rows="2"
-                          className="w-full max-w-full bg-surface-dim border border-outline-variant/60 p-2 text-on-surface outline-none font-mono text-xs rounded-sm focus:border-primary box-border"
-                          placeholder={`Option ${opt.id} LaTeX`}
-                        />
-
-                        {viewMode === 'split' && opt.text && (
-                          <div className="p-2 bg-surface-dim/90 border border-outline-variant/30 rounded-sm text-xs text-on-surface flex items-start gap-1.5 min-w-0 overflow-hidden">
-                            <span className="text-[10px] font-mono text-primary uppercase tracking-wider shrink-0 font-bold mt-0.5">
-                              Rendered:
-                            </span>
-                            <div className="flex-1 font-medium overflow-x-auto min-w-0">
-                              <MathText text={opt.text} />
-                            </div>
-                          </div>
-                        )}
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setCorrectAnswer(opt.id)}
+                          className={`px-2 py-0.5 text-xs font-mono font-bold rounded-xs cursor-pointer ${
+                            correctAnswer === opt.id
+                              ? 'bg-status-aligned text-black'
+                              : 'bg-white/10 text-white/70 hover:bg-white/20'
+                          }`}
+                        >
+                          Option {opt.id} {correctAnswer === opt.id && '✓'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleAttachImage(`opt${opt.id}`)}
+                          className="text-[10px] font-mono text-white/50 hover:text-primary flex items-center gap-1 cursor-pointer"
+                          title={`Attach diagram to Option ${opt.id}`}
+                        >
+                          <ImageIcon className="w-3 h-3" />
+                          <span>Image</span>
+                        </button>
                       </div>
+
+                      <input
+                        value={opt.text}
+                        onChange={e => updateOption(i, e.target.value)}
+                        placeholder={`Option ${opt.id} text or math...`}
+                        className="w-full bg-black/40 border border-outline-variant p-2 text-on-surface rounded-xs font-mono text-xs outline-none focus:border-primary"
+                      />
+
+                      {opt.text && (
+                        <div className="mt-1.5 text-xs text-white/80">
+                          <MathText text={opt.text} />
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Solution Derivation */}
-              <div className="space-y-1.5 min-w-0 max-w-full">
+              {/* Solution / Explanation Text */}
+              <div className="space-y-1">
                 <label className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest text-xs font-bold">
-                  Step-by-Step Solution (LaTeX)
+                  Solution Derivation (Optional)
                 </label>
                 <textarea
                   value={solutionText}
                   onChange={e => setSolutionText(e.target.value)}
-                  rows="2"
-                  className="w-full max-w-full bg-surface-container border border-outline-variant p-2.5 text-on-surface outline-none focus:border-primary font-mono text-xs rounded-sm box-border"
-                  placeholder="Step-by-step mathematical derivation..."
+                  rows={2}
+                  className="w-full bg-surface-container border border-outline-variant p-2.5 text-on-surface rounded-sm font-mono text-xs outline-none focus:border-primary"
+                  placeholder="Derivation / explanation steps (LaTeX)..."
                 />
-                {viewMode === 'split' && solutionText && (
-                  <div className="p-3 bg-primary/5 border-l-2 border-primary rounded-r space-y-1 min-w-0 max-w-full overflow-hidden">
-                    <div className="text-[10px] text-primary font-mono uppercase tracking-widest flex items-center gap-1 font-bold">
-                      <Sparkles className="w-3 h-3 text-primary" />
-                      <span>Rendered Solution</span>
-                    </div>
-                    <div className="text-xs text-on-surface leading-relaxed overflow-x-auto max-w-full">
-                      <MathText text={solutionText} />
-                    </div>
-                  </div>
-                )}
               </div>
             </>
           ) : (
-            /* Student Preview Mode */
-            <div className="bg-surface-container p-4 sm:p-5 border border-outline-variant rounded-sm space-y-4 min-w-0 max-w-full overflow-hidden">
-              <div className="text-body-md sm:text-body-lg text-on-surface leading-relaxed font-light overflow-x-auto max-w-full">
+            /* Full Preview View */
+            <div className="space-y-4 p-4 bg-surface-container rounded-sm border border-outline-variant">
+              <div className="text-sm text-on-surface leading-relaxed">
                 <MathText text={questionText} />
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 min-w-0">
-                {options.map((opt) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-outline-variant">
+                {options.map(opt => (
                   <div
                     key={opt.id}
-                    className={`p-3 border rounded-sm flex gap-2.5 min-w-0 overflow-hidden ${
+                    className={`p-3 border rounded-sm flex items-start gap-2 ${
                       correctAnswer === opt.id
-                        ? 'border-status-aligned bg-status-aligned/10 text-status-aligned font-semibold'
-                        : 'border-outline-variant text-on-surface-variant'
+                        ? 'border-status-aligned bg-status-aligned/10'
+                        : 'border-outline-variant bg-surface-dim'
                     }`}
                   >
-                    <div className="font-bold text-sm shrink-0">{opt.id}.</div>
-                    <div className="overflow-x-auto flex-1 min-w-0 text-sm">
-                      <MathText text={opt.text || '—'} />
+                    <span className="font-bold font-mono text-xs">{opt.id}.</span>
+                    <div className="text-xs">
+                      <MathText text={opt.text} />
                     </div>
                   </div>
                 ))}
               </div>
-              {solutionText && (
-                <div className="mt-4 p-3.5 border-l-2 border-primary bg-primary/5 min-w-0 overflow-hidden">
-                  <div className="text-label-sm-mono text-primary uppercase tracking-widest mb-1.5 font-bold flex items-center gap-1 text-xs">
-                    <Sparkles className="w-3 h-3" />
-                    <span>Step-by-Step Solution</span>
-                  </div>
-                  <div className="text-xs sm:text-body-sm text-on-surface overflow-x-auto max-w-full">
-                    <MathText text={solutionText} />
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
-          {/* Quick Rejection Presets */}
-          <div className="flex items-center gap-1.5 flex-wrap pt-1">
-            <span className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest text-[11px] font-bold">
-              Quick Reject:
-            </span>
-            {REJECTION_PRESETS.map(preset => (
-              <button
-                key={preset}
-                onClick={() => reject(preset)}
-                disabled={saving}
-                className="px-2 py-0.5 border border-outline-variant hover:border-error text-on-surface-variant hover:text-error text-label-sm-mono uppercase tracking-widest text-[10px] rounded-sm transition-colors"
-              >
-                {preset}
-              </button>
-            ))}
-          </div>
-
-          {/* Curriculum Classification & Publish Actions */}
-          <div className="pt-3 border-t border-outline-variant space-y-3 min-w-0 max-w-full">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest text-[11px] font-bold">
-                  Curriculum Topic Classification
+          {/* Curriculum Mapping & Verification Action Bar */}
+          <div className="pt-3 border-t border-outline-variant space-y-3 font-mono text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Syllabus Topic Selector */}
+              <div className="sm:col-span-2 space-y-1">
+                <label className="text-white/50 uppercase tracking-wider text-[10px] block font-semibold">
+                  Curriculum Topic (Required to Publish)
                 </label>
                 <TopicSelect
                   value={topicId}
@@ -662,47 +1229,66 @@ function CandidateCard({ candidate, jobId, groupedTopics, onReviewed, onViewPdfP
                   groupedTopics={groupedTopics}
                 />
               </div>
+
+              {/* Difficulty */}
               <div className="space-y-1">
-                <label className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest text-[11px] font-bold">
-                  Estimated Difficulty
+                <label className="text-white/50 uppercase tracking-wider text-[10px] block font-semibold">
+                  Difficulty Level
                 </label>
                 <select
                   value={difficulty}
                   onChange={e => setDifficulty(e.target.value)}
-                  className="w-full bg-surface-container border border-outline-variant p-2.5 text-on-surface outline-none focus:border-primary rounded-sm text-xs"
+                  className="w-full bg-surface-container border border-outline-variant p-2 text-on-surface outline-none focus:border-primary rounded-sm text-xs uppercase"
                 >
-                  <option value="easy">Easy</option>
-                  <option value="medium">Medium</option>
-                  <option value="hard">Hard</option>
+                  <option value="easy">Easy (JEE Main)</option>
+                  <option value="medium">Medium (Standard)</option>
+                  <option value="hard">Hard (Advanced)</option>
                 </select>
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
-              <input
-                value={reason}
-                onChange={e => setReason(e.target.value)}
-                placeholder="Custom rejection rationale..."
-                className="flex-1 bg-surface-container border border-outline-variant p-2.5 text-on-surface outline-none focus:border-primary rounded-sm text-xs"
-              />
+            {/* Action Buttons */}
+            <div className="flex justify-between items-center flex-wrap gap-2 pt-1">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={findSimilar}
+                  disabled={searchingSimilar}
+                  className="px-3 py-1.5 border border-white/20 hover:border-primary text-white text-xs uppercase tracking-wider flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+                >
+                  <Search className="w-3 h-3" />
+                  <span>{searchingSimilar ? 'Checking...' : 'Check Duplicates'}</span>
+                </button>
+
+                {/* Reject dropdown */}
+                <select
+                  onChange={e => {
+                    if (e.target.value) {
+                      reject(e.target.value);
+                      e.target.value = '';
+                    }
+                  }}
+                  className="bg-error/10 border border-error/40 text-error p-1.5 text-xs outline-none uppercase font-bold cursor-pointer rounded-xs"
+                >
+                  <option value="">Archive / Reject...</option>
+                  {REJECTION_PRESETS.map((p, i) => (
+                    <option key={i} value={p}>{p}</option>
+                  ))}
+                </select>
+              </div>
+
               <button
-                disabled={saving}
-                onClick={() => reject()}
-                className="px-4 py-2.5 border border-error text-error uppercase tracking-widest font-semibold hover:bg-error/10 transition-colors disabled:opacity-50 rounded-sm text-xs"
-              >
-                Reject
-              </button>
-              <button
-                disabled={saving || !topicId}
+                type="button"
                 onClick={accept}
-                className={`px-6 py-2.5 uppercase tracking-widest font-bold transition-all disabled:opacity-40 rounded-sm text-xs flex items-center justify-center gap-1.5 ${
-                  topicId
+                disabled={saving || !topicId}
+                className={`px-5 py-2 uppercase tracking-widest font-bold text-xs flex items-center gap-2 rounded-sm transition-all ${
+                  topicId && !saving
                     ? 'bg-primary text-white hover:brightness-110 shadow-md cursor-pointer'
                     : 'bg-surface-container border border-outline-variant text-on-surface-variant cursor-not-allowed'
                 }`}
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>{saving ? 'Publishing...' : 'Verify & Publish'}</span>
+                <span>{saving ? 'Publishing...' : 'Verify & Publish (Ctrl+Enter)'}</span>
               </button>
             </div>
 
@@ -719,301 +1305,6 @@ function CandidateCard({ candidate, jobId, groupedTopics, onReviewed, onViewPdfP
 }
 
 /**
- * Interactive PDF Cropping & Inspector Studio Modal
- * Allows dragging crosshair bounding boxes to crop at 300 DPI directly into question stem or options.
- */
-function PdfCroppingStudioModal({ modal, onClose, onCrop, onNavigatePage }) {
-  const [target, setTarget] = useState(modal?.defaultTarget || 'stem');
-  const [selection, setSelection] = useState(null); // { x, y, w, h } in fractions [0..1]
-  const [isDragging, setIsDragging] = useState(false);
-  const [startPoint, setStartPoint] = useState(null);
-  const [cropping, setCropping] = useState(false);
-  const [cropSuccess, setCropSuccess] = useState('');
-  const [error, setError] = useState('');
-  const imgRef = useRef(null);
-
-  useEffect(() => {
-    if (modal?.defaultTarget) setTarget(modal.defaultTarget);
-    setCropSuccess('');
-    setError('');
-  }, [modal?.defaultTarget, modal?.pageNum]);
-
-  const getRelativeCoords = (e) => {
-    if (!imgRef.current) return null;
-    const rect = imgRef.current.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    const x = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-    const y = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
-    return { x, y };
-  };
-
-  const handlePointerDown = (e) => {
-    const coords = getRelativeCoords(e);
-    if (!coords) return;
-    setIsDragging(true);
-    setStartPoint(coords);
-    setSelection({ x: coords.x, y: coords.y, w: 0, h: 0 });
-    setCropSuccess('');
-    setError('');
-  };
-
-  const handlePointerMove = (e) => {
-    if (!isDragging || !startPoint) return;
-    const coords = getRelativeCoords(e);
-    if (!coords) return;
-    const x0 = Math.min(startPoint.x, coords.x);
-    const y0 = Math.min(startPoint.y, coords.y);
-    const w = Math.abs(coords.x - startPoint.x);
-    const h = Math.abs(coords.y - startPoint.y);
-    setSelection({ x: x0, y: y0, w, h });
-  };
-
-  const handlePointerUp = () => {
-    setIsDragging(false);
-    if (selection && (selection.w < 0.01 || selection.h < 0.01)) {
-      setSelection(null);
-    }
-  };
-
-  const pdfPoints = useMemo(() => {
-    if (!selection) return null;
-    const pw = modal?.width || 595.3;
-    const ph = modal?.height || 841.9;
-    const x0 = Math.round(selection.x * pw);
-    const y0 = Math.round(selection.y * ph);
-    const x1 = Math.round((selection.x + selection.w) * pw);
-    const y1 = Math.round((selection.y + selection.h) * ph);
-    const w = x1 - x0;
-    const h = y1 - y0;
-    return { x0, y0, x1, y1, w, h };
-  }, [selection, modal?.width, modal?.height]);
-
-  const handleApplyCrop = async () => {
-    if (!pdfPoints) {
-      setError('Please click & drag a selection box over the diagram first.');
-      return;
-    }
-    setCropping(true);
-    setError('');
-    setCropSuccess('');
-    try {
-      await onCrop(pdfPoints, target);
-      const targetName = target === 'stem' ? 'Question Stem' : `Option ${target.slice(3).toUpperCase()}`;
-      setCropSuccess(`✓ Diagram cropped at 300 DPI and inserted into ${targetName}!`);
-      if (target === 'stem') setTarget('optA');
-      else if (target === 'optA') setTarget('optB');
-      else if (target === 'optB') setTarget('optC');
-      else if (target === 'optC') setTarget('optD');
-      setSelection(null);
-    } catch (err) {
-      setError(err.message || 'Failed to crop diagram');
-    } finally {
-      setCropping(false);
-    }
-  };
-
-  if (!modal) return null;
-
-  return (
-    <div
-      className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in select-none"
-      onClick={onClose}
-    >
-      <div
-        className="bg-surface-dim border border-outline-variant rounded-sm w-full max-w-5xl max-h-[94vh] flex flex-col overflow-hidden shadow-2xl"
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Top Header */}
-        <div className="flex justify-between items-center px-4 sm:px-6 py-3 border-b border-outline-variant bg-surface-container">
-          <div className="flex items-center gap-2.5 min-w-0 truncate">
-            <Crop className="w-4 h-4 text-primary shrink-0" />
-            <span className="text-label-sm-mono uppercase tracking-widest text-primary font-bold text-xs truncate">
-              PDF Cropping Studio &middot; Page {modal.pageNum}
-            </span>
-            {modal.qNum && (
-              <span className="text-xs text-on-surface-variant font-mono shrink-0">
-                (Q.{modal.qNum})
-              </span>
-            )}
-          </div>
-
-          {/* Page Navigator */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => onNavigatePage(-1)}
-              disabled={modal.pageNum <= 1 || modal.loading}
-              className="px-2 py-1 text-xs font-mono border border-outline-variant rounded hover:border-primary disabled:opacity-40 flex items-center gap-1"
-              title="Previous Page"
-            >
-              <ChevronLeft className="w-3.5 h-3.5" />
-              <span>P.{modal.pageNum - 1}</span>
-            </button>
-            <span className="text-xs font-mono text-primary font-bold px-1.5">
-              Page {modal.pageNum}
-            </span>
-            <button
-              onClick={() => onNavigatePage(1)}
-              disabled={modal.loading}
-              className="px-2 py-1 text-xs font-mono border border-outline-variant rounded hover:border-primary disabled:opacity-40 flex items-center gap-1"
-              title="Next Page"
-            >
-              <span>P.{modal.pageNum + 1}</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-
-            <div className="h-4 w-px bg-outline-variant mx-1" />
-
-            <button
-              onClick={onClose}
-              className="text-on-surface-variant hover:text-on-surface font-mono text-xs px-2.5 py-1 rounded hover:bg-surface-container transition-colors"
-            >
-              ✕ Close
-            </button>
-          </div>
-        </div>
-
-        {/* Toolbar & Target Selector */}
-        <div className="px-4 sm:px-6 py-2.5 bg-surface-container/80 border-b border-outline-variant flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-on-surface-variant text-[11px] uppercase tracking-wider font-bold">Apply Crop To:</span>
-            {[
-              { id: 'stem', label: 'Stem' },
-              { id: 'optA', label: 'Option A' },
-              { id: 'optB', label: 'Option B' },
-              { id: 'optC', label: 'Option C' },
-              { id: 'optD', label: 'Option D' }
-            ].map(t => (
-              <button
-                key={t.id}
-                onClick={() => setTarget(t.id)}
-                className={`px-2.5 py-1 rounded-sm uppercase tracking-wider text-[11px] font-bold border transition-colors ${
-                  target === t.id
-                    ? 'bg-primary text-white border-primary shadow-sm'
-                    : 'bg-surface-dim border-outline-variant text-on-surface-variant hover:text-on-surface'
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-3">
-            {pdfPoints && (
-              <span className="text-[11px] text-primary bg-primary/10 border border-primary/30 px-2 py-0.5 rounded-xs">
-                {pdfPoints.w} &times; {pdfPoints.h} pt
-              </span>
-            )}
-
-            {selection && (
-              <button
-                onClick={() => setSelection(null)}
-                className="text-on-surface-variant hover:text-error text-[11px] underline"
-              >
-                Clear Box
-              </button>
-            )}
-
-            <button
-              onClick={handleApplyCrop}
-              disabled={!selection || cropping || modal.loading}
-              className="px-4 py-1.5 bg-primary text-white hover:bg-primary-hover disabled:opacity-40 rounded-sm font-bold uppercase tracking-wider text-xs flex items-center gap-1.5 transition-all shadow-sm"
-            >
-              {cropping ? (
-                <>
-                  <Sparkles className="w-3.5 h-3.5 animate-spin" />
-                  <span>Cropping 300 DPI...</span>
-                </>
-              ) : (
-                <>
-                  <Zap className="w-3.5 h-3.5" />
-                  <span>Crop & Apply</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Status / Notice Banner */}
-        {cropSuccess && (
-          <div className="bg-status-aligned/10 border-b border-status-aligned/30 px-4 py-2 text-status-aligned font-mono text-xs flex items-center justify-between">
-            <span>{cropSuccess}</span>
-            <span className="text-[11px] opacity-75">Target advanced to next field. Drag to crop another!</span>
-          </div>
-        )}
-
-        {error && (
-          <div className="bg-error/10 border-b border-error/30 px-4 py-2 text-error font-mono text-xs">
-            {error}
-          </div>
-        )}
-
-        {/* Canvas / Image Interactive Stage */}
-        <div
-          className="p-3 sm:p-6 overflow-auto flex-1 flex flex-col items-center justify-center bg-black/75 min-h-[360px] max-w-full relative select-none cursor-crosshair"
-          onMouseDown={handlePointerDown}
-          onMouseMove={handlePointerMove}
-          onMouseUp={handlePointerUp}
-          onTouchStart={handlePointerDown}
-          onTouchMove={handlePointerMove}
-          onTouchEnd={handlePointerUp}
-        >
-          {modal.loading ? (
-            <div className="text-center space-y-2.5 font-mono text-primary animate-pulse-soft">
-              <Sparkles className="w-7 h-7 mx-auto animate-spin" />
-              <p className="text-xs">Rendering vector page {modal.pageNum} at high resolution...</p>
-            </div>
-          ) : modal.error ? (
-            <div className="text-error font-mono text-xs border border-error/30 bg-error/10 p-4 rounded text-center">
-              Error rendering page: {modal.error}
-            </div>
-          ) : (
-            <div className="relative inline-block shadow-2xl bg-white rounded border border-outline-variant/80">
-              <img
-                ref={imgRef}
-                src={modal.dataUrl}
-                alt={`Page ${modal.pageNum}`}
-                draggable={false}
-                className="max-h-[64vh] max-w-full w-auto object-contain select-none pointer-events-none"
-              />
-
-              {/* Selection overlay box */}
-              {selection && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    left: `${selection.x * 100}%`,
-                    top: `${selection.y * 100}%`,
-                    width: `${selection.w * 100}%`,
-                    height: `${selection.h * 100}%`,
-                  }}
-                  className="border-2 border-primary bg-primary/20 pointer-events-none shadow-[0_0_12px_rgba(0,191,255,0.4)]"
-                >
-                  <div className="absolute top-0 right-0 -translate-y-full bg-primary text-white text-[10px] font-mono px-1.5 py-0.5 rounded-xs tracking-wider uppercase font-bold">
-                    Target: {target.toUpperCase()}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Bottom Hint */}
-        <div className="px-4 sm:px-6 py-2 border-t border-outline-variant bg-surface-container flex justify-between items-center text-[11px] font-mono text-on-surface-variant">
-          <span>Click &amp; drag on any chemical reaction, graph, or option diagram to crop at 300 DPI.</span>
-          <button
-            onClick={onClose}
-            className="px-3.5 py-1 bg-primary text-white rounded-sm font-bold uppercase tracking-widest text-xs"
-          >
-            Done
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/**
  * Main Content Operations Hub Page
  */
 export default function ContentAdminPage() {
@@ -1021,6 +1312,20 @@ export default function ContentAdminPage() {
   const [selectedJob, setSelectedJob] = useState(null);
   const [candidates, setCandidates] = useState([]);
   const [topics, setTopics] = useState([]);
+
+  // Active Layout Mode: 'studio' (Split-Screen) | 'feed' (Cards List) | 'queue' (Paper Queue)
+  const [layoutMode, setLayoutMode] = useState('studio');
+
+  // Studio Mode Active Candidate Index
+  const [activeCandidateIndex, setActiveCandidateIndex] = useState(0);
+
+  // Multi-Selection State for Bulk Operations
+  const [selectedCandidateKeys, setSelectedCandidateKeys] = useState(new Set());
+
+  // Bulk Modal State
+  const [bulkTopicModalOpen, setBulkTopicModalOpen] = useState(false);
+  const [bulkTargetTopicId, setBulkTargetTopicId] = useState('');
+  const [bulkProcessing, setBulkProcessing] = useState(false);
 
   // Responsive Sidebar Toggle
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -1031,7 +1336,7 @@ export default function ContentAdminPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [onlyDiagrams, setOnlyDiagrams] = useState(false);
 
-  // Pagination States (Eliminates lag completely by rendering 10 cards per page)
+  // Pagination for Feed Mode
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -1045,10 +1350,13 @@ export default function ContentAdminPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
-  const [bulkPublishing, setBulkPublishing] = useState(false);
+  const [shortcutsModalOpen, setShortcutsModalOpen] = useState(false);
 
-  // PDF Viewer & Cropping Studio Modal
+  // Full-screen Modal PDF Cropping
   const [cropperModal, setCropperModal] = useState(null);
+
+  // Studio Mode PDF page state
+  const [studioPageNum, setStudioPageNum] = useState(1);
 
   const loadJobs = async () => {
     try {
@@ -1067,11 +1375,16 @@ export default function ContentAdminPage() {
   const chooseJob = async (job) => {
     setSelectedJob(job);
     setCandidates([]);
+    setSelectedCandidateKeys(new Set());
     setError('');
     setCurrentPage(1);
+    setActiveCandidateIndex(0);
     try {
       const cands = await contentService.getCandidates(job.job_id);
       setCandidates(cands);
+      if (cands.length > 0 && cands[0].source_pages?.[0]) {
+        setStudioPageNum(cands[0].source_pages[0]);
+      }
     } catch (err) {
       setError(err.message);
     }
@@ -1101,7 +1414,7 @@ export default function ContentAdminPage() {
             await chooseJob(matching);
             setFile(null);
             event.target.reset();
-            alert(`This PDF was already uploaded previously (Job ID: ${matching.job_id}).\nLoaded existing candidate questions and page extractions.`);
+            alert(`This PDF was already uploaded previously (Job ID: ${matching.job_id}).\nLoaded existing candidate questions.`);
             return;
           }
         } catch (_) {}
@@ -1112,23 +1425,107 @@ export default function ContentAdminPage() {
     }
   };
 
-  const handlePublishAllReady = async () => {
-    if (!selectedJob || candidates.length === 0) return;
-    const readyCandidates = candidates.filter(c => c.status === 'REVIEW_REQUIRED' && c.suggested_topic_id);
-    if (readyCandidates.length === 0) {
-      alert('No pending candidates with classified curriculum topics are ready to publish.');
-      return;
+  // Filtered Candidates
+  const filteredCandidates = useMemo(() => {
+    return candidates.filter(c => {
+      if (statusFilter === 'PENDING' && c.status !== 'REVIEW_REQUIRED') return false;
+      if (statusFilter === 'PUBLISHED' && c.status !== 'PUBLISHED') return false;
+      if (statusFilter === 'REJECTED' && c.status !== 'REJECTED') return false;
+
+      if (subjectFilter !== 'ALL' && c.subject !== subjectFilter) return false;
+      if (onlyDiagrams && !c.has_diagram) return false;
+
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const matchesQNum = String(c.source_question_number) === query;
+        const matchesText = (c.question_text || c.raw_text || '').toLowerCase().includes(query);
+        const matchesChapter = (c.suggested_chapter || '').toLowerCase().includes(query);
+        if (!matchesQNum && !matchesText && !matchesChapter) return false;
+      }
+      return true;
+    });
+  }, [candidates, statusFilter, subjectFilter, onlyDiagrams, searchQuery]);
+
+  // Active candidate in Studio Mode
+  const activeCandidate = useMemo(() => {
+    if (filteredCandidates.length === 0) return null;
+    return filteredCandidates[activeCandidateIndex] || filteredCandidates[0] || null;
+  }, [filteredCandidates, activeCandidateIndex]);
+
+  // Sync studio PDF page when active candidate changes
+  useEffect(() => {
+    if (activeCandidate?.source_pages?.[0]) {
+      setStudioPageNum(activeCandidate.source_pages[0]);
     }
-    if (!window.confirm(`Publish all ${readyCandidates.length} ready questions with curriculum topics to Supabase Question Bank?`)) {
+  }, [activeCandidate]);
+
+  // Multi-Selection helpers
+  const handleToggleSelectCandidate = (candidateKey) => {
+    setSelectedCandidateKeys(prev => {
+      const next = new Set(prev);
+      if (next.has(candidateKey)) next.delete(candidateKey);
+      else next.add(candidateKey);
+      return next;
+    });
+  };
+
+  const handleSelectAllFiltered = () => {
+    if (selectedCandidateKeys.size === filteredCandidates.length) {
+      setSelectedCandidateKeys(new Set());
+    } else {
+      setSelectedCandidateKeys(new Set(filteredCandidates.map(c => c.candidate_key)));
+    }
+  };
+
+  // Bulk Operations
+  const handleExecuteBulkAssignTopic = async () => {
+    if (!selectedJob || selectedCandidateKeys.size === 0 || !bulkTargetTopicId) return;
+    setBulkProcessing(true);
+    try {
+      const targetTopicObj = topics.find(t => t.id === bulkTargetTopicId);
+      const curriculumMeta = targetTopicObj ? {
+        topic: targetTopicObj.name,
+        chapter: targetTopicObj.chapter,
+        subject: targetTopicObj.subject
+      } : {};
+
+      await contentService.bulkAssignTopic(
+        selectedJob.job_id,
+        Array.from(selectedCandidateKeys),
+        bulkTargetTopicId,
+        curriculumMeta
+      );
+
+      await chooseJob(selectedJob);
+      setBulkTopicModalOpen(false);
+      setBulkTargetTopicId('');
+      setSelectedCandidateKeys(new Set());
+      alert(`Successfully updated topic for ${selectedCandidateKeys.size} candidates!`);
+    } catch (err) {
+      alert('Bulk assign error: ' + err.message);
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
+  const handleExecuteBulkPublishReady = async () => {
+    if (!selectedJob || selectedCandidateKeys.size === 0) return;
+    const candidatesToPublish = candidates
+      .filter(c => selectedCandidateKeys.has(c.candidate_key) && c.suggested_topic_id && c.status !== 'PUBLISHED');
+
+    if (candidatesToPublish.length === 0) {
+      alert('None of the selected candidates have curriculum topics assigned, or they are already published.');
       return;
     }
 
-    setBulkPublishing(true);
-    let count = 0;
+    if (!window.confirm(`Publish all ${candidatesToPublish.length} ready questions to the Question Bank?`)) return;
+
+    setBulkProcessing(true);
     try {
-      for (const c of readyCandidates) {
-        await contentService.acceptCandidate(selectedJob.job_id, c.candidate_key, {
-          question_text: c.question_text,
+      const payloads = candidatesToPublish.map(c => ({
+        candidate_key: c.candidate_key,
+        draft: {
+          question_text: c.question_text || c.raw_text,
           options: [
             { id: 'A', text: c.options?.A || '' },
             { id: 'B', text: c.options?.B || '' },
@@ -1146,19 +1543,48 @@ export default function ContentAdminPage() {
             subject: c.subject,
             chapter: c.suggested_chapter
           }
-        });
-        count++;
-      }
+        }
+      }));
+
+      const res = await contentService.bulkAcceptCandidates(selectedJob.job_id, payloads);
       await chooseJob(selectedJob);
-      alert(`Successfully published ${count} verified questions to the Question Bank!`);
+      setSelectedCandidateKeys(new Set());
+      alert(`Bulk publication complete: ${res.accepted_count} published, ${res.failed_count} failed.`);
     } catch (err) {
-      setError(err.message);
+      alert('Bulk publish error: ' + err.message);
     } finally {
-      setBulkPublishing(false);
+      setBulkProcessing(false);
     }
   };
 
-  // Open Interactive PDF Cropping Studio
+  const handleExecuteBulkReject = async (presetReason) => {
+    if (!selectedJob || selectedCandidateKeys.size === 0 || !presetReason) return;
+    if (!window.confirm(`Archive / Reject ${selectedCandidateKeys.size} selected candidates as "${presetReason}"?`)) return;
+
+    setBulkProcessing(true);
+    try {
+      await contentService.bulkRejectCandidates(
+        selectedJob.job_id,
+        Array.from(selectedCandidateKeys),
+        presetReason
+      );
+      await chooseJob(selectedJob);
+      setSelectedCandidateKeys(new Set());
+    } catch (err) {
+      alert('Bulk reject error: ' + err.message);
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
+  // Studio Mode Direct Crop Handler
+  const handleStudioDirectCrop = async (rect, target) => {
+    if (!selectedJob) return;
+    const res = await contentService.cropPdfDiagram(selectedJob.job_id, studioPageNum, rect, 300);
+    return res;
+  };
+
+  // Modal Cropper Handlers
   const handleOpenCropper = async (pageNum, qNum, candidateKey, onApply, defaultTarget = 'stem') => {
     if (!selectedJob) return;
     const page = Number(pageNum) || 1;
@@ -1189,10 +1615,6 @@ export default function ContentAdminPage() {
     }
   };
 
-  const handleOpenPdfPage = (pageNum, qNum) => {
-    handleOpenCropper(pageNum, qNum, null, null, 'stem');
-  };
-
   const handleCropperNavigatePage = async (delta) => {
     if (!cropperModal || !selectedJob) return;
     const newPage = Math.max(1, cropperModal.pageNum + delta);
@@ -1217,7 +1639,7 @@ export default function ContentAdminPage() {
     }
   };
 
-  const handleExecuteCrop = async (rect, target) => {
+  const handleExecuteModalCrop = async (rect, target) => {
     if (!cropperModal || !selectedJob) return;
     const res = await contentService.cropPdfDiagram(selectedJob.job_id, cropperModal.pageNum, rect, 300);
     if (cropperModal.onApply && res.url) {
@@ -1226,6 +1648,37 @@ export default function ContentAdminPage() {
     return res;
   };
 
+  // Keyboard Shortcuts Listener
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Ignore when typing inside input / textarea
+      const tag = e.target?.tagName?.toLowerCase();
+      const isInput = tag === 'input' || tag === 'textarea';
+
+      // Alt + ArrowRight: Next candidate
+      if (e.altKey && e.key === 'ArrowRight') {
+        e.preventDefault();
+        setActiveCandidateIndex(i => Math.min(filteredCandidates.length - 1, i + 1));
+      }
+
+      // Alt + ArrowLeft: Previous candidate
+      if (e.altKey && e.key === 'ArrowLeft') {
+        e.preventDefault();
+        setActiveCandidateIndex(i => Math.max(0, i - 1));
+      }
+
+      // ? or Shift + /: Open shortcuts modal
+      if (!isInput && (e.key === '?' || (e.shiftKey && e.key === '/'))) {
+        e.preventDefault();
+        setShortcutsModalOpen(prev => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [filteredCandidates.length]);
+
+  // Initial topics & jobs load
   useEffect(() => {
     loadJobs();
     topicsService.getTopics()
@@ -1237,12 +1690,6 @@ export default function ContentAdminPage() {
       .catch(err => setError(err.message));
   }, []);
 
-  // Reset pagination when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [statusFilter, subjectFilter, searchQuery, onlyDiagrams]);
-
-  // Group topics by subject for TopicSelect
   const groupedTopics = useMemo(() => {
     const groups = {};
     for (const t of topics) {
@@ -1253,7 +1700,6 @@ export default function ContentAdminPage() {
     return groups;
   }, [topics]);
 
-  // Compute live KPI metrics
   const kpis = useMemo(() => {
     const totalJobs = jobs.length;
     const totalCandidates = candidates.length;
@@ -1263,34 +1709,6 @@ export default function ContentAdminPage() {
     return { totalJobs, totalCandidates, pending, published, rejected };
   }, [jobs, candidates]);
 
-  // Filter candidates according to status, subject, search, diagrams
-  const filteredCandidates = useMemo(() => {
-    return candidates.filter(c => {
-      // 1. Status Filter
-      if (statusFilter === 'PENDING' && c.status !== 'REVIEW_REQUIRED') return false;
-      if (statusFilter === 'PUBLISHED' && c.status !== 'PUBLISHED') return false;
-      if (statusFilter === 'REJECTED' && c.status !== 'REJECTED') return false;
-
-      // 2. Subject Filter
-      if (subjectFilter !== 'ALL' && c.subject !== subjectFilter) return false;
-
-      // 3. Diagrams only
-      if (onlyDiagrams && !c.has_diagram) return false;
-
-      // 4. Search Query
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        const matchesQNum = String(c.source_question_number) === query;
-        const matchesText = (c.question_text || c.raw_text || '').toLowerCase().includes(query);
-        const matchesChapter = (c.suggested_chapter || '').toLowerCase().includes(query);
-        if (!matchesQNum && !matchesText && !matchesChapter) return false;
-      }
-
-      return true;
-    });
-  }, [candidates, statusFilter, subjectFilter, onlyDiagrams, searchQuery]);
-
-  // Paginated chunk (Prevents lag by only rendering 10-25 candidates at once)
   const totalPages = Math.max(1, Math.ceil(filteredCandidates.length / pageSize));
   const paginatedCandidates = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -1299,33 +1717,81 @@ export default function ContentAdminPage() {
 
   return (
     <div className="w-full max-w-full overflow-x-hidden space-y-6 pb-28 text-on-surface">
-      {/* Title & Hub Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      {/* Title & Top Studio Toolbar */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/10 pb-4">
         <div>
-          <h2 className="text-2xl sm:text-3xl text-on-surface font-light lowercase tracking-tight">content ops</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-2xl sm:text-3xl text-on-surface font-light lowercase tracking-tight">content ops</h2>
+            <span className="px-2 py-0.5 bg-primary/10 border border-primary/30 text-primary text-[10px] font-mono uppercase tracking-widest font-bold">
+              Studio Pro
+            </span>
+          </div>
           <p className="text-on-surface-variant text-sm font-light mt-0.5">
-            High-fidelity exam paper ingestion, TeX verification, diagram extraction, and curriculum positioning.
+            Side-by-side high-res PDF verification studio, instant 300 DPI vector cropping, and batch curriculum publishing.
           </p>
         </div>
 
-        <Link
-          to={selectedJob ? `/admin/pipeline?jobId=${selectedJob.job_id}` : '/admin/pipeline'}
-          className="px-3.5 py-2 bg-primary/10 border border-primary/40 hover:bg-primary hover:text-white text-primary text-xs font-mono uppercase tracking-widest font-bold flex items-center gap-2 transition-all shrink-0 cursor-pointer"
-          title="Inspect end-to-end visual pipeline & live job flight tracking"
-        >
-          <GitMerge className="w-4 h-4" />
-          <span>Track in Visual Pipeline</span>
-        </Link>
+        {/* Layout Mode Switcher & Tools */}
+        <div className="flex items-center gap-2 flex-wrap font-mono text-xs">
+          {/* Studio / Feed / Queue Tabs */}
+          <div className="flex items-center border border-white/20 bg-surface-container p-0.5">
+            <button
+              onClick={() => setLayoutMode('studio')}
+              className={`px-3 py-1.5 uppercase font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                layoutMode === 'studio' ? 'bg-primary text-white' : 'text-white/60 hover:text-white'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Studio (Split)</span>
+            </button>
+            <button
+              onClick={() => setLayoutMode('feed')}
+              className={`px-3 py-1.5 uppercase font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                layoutMode === 'feed' ? 'bg-primary text-white' : 'text-white/60 hover:text-white'
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Feed</span>
+            </button>
+            <button
+              onClick={() => setLayoutMode('queue')}
+              className={`px-3 py-1.5 uppercase font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                layoutMode === 'queue' ? 'bg-primary text-white' : 'text-white/60 hover:text-white'
+              }`}
+            >
+              <UploadCloud className="w-3.5 h-3.5" />
+              <span>Upload Queue</span>
+            </button>
+          </div>
+
+          <button
+            onClick={() => setShortcutsModalOpen(true)}
+            className="px-2.5 py-1.5 border border-white/20 bg-surface-container hover:border-primary text-white/70 hover:text-white transition-colors cursor-pointer flex items-center gap-1"
+            title="Keyboard shortcuts (Press ?)"
+          >
+            <Keyboard className="w-3.5 h-3.5 text-primary" />
+            <span className="hidden sm:inline">Shortcuts</span>
+          </button>
+
+          <Link
+            to={selectedJob ? `/admin/pipeline?jobId=${selectedJob.job_id}` : '/admin/pipeline'}
+            className="px-3 py-1.5 bg-primary/10 border border-primary/40 hover:bg-primary hover:text-white text-primary uppercase font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+            title="Inspect end-to-end visual pipeline & live job flight tracking"
+          >
+            <GitMerge className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Visual Pipeline</span>
+          </Link>
+        </div>
       </div>
 
       {/* AMOLED Metric Live Tiles */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
         <div className="bg-surface-container border border-outline-variant p-3 rounded-sm">
-          <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest text-[10px]">Ingestion Jobs</div>
+          <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest text-[10px]">Ingestion Papers</div>
           <div className="text-xl sm:text-2xl font-light text-primary mt-0.5">{kpis.totalJobs}</div>
         </div>
         <div className="bg-surface-container border border-outline-variant p-3 rounded-sm">
-          <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest text-[10px]">Extracted In Job</div>
+          <div className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest text-[10px]">In Selected Paper</div>
           <div className="text-xl sm:text-2xl font-light text-on-surface mt-0.5">{kpis.totalCandidates}</div>
         </div>
         <div className="bg-surface-container border border-status-weak/30 p-3 rounded-sm bg-status-weak/5">
@@ -1342,289 +1808,290 @@ export default function ContentAdminPage() {
         </div>
       </div>
 
-      {/* Exam Ingestion Dropzone */}
-      <form onSubmit={upload} className="acrylic border border-outline-variant rounded-sm p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end max-w-full overflow-hidden">
-        <div className="sm:col-span-2 space-y-1.5 min-w-0">
-          <label className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest text-[11px] font-bold">
-            Source Exam Paper (PDF)
-          </label>
-          <div className="relative">
-            <input
-              required
-              type="file"
-              accept="application/pdf,.pdf"
-              onChange={e => setFile(e.target.files[0] || null)}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-            />
-            <div className={`w-full bg-surface-container border ${file ? 'border-primary' : 'border-outline-variant'} border-dashed p-2.5 flex items-center justify-center gap-2 rounded-sm transition-colors overflow-hidden`}>
-              <UploadCloud className="w-4 h-4 text-primary shrink-0" />
-              <span className={`text-xs truncate ${file ? 'text-primary font-semibold' : 'text-on-surface-variant'}`}>
-                {file ? file.name : 'Click or drag PDF here'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-1.5 min-w-0">
-          <label className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest text-[11px] font-bold">
-            Examination
-          </label>
-          <select
-            value={exam}
-            onChange={e => setExam(e.target.value)}
-            className="w-full bg-surface-container border border-outline-variant p-2.5 text-on-surface outline-none focus:border-primary rounded-sm text-xs"
-          >
-            <option value="JEE Main">JEE Main</option>
-            <option value="JEE Advanced">JEE Advanced</option>
-            <option value="NEET">NEET</option>
-            <option value="BITSAT">BITSAT</option>
-          </select>
-        </div>
-
-        <div className="space-y-1.5 min-w-0">
-          <label className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest text-[11px] font-bold">
-            Exam Year
-          </label>
-          <input
-            value={year}
-            onChange={e => setYear(e.target.value)}
-            placeholder="YYYY (e.g. 2018)"
-            className="w-full bg-surface-container border border-outline-variant p-2.5 text-on-surface outline-none focus:border-primary rounded-sm text-xs font-mono"
-          />
-        </div>
-
-        <div className="min-w-0">
-          <button
-            type="submit"
-            disabled={uploading}
-            className="w-full bg-primary text-white p-2.5 uppercase tracking-widest font-bold hover:brightness-110 transition-all disabled:opacity-50 rounded-sm text-xs flex items-center justify-center gap-1.5"
-          >
-            <UploadCloud className="w-3.5 h-3.5" />
-            <span>{uploading ? 'Ingesting...' : 'Ingest Paper'}</span>
-          </button>
-        </div>
-      </form>
-
-      {error && <div className="border-l-4 border-error bg-error/10 p-3 text-error rounded-sm text-xs font-semibold">{error}</div>}
-
-      {/* Main Workspace Layout (Sidebar + Verification Studio) */}
-      <section className={`grid grid-cols-1 ${sidebarOpen ? 'xl:grid-cols-[280px_minmax(0,1fr)]' : 'grid-cols-1'} gap-6 min-w-0 max-w-full items-start`}>
-        {/* Ingestion Jobs Queue Sidebar */}
-        {sidebarOpen && (
-          <div className="space-y-3 min-w-0 max-w-full">
-            <div className="flex justify-between items-center">
-              <h3 className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest font-bold text-xs">
-                Ingestion Queue
-              </h3>
-              <div className="flex items-center gap-2">
-                <span className="text-label-sm-mono text-on-surface-variant text-[11px]">{jobs.length} papers</span>
-                <button
-                  onClick={() => setSidebarOpen(false)}
-                  className="xl:hidden p-1 text-on-surface-variant hover:text-white"
-                  title="Hide sidebar"
-                >
-                  <PanelLeftClose className="w-3.5 h-3.5" />
-                </button>
+      {/* Exam Ingestion Dropzone (Shown in Queue mode or as collapsible) */}
+      {layoutMode === 'queue' && (
+        <form onSubmit={upload} className="acrylic border border-outline-variant rounded-sm p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end max-w-full overflow-hidden">
+          <div className="sm:col-span-2 space-y-1.5 min-w-0">
+            <label className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest text-[11px] font-bold">
+              Source Exam Paper (PDF)
+            </label>
+            <div className="relative">
+              <input
+                required
+                type="file"
+                accept="application/pdf,.pdf"
+                onChange={e => setFile(e.target.files[0] || null)}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+              />
+              <div className={`w-full bg-surface-container border ${file ? 'border-primary' : 'border-outline-variant'} border-dashed p-2.5 flex items-center justify-center gap-2 rounded-sm transition-colors overflow-hidden`}>
+                <UploadCloud className="w-4 h-4 text-primary shrink-0" />
+                <span className={`text-xs truncate ${file ? 'text-primary font-semibold' : 'text-on-surface-variant'}`}>
+                  {file ? file.name : 'Click or drag PDF here'}
+                </span>
               </div>
             </div>
+          </div>
 
-            <div className="space-y-2 max-h-[75vh] overflow-y-auto pr-1">
-              {loading ? (
-                <div className="p-3 border border-outline-variant rounded-sm animate-pulse-soft text-primary text-xs font-mono">
-                  Loading jobs...
-                </div>
-              ) : jobs.length === 0 ? (
-                <div className="p-4 border border-outline-variant/60 rounded-sm text-on-surface-variant text-xs italic">
-                  No ingestion jobs yet.
-                </div>
-              ) : (
-                jobs.map(job => (
-                  <button
-                    key={job.job_id}
-                    onClick={() => chooseJob(job)}
-                    className={`w-full text-left p-3 border rounded-sm transition-all min-w-0 overflow-hidden ${
-                      selectedJob?.job_id === job.job_id
-                        ? 'border-primary bg-primary/10 shadow-md ring-1 ring-primary'
-                        : 'border-outline-variant bg-surface-dim hover:border-on-surface-variant'
-                    }`}
-                  >
-                    <div className="font-semibold text-on-surface text-xs truncate" title={job.source?.filename || job.job_id}>
-                      {job.source?.filename || 'Unnamed Paper'}
-                    </div>
+          <div className="space-y-1.5 min-w-0">
+            <label className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest text-[11px] font-bold">
+              Examination
+            </label>
+            <select
+              value={exam}
+              onChange={e => setExam(e.target.value)}
+              className="w-full bg-surface-container border border-outline-variant p-2.5 text-on-surface outline-none focus:border-primary rounded-sm text-xs"
+            >
+              <option value="JEE Main">JEE Main</option>
+              <option value="JEE Advanced">JEE Advanced</option>
+              <option value="NEET">NEET</option>
+              <option value="BITSAT">BITSAT</option>
+            </select>
+          </div>
 
-                    <div className="flex items-center gap-1.5 mt-1 text-[11px] text-on-surface-variant font-mono">
-                      <span>{job.source?.exam || 'Exam'}</span>
-                      <span>&bull;</span>
-                      <span>{job.source?.year || 'Year'}</span>
-                    </div>
+          <div className="space-y-1.5 min-w-0">
+            <label className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest text-[11px] font-bold">
+              Exam Year
+            </label>
+            <input
+              value={year}
+              onChange={e => setYear(e.target.value)}
+              placeholder="YYYY (e.g. 2018)"
+              className="w-full bg-surface-container border border-outline-variant p-2.5 text-on-surface outline-none focus:border-primary rounded-sm text-xs font-mono"
+            />
+          </div>
 
-                    <div className="flex justify-between items-center mt-2 pt-1.5 border-t border-outline-variant/40">
-                      <span
-                        className={`text-[9px] uppercase tracking-widest font-mono font-bold px-1.5 py-0.5 rounded ${
-                          job.stage === 'COMPLETED'
-                            ? 'bg-status-aligned/20 text-status-aligned'
-                            : job.stage === 'FAILED'
-                            ? 'bg-error/20 text-error'
-                            : 'bg-primary/20 text-primary'
-                        }`}
-                      >
-                        {job.stage}
-                      </span>
-                      <span className="text-label-sm-mono text-on-surface-variant text-[11px]">
-                        {job.progress?.questions_extracted || 0} items
-                      </span>
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
+          <div className="min-w-0">
+            <button
+              type="submit"
+              disabled={uploading}
+              className="w-full bg-primary text-white p-2.5 uppercase tracking-widest font-bold hover:brightness-110 transition-all disabled:opacity-50 rounded-sm text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <UploadCloud className="w-3.5 h-3.5" />
+              <span>{uploading ? 'Ingesting...' : 'Ingest Paper'}</span>
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* Selected Job Status Strip & Paper Selector */}
+      <div className="p-3 bg-surface-container border border-outline-variant rounded-sm flex items-center justify-between gap-3 flex-wrap font-mono text-xs">
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="text-white/50 uppercase font-bold flex items-center gap-1.5">
+            <FileText className="w-3.5 h-3.5 text-primary" />
+            <span>Active Paper:</span>
+          </span>
+
+          {jobs.length > 0 ? (
+            <select
+              value={selectedJob?.job_id || ''}
+              onChange={e => {
+                const j = jobs.find(x => x.job_id === e.target.value);
+                if (j) chooseJob(j);
+              }}
+              className="bg-black border border-white/20 text-white p-1.5 text-xs outline-none focus:border-primary uppercase font-bold"
+            >
+              {jobs.map(j => (
+                <option key={j.job_id} value={j.job_id}>
+                  {j.source?.filename || j.job_id} &mdash; [{j.stage}]
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span className="text-white/40 italic">No papers ingested yet.</span>
+          )}
+        </div>
+
+        {selectedJob && (
+          <div className="flex items-center gap-3 text-[11px] text-white/60">
+            <span>Stage: <strong className="text-primary">{selectedJob.stage}</strong></span>
+            <span>Total Qs: <strong className="text-white">{candidates.length}</strong></span>
+            <span>Filtered: <strong className="text-white">{filteredCandidates.length}</strong></span>
           </div>
         )}
+      </div>
 
-        {/* Verification Studio Feed */}
-        <div className="space-y-5 min-w-0 max-w-full overflow-hidden">
-          {/* Header and Batch Actions */}
-          <div className="flex justify-between items-center pb-3 border-b border-outline-variant flex-wrap gap-3 min-w-0">
-            <div className="flex items-center gap-2 min-w-0">
-              {!sidebarOpen && (
+      {/* ─── STUDIO MODE: SPLIT-SCREEN WORKSPACE ─── */}
+      {layoutMode === 'studio' && selectedJob && (
+        <section className="space-y-4">
+          {/* Quick Filter Strip for Studio Mode */}
+          <div className="flex items-center justify-between gap-2 flex-wrap text-xs font-mono border-b border-white/10 pb-2">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-white/40 uppercase text-[10px]">Filter:</span>
+              {['PENDING', 'PUBLISHED', 'REJECTED', 'ALL'].map(st => (
                 <button
-                  onClick={() => setSidebarOpen(true)}
-                  className="p-1.5 bg-surface-container border border-outline-variant hover:border-primary text-primary rounded-sm text-xs flex items-center gap-1 shrink-0"
-                  title="Show queue sidebar"
+                  key={st}
+                  onClick={() => { setStatusFilter(st); setActiveCandidateIndex(0); }}
+                  className={`px-2 py-0.5 rounded-xs text-[10px] uppercase font-bold border cursor-pointer ${
+                    statusFilter === st
+                      ? 'bg-primary text-white border-primary'
+                      : 'border-white/15 text-white/60 hover:text-white bg-black/40'
+                  }`}
                 >
-                  <PanelLeftOpen className="w-4 h-4" />
-                  <span className="font-mono text-[11px]">Queue</span>
+                  {st}
                 </button>
-              )}
-
-              <div className="min-w-0">
-                <h3 className="text-lg sm:text-xl text-on-surface font-light truncate">
-                  {selectedJob ? selectedJob.source?.filename || 'Document Candidates' : 'Select a job to verify'}
-                </h3>
-                <p className="text-on-surface-variant text-[11px] font-mono">
-                  Showing {filteredCandidates.length} filtered &middot; Page {currentPage} of {totalPages}
-                </p>
-              </div>
+              ))}
+              <div className="h-3 w-px bg-white/20 mx-1" />
+              {['ALL', 'Physics', 'Chemistry', 'Mathematics'].map(subj => (
+                <button
+                  key={subj}
+                  onClick={() => { setSubjectFilter(subj); setActiveCandidateIndex(0); }}
+                  className={`px-2 py-0.5 rounded-xs text-[10px] uppercase font-bold border cursor-pointer ${
+                    subjectFilter === subj
+                      ? 'bg-primary/20 border-primary text-primary'
+                      : 'border-white/15 text-white/60 hover:text-white bg-black/40'
+                  }`}
+                >
+                  {subj}
+                </button>
+              ))}
             </div>
 
-            {selectedJob && candidates.length > 0 && (
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handlePublishAllReady}
-                  disabled={bulkPublishing}
-                  className="px-3.5 py-1.5 bg-primary text-white text-label-sm-mono uppercase tracking-widest text-xs rounded-sm hover:brightness-110 transition-all flex items-center gap-1.5 font-bold shadow-md disabled:opacity-50"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>{bulkPublishing ? 'Publishing...' : 'Publish Ready'}</span>
-                </button>
-              </div>
-            )}
+            {/* Candidate Stepper Navigation */}
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setActiveCandidateIndex(i => Math.max(0, i - 1))}
+                disabled={activeCandidateIndex <= 0}
+                className="px-2 py-1 border border-white/20 rounded hover:border-primary disabled:opacity-30 cursor-pointer flex items-center gap-1"
+                title="Previous question (Alt + Left)"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                <span>Prev</span>
+              </button>
+              <span className="px-2 text-white font-bold text-xs">
+                {filteredCandidates.length > 0 ? `${activeCandidateIndex + 1} / ${filteredCandidates.length}` : '0 / 0'}
+              </span>
+              <button
+                onClick={() => setActiveCandidateIndex(i => Math.min(filteredCandidates.length - 1, i + 1))}
+                disabled={activeCandidateIndex >= filteredCandidates.length - 1}
+                className="px-2 py-1 border border-white/20 rounded hover:border-primary disabled:opacity-30 cursor-pointer flex items-center gap-1"
+                title="Next question (Alt + Right)"
+              >
+                <span>Next</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
 
-          {/* Filtering & Search Controls */}
-          {selectedJob && candidates.length > 0 && (
-            <div className="space-y-3 min-w-0 max-w-full">
-              {/* Status Tabs */}
-              <div className="flex gap-1.5 flex-wrap border-b border-outline-variant/60 pb-2.5">
-                {[
-                  { id: 'PENDING', label: 'Pending', count: kpis.pending },
-                  { id: 'PUBLISHED', label: 'Published', count: kpis.published },
-                  { id: 'REJECTED', label: 'Rejected', count: kpis.rejected },
-                  { id: 'ALL', label: 'All', count: candidates.length }
-                ].map(tab => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setStatusFilter(tab.id)}
-                    className={`px-3 py-1 rounded-sm text-label-sm-mono uppercase tracking-widest text-[11px] transition-colors border flex items-center gap-1.5 ${
-                      statusFilter === tab.id
-                        ? 'bg-primary text-white border-primary font-bold'
-                        : 'border-outline-variant text-on-surface-variant hover:text-on-surface bg-surface-dim'
-                    }`}
-                  >
-                    <span>{tab.label}</span>
-                    <span className="px-1.5 py-0.2 bg-black/30 rounded text-[9px] font-mono">{tab.count}</span>
-                  </button>
-                ))}
+          {/* Split Screen Columns: Left (PDF) & Right (Active Question Editor) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start min-h-[620px]">
+            {/* Left Pane: High-Res PDF Page Canvas with Integrated Drag-to-Crop */}
+            <div className="h-[680px] w-full min-w-0">
+              <StudioPdfViewer
+                jobId={selectedJob.job_id}
+                pageNum={studioPageNum}
+                onNavigatePage={delta => setStudioPageNum(p => Math.max(1, p + delta))}
+                onDirectCrop={handleStudioDirectCrop}
+                activeCandidateKey={activeCandidate?.candidate_key}
+                activeQNum={activeCandidate?.source_question_number}
+              />
+            </div>
+
+            {/* Right Pane: Active Question Editor */}
+            <div className="h-[680px] w-full min-w-0 overflow-y-auto pr-1">
+              {activeCandidate ? (
+                <CandidateCard
+                  key={activeCandidate.candidate_key}
+                  candidate={activeCandidate}
+                  jobId={selectedJob.job_id}
+                  groupedTopics={groupedTopics}
+                  onReviewed={() => {
+                    chooseJob(selectedJob);
+                    setActiveCandidateIndex(i => Math.min(filteredCandidates.length - 1, i + 1));
+                  }}
+                  onViewPdfPage={(p) => setStudioPageNum(p)}
+                  onOpenCropper={handleOpenCropper}
+                  isSelected={selectedCandidateKeys.has(activeCandidate.candidate_key)}
+                  onToggleSelect={() => handleToggleSelectCandidate(activeCandidate.candidate_key)}
+                />
+              ) : (
+                <div className="p-12 border border-white/10 rounded bg-surface-dim text-center space-y-2 text-white/50 font-mono text-xs">
+                  <CheckCircle2 className="w-8 h-8 mx-auto text-status-aligned opacity-80" />
+                  <p className="text-white font-semibold">No questions matching filter.</p>
+                  <p>Try switching filter to ALL or clearing query.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Studio Mode Bottom Question Palette Strip */}
+          {filteredCandidates.length > 0 && (
+            <div className="p-3 bg-surface-container border border-outline-variant rounded-sm space-y-2 font-mono">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-white/50 text-[11px] uppercase font-bold">
+                  Questions Palette ({filteredCandidates.length} Items):
+                </span>
+                <button
+                  onClick={handleSelectAllFiltered}
+                  className="text-primary hover:underline text-[11px] uppercase cursor-pointer"
+                >
+                  {selectedCandidateKeys.size === filteredCandidates.length ? 'Deselect All' : 'Select All'}
+                </button>
               </div>
 
-              {/* Subject & Query Filters */}
-              <div className="flex justify-between items-center flex-wrap gap-2.5 min-w-0">
-                {/* Subject Pills */}
-                <div className="flex gap-1.5 flex-wrap">
-                  {['ALL', 'Physics', 'Chemistry', 'Mathematics'].map(subj => (
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                {filteredCandidates.map((c, idx) => {
+                  const isCurrent = idx === activeCandidateIndex;
+                  const isChecked = selectedCandidateKeys.has(c.candidate_key);
+                  const isPub = c.status === 'PUBLISHED';
+                  const isRej = c.status === 'REJECTED';
+
+                  return (
                     <button
-                      key={subj}
-                      onClick={() => setSubjectFilter(subj)}
-                      className={`px-2.5 py-1 rounded-sm text-label-sm-mono uppercase tracking-widest text-[11px] border transition-colors ${
-                        subjectFilter === subj
-                          ? 'bg-primary/20 border-primary text-primary font-bold'
-                          : 'border-outline-variant text-on-surface-variant hover:text-on-surface'
+                      key={c.candidate_key}
+                      onClick={() => setActiveCandidateIndex(idx)}
+                      className={`px-2.5 py-1.5 rounded text-xs font-bold shrink-0 transition-all border cursor-pointer ${
+                        isCurrent
+                          ? 'border-primary bg-primary text-white shadow-md ring-2 ring-primary/80 scale-105'
+                          : isPub
+                          ? 'border-status-aligned/40 bg-status-aligned/10 text-status-aligned hover:border-status-aligned'
+                          : isRej
+                          ? 'border-error/40 bg-error/10 text-error hover:border-error'
+                          : 'border-white/15 bg-black/50 text-white/70 hover:border-white/40'
                       }`}
+                      title={`Q.${c.source_question_number} (P.${c.source_pages?.[0]}) - ${c.status}`}
                     >
-                      {subj}
+                      <span>Q.{c.source_question_number}</span>
+                      {c.has_diagram && <span className="ml-1 text-[9px]">🖼️</span>}
                     </button>
-                  ))}
-                </div>
-
-                {/* Search & Diagram Toggle & Page Size */}
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <label className="flex items-center gap-1.5 cursor-pointer text-xs font-mono text-on-surface-variant">
-                    <input
-                      type="checkbox"
-                      checked={onlyDiagrams}
-                      onChange={e => setOnlyDiagrams(e.target.checked)}
-                      className="accent-primary w-3.5 h-3.5 cursor-pointer"
-                    />
-                    <span className="flex items-center gap-1">
-                      <span>Diagrams</span>
-                      <ImageIcon className="w-3 h-3 text-on-surface-variant" />
-                    </span>
-                  </label>
-
-                  <div className="relative">
-                    <Search className="w-3 h-3 absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant" />
-                    <input
-                      value={searchQuery}
-                      onChange={e => setSearchQuery(e.target.value)}
-                      placeholder="Filter Q# / text..."
-                      className="pl-7 pr-3 py-1 bg-surface-container border border-outline-variant rounded-sm text-xs font-mono text-on-surface outline-none focus:border-primary w-36 sm:w-44"
-                    />
-                    {searchQuery && (
-                      <button
-                        onClick={() => setSearchQuery('')}
-                        className="absolute right-1.5 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    )}
-                  </div>
-
-                  <select
-                    value={pageSize}
-                    onChange={e => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
-                    className="bg-surface-container border border-outline-variant px-2 py-1 rounded-sm text-xs font-mono text-on-surface outline-none"
-                    title="Items per page"
-                  >
-                    <option value={10}>10 / page</option>
-                    <option value={20}>20 / page</option>
-                    <option value={50}>50 / page</option>
-                  </select>
-                </div>
+                  );
+                })}
               </div>
             </div>
           )}
+        </section>
+      )}
 
-          {/* Top Pagination Controls */}
-          {totalPages > 1 && (
-            <div className="flex justify-between items-center px-3 py-2 bg-surface-container border border-outline-variant rounded-sm text-xs font-mono flex-wrap gap-2">
-              <span className="text-on-surface-variant">
-                Candidates {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filteredCandidates.length)} of {filteredCandidates.length}
-              </span>
+      {/* ─── FEED MODE: PAGINATED FULL-WIDTH CARDS ─── */}
+      {layoutMode === 'feed' && selectedJob && (
+        <section className="space-y-4">
+          {/* Header Controls & Multi-Select Bar */}
+          <div className="flex justify-between items-center flex-wrap gap-2 text-xs font-mono">
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={handleSelectAllFiltered}
+                className="px-2.5 py-1 border border-white/20 bg-surface-container text-white hover:border-primary rounded-sm uppercase text-[11px] cursor-pointer"
+              >
+                {selectedCandidateKeys.size === filteredCandidates.length ? 'Deselect All' : 'Select All'}
+              </button>
+
+              <select
+                value={pageSize}
+                onChange={e => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+                className="bg-surface-container border border-outline-variant px-2 py-1 rounded-sm text-xs text-on-surface outline-none"
+              >
+                <option value={10}>10 / page</option>
+                <option value={20}>20 / page</option>
+                <option value={50}>50 / page</option>
+              </select>
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
               <div className="flex items-center gap-1.5">
                 <button
                   disabled={currentPage <= 1}
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  className="px-2.5 py-1 border border-outline-variant rounded-sm hover:border-primary disabled:opacity-40 flex items-center gap-1"
+                  className="px-2.5 py-1 border border-outline-variant rounded-sm hover:border-primary disabled:opacity-40 flex items-center gap-1 cursor-pointer"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
                   <span>Prev</span>
@@ -1635,34 +2102,17 @@ export default function ContentAdminPage() {
                 <button
                   disabled={currentPage >= totalPages}
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  className="px-2.5 py-1 border border-outline-variant rounded-sm hover:border-primary disabled:opacity-40 flex items-center gap-1"
+                  className="px-2.5 py-1 border border-outline-variant rounded-sm hover:border-primary disabled:opacity-40 flex items-center gap-1 cursor-pointer"
                 >
                   <span>Next</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
-            </div>
-          )}
-
-          {/* Candidates List (Rendered in paginated chunk of 10-20 to ensure instant sub-50ms performance) */}
-          <div className="space-y-5 min-w-0 max-w-full">
-            {!selectedJob && (
-              <div className="border border-outline-variant border-dashed p-12 flex flex-col items-center justify-center text-on-surface-variant rounded-sm">
-                <ListFilter className="w-10 h-10 mb-3 opacity-40 text-primary" />
-                <p className="text-sm font-light">Select an exam paper from the queue to verify questions.</p>
-              </div>
             )}
+          </div>
 
-            {selectedJob && filteredCandidates.length === 0 && (
-              <div className="border border-outline-variant/60 bg-surface-dim p-8 flex flex-col items-center justify-center text-on-surface-variant rounded-sm">
-                <CheckCircle2 className="w-8 h-8 mb-2 text-status-aligned opacity-80" />
-                <p className="font-semibold text-on-surface text-sm">No candidate questions matching current filters.</p>
-                <p className="text-xs text-on-surface-variant mt-1">
-                  Try switching status (Pending, Published, Rejected) or clearing the search box.
-                </p>
-              </div>
-            )}
-
+          {/* Cards List */}
+          <div className="space-y-4">
             {paginatedCandidates.map(candidate => (
               <CandidateCard
                 key={candidate.candidate_key}
@@ -1670,50 +2120,226 @@ export default function ContentAdminPage() {
                 jobId={selectedJob.job_id}
                 groupedTopics={groupedTopics}
                 onReviewed={() => chooseJob(selectedJob)}
-                onViewPdfPage={handleOpenPdfPage}
+                onViewPdfPage={(p, q) => handleOpenCropper(p, q, null, null, 'stem')}
                 onOpenCropper={handleOpenCropper}
+                isSelected={selectedCandidateKeys.has(candidate.candidate_key)}
+                onToggleSelect={() => handleToggleSelectCandidate(candidate.candidate_key)}
               />
             ))}
           </div>
+        </section>
+      )}
 
-          {/* Bottom Pagination Controls */}
-          {totalPages > 1 && (
-            <div className="flex justify-between items-center px-3 py-2 bg-surface-container border border-outline-variant rounded-sm text-xs font-mono flex-wrap gap-2 pt-2">
-              <span className="text-on-surface-variant">
-                Showing {paginatedCandidates.length} of {filteredCandidates.length} candidates
-              </span>
-              <div className="flex items-center gap-1.5">
-                <button
-                  disabled={currentPage <= 1}
-                  onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 300, behavior: 'smooth' }); }}
-                  className="px-2.5 py-1 border border-outline-variant rounded-sm hover:border-primary disabled:opacity-40 flex items-center gap-1"
-                >
-                  <ChevronLeft className="w-3.5 h-3.5" />
-                  <span>Prev</span>
-                </button>
-                <span className="px-2 py-1 text-primary font-bold">
-                  {currentPage} / {totalPages}
-                </span>
-                <button
-                  disabled={currentPage >= totalPages}
-                  onClick={() => { setCurrentPage(p => Math.min(totalPages, p + 1)); window.scrollTo({ top: 300, behavior: 'smooth' }); }}
-                  className="px-2.5 py-1 border border-outline-variant rounded-sm hover:border-primary disabled:opacity-40 flex items-center gap-1"
-                >
-                  <span>Next</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
+      {/* ─── QUEUE MODE: PAPER INGESTION DETAILS ─── */}
+      {layoutMode === 'queue' && (
+        <section className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {jobs.map(job => (
+              <div
+                key={job.job_id}
+                onClick={() => { chooseJob(job); setLayoutMode('studio'); }}
+                className={`p-4 border rounded transition-all cursor-pointer ${
+                  selectedJob?.job_id === job.job_id
+                    ? 'border-primary bg-primary/10 shadow-lg'
+                    : 'border-outline-variant bg-surface-dim hover:border-white/30'
+                }`}
+              >
+                <div className="flex justify-between items-start">
+                  <h4 className="font-semibold text-white text-sm truncate max-w-[220px]">
+                    {job.source?.filename || job.job_id}
+                  </h4>
+                  <span className={`px-2 py-0.5 text-[9px] font-bold uppercase rounded ${
+                    job.stage === 'COMPLETED' ? 'bg-status-aligned/20 text-status-aligned' : 'bg-primary/20 text-primary'
+                  }`}>
+                    {job.stage}
+                  </span>
+                </div>
+                <div className="text-xs font-mono text-white/50 mt-2 space-y-1">
+                  <div>Exam: {job.source?.exam} {job.source?.year}</div>
+                  <div>Pages: {job.progress?.total_pages || '?'} &bull; Extracted: {job.progress?.questions_extracted || 0}</div>
+                </div>
+                <div className="pt-3 mt-3 border-t border-white/10 flex justify-between items-center text-xs font-mono text-primary">
+                  <span>Open in Studio &rarr;</span>
+                  <Link
+                    to={`/admin/pipeline?jobId=${job.job_id}`}
+                    onClick={e => e.stopPropagation()}
+                    className="text-white/40 hover:text-white"
+                  >
+                    View Pipeline
+                  </Link>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
+      )}
 
-      {/* Interactive Source PDF Cropping Studio Modal */}
+      {/* ─── FLOATING BULK ACTIONS BOTTOM DOCK ─── */}
+      {selectedCandidateKeys.size > 0 && (
+        <div className="fixed bottom-6 inset-x-0 mx-auto max-w-2xl bg-black/95 border-2 border-primary shadow-2xl p-3 z-40 rounded-md backdrop-blur-md flex items-center justify-between gap-3 text-xs font-mono animate-fade-in">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
+            <span className="text-white font-bold">
+              {selectedCandidateKeys.size} Selected
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Bulk Assign Topic */}
+            <button
+              onClick={() => setBulkTopicModalOpen(true)}
+              className="px-3 py-1.5 bg-primary/20 hover:bg-primary text-primary hover:text-white border border-primary/40 font-bold uppercase rounded-xs transition-colors cursor-pointer flex items-center gap-1"
+            >
+              <Tag className="w-3.5 h-3.5" />
+              <span>Assign Topic</span>
+            </button>
+
+            {/* Bulk Publish Ready */}
+            <button
+              onClick={handleExecuteBulkPublishReady}
+              disabled={bulkProcessing}
+              className="px-3 py-1.5 bg-status-aligned text-black hover:brightness-110 font-bold uppercase rounded-xs transition-all cursor-pointer flex items-center gap-1"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Publish Ready</span>
+            </button>
+
+            {/* Bulk Reject */}
+            <select
+              onChange={e => {
+                if (e.target.value) {
+                  handleExecuteBulkReject(e.target.value);
+                  e.target.value = '';
+                }
+              }}
+              className="bg-error/20 border border-error/40 text-error p-1.5 text-xs outline-none uppercase font-bold cursor-pointer rounded-xs"
+            >
+              <option value="">Bulk Reject...</option>
+              {REJECTION_PRESETS.map((p, i) => (
+                <option key={i} value={p}>{p}</option>
+              ))}
+            </select>
+
+            <button
+              onClick={() => setSelectedCandidateKeys(new Set())}
+              className="p-1.5 text-white/50 hover:text-white cursor-pointer"
+              title="Clear selection"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Assign Topic Modal */}
+      {bulkTopicModalOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setBulkTopicModalOpen(false)}
+        >
+          <div
+            className="bg-surface-dim border-2 border-primary rounded-sm p-6 w-full max-w-lg space-y-4 shadow-2xl font-mono text-xs"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <Tag className="w-4 h-4 text-primary" />
+                <span className="text-white font-bold text-sm uppercase">
+                  Bulk Assign Topic ({selectedCandidateKeys.size} Questions)
+                </span>
+              </div>
+              <button
+                onClick={() => setBulkTopicModalOpen(false)}
+                className="text-white/50 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-white/70 text-xs font-light">
+              Select a curriculum topic to assign across all {selectedCandidateKeys.size} selected questions.
+            </p>
+
+            <TopicSelect
+              value={bulkTargetTopicId}
+              onChange={setBulkTargetTopicId}
+              groupedTopics={groupedTopics}
+              className="w-full"
+            />
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
+              <button
+                onClick={() => setBulkTopicModalOpen(false)}
+                className="px-4 py-2 border border-white/20 text-white hover:border-white/40 uppercase"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleExecuteBulkAssignTopic}
+                disabled={!bulkTargetTopicId || bulkProcessing}
+                className="px-5 py-2 bg-primary text-white font-bold uppercase hover:brightness-110 disabled:opacity-40"
+              >
+                {bulkProcessing ? 'Assigning...' : 'Confirm Assignment'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Keyboard Shortcuts Reference Dialog */}
+      {shortcutsModalOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setShortcutsModalOpen(false)}
+        >
+          <div
+            className="bg-surface-dim border border-outline-variant rounded-sm p-6 w-full max-w-md space-y-4 shadow-2xl font-mono text-xs"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <Keyboard className="w-4 h-4 text-primary" />
+                <span className="text-white font-bold text-sm uppercase">
+                  Content Ops Hotkeys
+                </span>
+              </div>
+              <button onClick={() => setShortcutsModalOpen(false)} className="text-white/50 hover:text-white">
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-2.5">
+              {[
+                { key: 'Ctrl + Enter', desc: 'Verify & Publish active question to bank' },
+                { key: 'Alt + Right', desc: 'Navigate to Next candidate' },
+                { key: 'Alt + Left', desc: 'Navigate to Previous candidate' },
+                { key: '?', desc: 'Open / close this shortcuts reference' }
+              ].map((hk, i) => (
+                <div key={i} className="flex justify-between items-center p-2 bg-black/40 border border-white/10 rounded-xs">
+                  <span className="text-white/70 text-xs">{hk.desc}</span>
+                  <kbd className="px-2 py-0.5 bg-primary/20 border border-primary/40 text-primary font-bold rounded-xs text-[11px]">
+                    {hk.key}
+                  </kbd>
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setShortcutsModalOpen(false)}
+              className="w-full py-2 bg-primary text-white font-bold uppercase hover:brightness-110 text-center"
+            >
+              Got It
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Full-Screen PDF Modal Cropper fallback */}
       {cropperModal && (
         <PdfCroppingStudioModal
           modal={cropperModal}
           onClose={() => setCropperModal(null)}
-          onCrop={handleExecuteCrop}
+          onCrop={handleExecuteModalCrop}
           onNavigatePage={handleCropperNavigatePage}
         />
       )}

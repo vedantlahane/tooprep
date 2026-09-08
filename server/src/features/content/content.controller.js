@@ -77,6 +77,27 @@ export const contentController = {
       ));
     } catch (error) { return sendError(res, req, error); }
   },
+  async bulkAcceptCandidates(req, res) {
+    try {
+      return res.status(201).json(await contentService.bulkAcceptCandidates(
+        req.params.jobId, req.body.candidates, req.user.id
+      ));
+    } catch (error) { return sendError(res, req, error); }
+  },
+  async bulkRejectCandidates(req, res) {
+    try {
+      return res.json(await contentService.bulkRejectCandidates(
+        req.params.jobId, req.body.candidateKeys || req.body.candidate_keys, req.body.reason, req.user.id
+      ));
+    } catch (error) { return sendError(res, req, error); }
+  },
+  async bulkAssignTopic(req, res) {
+    try {
+      return res.json(await contentService.bulkAssignTopic(
+        req.params.jobId, req.body.candidateKeys || req.body.candidate_keys, req.body.topicId || req.body.topic_id, req.body.curriculum, req.user.id
+      ));
+    } catch (error) { return sendError(res, req, error); }
+  },
   async transitionIngestionJob(req, res) {
     try {
       return res.json(await contentService.transitionIngestionJob(

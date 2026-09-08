@@ -95,3 +95,63 @@ export function isInstructionSnippet(text) {
   ];
   return instructionPhrases.some(phrase => lower.includes(phrase));
 }
+
+/**
+ * Automatically clean, format math, and polish question stem or options text.
+ */
+export function autoFormatAndCleanMath(rawText) {
+  if (!rawText) return '';
+  let text = rawText.trim();
+
+  // 1. Normalize arrows in chemical & physics equations
+  text = text.replace(/-->|->/g, ' \\rightarrow ');
+  text = text.replace(/<=>|<==>/g, ' \\rightleftharpoons ');
+
+  // 2. Wrap standalone Greek letters or LaTeX symbols in $...$ if not already wrapped
+  const isolatedLatexTokens = [
+    '\\omega', '\\theta', '\\alpha', '\\beta', '\\gamma', '\\lambda',
+    '\\mu', '\\pi', '\\rho', '\\sigma', '\\Delta', '\\Omega', '\\phi',
+    '\\epsilon', '\\nu', '\\tau'
+  ];
+
+  for (const token of isolatedLatexTokens) {
+    const escaped = token.replace('\\', '\\\\');
+    // Regex matching the token not already preceded by $ or \
+    const re = new RegExp(`(?<!\\$|\\\\)(${escaped})(?!\\$)`, 'g');
+    text = text.replace(re, '$$$1$$');
+  }
+
+  // 3. Fix double dollars inside words or empty $$
+  text = text.replace(/\$\$\$/g, '$$');
+  text = text.replace(/\$\s*\$/g, '');
+
+  // 4. Normalize scientific notation: e.g. 3 x 10^8 -> 3 \times 10^8
+  text = text.replace(/(\d+)\s*[xX]\s*10\^([-\d]+)/g, '$$$1 \\times 10^{$2}$$');
+
+  // 5. Clean up redundant spaces around math delimiters
+  text = text.replace(/\$\s+/g, ' $');
+  text = text.replace(/\s+\$/g, '$ ');
+
+  return text.trim();
+}
+
+/**
+ * Polish an entire candidate question: splits options, cleans LaTeX, infers answer key.
+ */
+export function polishCandidateText(rawText) {
+  const extracted = extractOptionsFromText(rawText);
+  const cleanedStem = autoFormatAndCleanMath(extracted.questionText);
+  const cleanedOptions = extracted.options.map(opt => ({
+    ...opt,
+    text: autoFormatAndCleanMath(opt.text)
+  }));
+  const detectedKey = detectAnswerKey(rawText);
+
+  return {
+    questionText: cleanedStem,
+    options: cleanedOptions,
+    correctAnswer: detectedKey,
+    hasOptions: extracted.hasOptions
+  };
+}
+
