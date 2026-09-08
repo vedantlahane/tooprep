@@ -135,8 +135,8 @@ export default function CurriculumMultiPicker({
 
   return (
     <div className={`space-y-4 text-left ${className}`}>
-      {/* Subject Selector Tabs */}
-      <div className="flex items-center gap-1.5 flex-wrap">
+      {/* Subject Selector Tabs (Mobile & Tablet < lg) */}
+      <div className="flex lg:hidden items-center gap-1.5 flex-wrap">
         <span className="text-[10px] font-mono text-white/50 uppercase tracking-wider mr-1">Subject:</span>
         <button
           type="button"
@@ -176,10 +176,74 @@ export default function CurriculumMultiPicker({
         })}
       </div>
 
-      {/* Two Column Grid: Chapters on Left, Topics on Right */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* ── Chapters Multi-Select Column ── */}
-        <div className="border border-white/10 p-4 space-y-3 bg-black/30 text-left">
+      {/* Panoramic Grid: 3-Columns on Large Displays (Subjects | Chapters | Topics), 2-Columns on Tablet/Mobile */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4">
+        {/* ── Column 1: Subjects List (Widescreen lg+ only) ── */}
+        <div className="hidden lg:flex lg:col-span-3 border border-white/10 p-4 flex-col space-y-3 bg-black/30 text-left">
+          <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+            <div className="flex items-center gap-2">
+              <BookOpen className="w-3.5 h-3.5 text-primary" />
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-white">
+                Subjects
+              </span>
+            </div>
+            <span className="text-[10px] font-mono text-white/40">
+              {subjects.length} total
+            </span>
+          </div>
+
+          <div className="flex-1 space-y-1 overflow-y-auto max-h-72 lg:max-h-[380px] xl:max-h-[440px] pr-1 custom-scrollbar">
+            <button
+              type="button"
+              onClick={() => {
+                onSubjectChange('');
+                onChaptersChange([]);
+                onTopicsChange([]);
+              }}
+              className={`w-full text-left p-2.5 text-xs font-mono transition-all border-b border-white/5 cursor-pointer flex items-center justify-between ${
+                !selectedSubject
+                  ? 'border-l-2 border-l-primary bg-primary/10 text-white font-semibold pl-3'
+                  : 'text-white/70 hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              <span>All Disciplines</span>
+              <span className="text-[10px] font-mono text-white/40">
+                {hierarchy.reduce((sum, s) => sum + (s.chapters || []).length, 0)} ch
+              </span>
+            </button>
+
+            {subjects.map(s => {
+              const isSelected = selectedSubject === (s.id || s.name);
+              const totalCh = (s.chapters || []).length;
+              const totalTop = (s.chapters || []).reduce((acc, c) => acc + (c.topics || []).length, 0);
+
+              return (
+                <button
+                  key={s.id || s.name}
+                  type="button"
+                  onClick={() => {
+                    onSubjectChange(s.id || s.name);
+                    onChaptersChange([]);
+                    onTopicsChange([]);
+                  }}
+                  className={`w-full text-left p-2.5 text-xs font-mono transition-all border-b border-white/5 cursor-pointer flex items-center justify-between ${
+                    isSelected
+                      ? 'border-l-2 border-l-primary bg-primary/10 text-white font-semibold pl-3'
+                      : 'text-white/70 hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  <span className="truncate pr-2">{s.name}</span>
+                  <div className="text-[10px] font-mono text-white/40 shrink-0 text-right">
+                    <span>{totalCh} ch</span> &middot; <span>{totalTop} top</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── Column 2: Chapters Multi-Select Column ── */}
+        <div className="md:col-span-1 lg:col-span-4 border border-white/10 p-4 space-y-3 bg-black/30 text-left">
           <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-2.5">
             <div className="flex items-center gap-2">
               <Layers className="w-3.5 h-3.5 text-primary" />
@@ -221,8 +285,8 @@ export default function CurriculumMultiPicker({
             />
           </div>
 
-          {/* Chapter list */}
-          <div className="max-h-56 overflow-y-auto space-y-0.5 pr-1 custom-scrollbar">
+          {/* Chapter list with responsive height */}
+          <div className="max-h-72 lg:max-h-[380px] xl:max-h-[440px] overflow-y-auto space-y-0.5 pr-1 custom-scrollbar">
             {filteredChapters.length === 0 ? (
               <div className="py-6 text-center text-xs font-mono text-white/40">No chapters found</div>
             ) : (
@@ -258,8 +322,8 @@ export default function CurriculumMultiPicker({
           </div>
         </div>
 
-        {/* ── Topics Multi-Select Column ── */}
-        <div className="border border-white/10 p-4 space-y-3 bg-black/30 text-left">
+        {/* ── Column 3: Topics Multi-Select Column ── */}
+        <div className="md:col-span-1 lg:col-span-5 border border-white/10 p-4 space-y-3 bg-black/30 text-left">
           <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-2.5">
             <div className="flex items-center gap-2">
               <BookOpen className="w-3.5 h-3.5 text-primary" />
@@ -301,8 +365,8 @@ export default function CurriculumMultiPicker({
             />
           </div>
 
-          {/* Topic list */}
-          <div className="max-h-56 overflow-y-auto space-y-0.5 pr-1 custom-scrollbar">
+          {/* Topic list with responsive height */}
+          <div className="max-h-72 lg:max-h-[380px] xl:max-h-[440px] overflow-y-auto space-y-0.5 pr-1 custom-scrollbar">
             {filteredTopics.length === 0 ? (
               <div className="py-6 text-center text-xs font-mono text-white/40">
                 {availableTopics.length === 0 ? 'Select a chapter to show topics' : 'No topics found'}

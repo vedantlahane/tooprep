@@ -75,213 +75,248 @@ export default function ProfilePage() {
 
   return (
     <div className="w-full min-w-0 animate-fade-in space-y-8 pb-16 text-left">
-      {/* Header */}
+      {/* ─── Header ─── */}
       <div className="border-b border-white/10 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <div className="text-label-sm-mono text-primary uppercase tracking-[0.25em] mb-1.5 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-            Student Profile
+            Student Profile &middot; Metacognitive Account
           </div>
           <h1 className="text-3xl md:text-4xl font-extralight text-white tracking-tight">
             Student Profile
           </h1>
           <p className="text-sm text-white/50 font-mono mt-1">
-            Exam target trajectory, personal credentials, and system administration.
+            Exam target horizon, diagnostic credentials, and platform mission control.
           </p>
         </div>
 
         <button
           onClick={() => navigate('/')}
-          className="flex items-center gap-2 px-4 py-2 bg-surface-container border border-white/10 hover:border-primary text-white/80 hover:text-white text-xs font-mono uppercase tracking-wider rounded-sm transition-colors"
+          className="flex items-center gap-2 px-4 py-2 border border-white/20 hover:border-primary text-white/80 hover:text-white text-xs font-mono uppercase tracking-wider transition-colors cursor-pointer shrink-0"
         >
           Open Knowledge Map
         </button>
       </div>
 
-      {/* Profile Header on Canvas */}
-      <div className="border-b border-white/10 pb-8 relative text-left">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div className="flex items-start gap-4">
-            <div className="w-16 h-16 bg-primary/10 border-2 border-primary flex items-center justify-center shrink-0">
-              <User className="w-8 h-8 text-primary" />
-            </div>
-            <div>
-              <h3 className="text-3xl font-light text-white">{profile?.display_name || 'Student'}</h3>
-              <p className="text-xs font-mono text-white/50 mt-1">{user?.email}</p>
-              {profile?.target_exam_year && (
-                <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-0.5 bg-primary/10 border border-primary/30 text-primary text-xs font-mono uppercase tracking-wider">
-                  <GraduationCap className="w-3.5 h-3.5" />
-                  Target: JEE Main {profile.target_exam_year}
+      {/* ─── Continuum Dual-Pane Widescreen Cockpit ─── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* ─── Left Pane: Identity, Target Year, and Admin Controls (col-span-7) ─── */}
+        <div className="lg:col-span-7 space-y-8">
+          {/* Identity Block */}
+          <div className="border border-white/10 p-6 bg-black space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="w-16 h-16 bg-primary/10 border-2 border-primary flex items-center justify-center shrink-0">
+                  <User className="w-8 h-8 text-primary" />
                 </div>
+                <div>
+                  <h2 className="text-2xl sm:text-3xl font-light text-white">{profile?.display_name || 'Student'}</h2>
+                  <p className="text-xs font-mono text-white/50 mt-1">{user?.email}</p>
+                  {profile?.target_exam_year && (
+                    <div className="mt-2 inline-flex items-center gap-2 px-2.5 py-0.5 bg-primary/10 border border-primary/30 text-primary text-xs font-mono uppercase tracking-wider">
+                      <GraduationCap className="w-3.5 h-3.5" />
+                      Target: JEE Main {profile.target_exam_year}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {!editing && (
+                <button
+                  onClick={() => setEditing(true)}
+                  className="px-4 py-2 border border-primary text-primary text-xs font-mono uppercase tracking-widest hover:bg-primary hover:text-black transition-colors font-bold cursor-pointer shrink-0"
+                >
+                  Edit Profile
+                </button>
               )}
             </div>
+
+            {/* Inline Edit Form */}
+            {editing && (
+              <div className="pt-6 border-t border-white/10 space-y-4 max-w-md animate-fade-in">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono text-primary uppercase tracking-widest block">Display Name</label>
+                  <input
+                    type="text"
+                    value={displayName}
+                    onChange={e => setDisplayName(e.target.value)}
+                    className="w-full px-0 py-2 bg-transparent border-b border-white/20 focus:border-primary text-white outline-none transition-colors text-sm font-sans"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono text-primary uppercase tracking-widest block">Target Exam Year</label>
+                  <select
+                    value={targetYear}
+                    onChange={e => setTargetYear(parseInt(e.target.value))}
+                    className="w-full px-0 py-2 bg-transparent border-b border-white/20 focus:border-primary text-white outline-none transition-colors text-sm font-mono"
+                  >
+                    {[currentYear, currentYear + 1, currentYear + 2, currentYear + 3].map(y => (
+                      <option key={y} value={y} className="bg-black text-white">JEE {y}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={handleSave}
+                    className="flex-1 py-3 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest hover:brightness-110 transition-all cursor-pointer"
+                  >
+                    Save Changes
+                  </button>
+                  <button
+                    onClick={() => setEditing(false)}
+                    className="flex-1 py-3 border border-white/20 text-white/60 text-xs font-mono uppercase tracking-widest hover:text-white transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
-          {!editing && (
-            <button
-              onClick={() => setEditing(true)}
-              className="px-5 py-2 border border-primary text-primary text-xs font-mono uppercase tracking-widest hover:bg-primary hover:text-black transition-colors font-bold cursor-pointer"
-            >
-              Edit Profile
-            </button>
+          {/* Administrative Mission Control */}
+          {profile?.is_admin && (
+            <div className="border border-primary/40 bg-black p-6 space-y-5">
+              <div className="flex justify-between items-center flex-wrap gap-2 border-b border-white/10 pb-3">
+                <h3 className="text-xs font-mono text-primary uppercase tracking-widest flex items-center gap-2 font-bold">
+                  <Shield className="w-4 h-4" />
+                  <span>Administrative Operations</span>
+                </h3>
+                <button
+                  onClick={() => navigate('/admin')}
+                  className="px-3.5 py-1.5 bg-primary text-black text-xs font-mono uppercase tracking-widest font-bold hover:brightness-110 flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <span>Mission Control</span>
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  onClick={() => navigate('/admin')}
+                  className="p-4 border-l-4 border-l-status-weak border-t border-r border-b border-white/10 bg-black hover:bg-white/[0.02] transition-colors text-left group flex items-start gap-3 cursor-pointer"
+                >
+                  <Activity className="w-5 h-5 text-status-weak mt-0.5 group-hover:scale-110 transition-transform shrink-0" />
+                  <div>
+                    <div className="text-sm font-semibold text-white">Observability</div>
+                    <div className="text-xs text-white/50 font-mono mt-0.5">Real-time system telemetry and student cohorts</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => navigate('/admin/questions')}
+                  className="p-4 border-l-4 border-l-primary border-t border-r border-b border-white/10 bg-black hover:bg-white/[0.02] transition-colors text-left group flex items-start gap-3 cursor-pointer"
+                >
+                  <BookOpen className="w-5 h-5 text-primary mt-0.5 group-hover:scale-110 transition-transform shrink-0" />
+                  <div>
+                    <div className="text-sm font-semibold text-white">Question Bank</div>
+                    <div className="text-xs text-white/50 font-mono mt-0.5">Full CRUD editor, LaTeX previews, deletions</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => navigate('/admin/curriculum')}
+                  className="p-4 border-l-4 border-l-primary border-t border-r border-b border-white/10 bg-black hover:bg-white/[0.02] transition-colors text-left group flex items-start gap-3 cursor-pointer"
+                >
+                  <LayoutGrid className="w-5 h-5 text-primary mt-0.5 group-hover:scale-110 transition-transform shrink-0" />
+                  <div>
+                    <div className="text-sm font-semibold text-white">Curriculum Matrix</div>
+                    <div className="text-xs text-white/50 font-mono mt-0.5">Subject coverage gap auditor & topics editor</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => navigate('/admin/content')}
+                  className="p-4 border-l-4 border-l-primary border-t border-r border-b border-white/10 bg-black hover:bg-white/[0.02] transition-colors text-left group flex items-start gap-3 cursor-pointer"
+                >
+                  <UploadCloud className="w-5 h-5 text-primary mt-0.5 group-hover:scale-110 transition-transform shrink-0" />
+                  <div>
+                    <div className="text-sm font-semibold text-white">Content Ops</div>
+                    <div className="text-xs text-white/50 font-mono mt-0.5">Upload exam PDFs and verify extracted candidates</div>
+                  </div>
+                </button>
+              </div>
+            </div>
           )}
+
+          {/* Sign Out Button */}
+          <div className="pt-2">
+            <button
+              onClick={signOut}
+              className="flex items-center gap-2 px-6 py-2.5 border border-white/15 text-white/60 text-xs font-mono uppercase tracking-widest hover:text-error hover:border-error transition-colors cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign Out of Platform
+            </button>
+          </div>
         </div>
 
-        {/* Edit Form Directly on Canvas */}
-        {editing && (
-          <div className="mt-6 pt-6 border-t border-white/10 space-y-4 max-w-md animate-fade-in">
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono text-primary uppercase tracking-widest block">Display Name</label>
-              <input
-                type="text"
-                value={displayName}
-                onChange={e => setDisplayName(e.target.value)}
-                className="w-full px-0 py-2 bg-transparent border-b border-white/20 focus:border-primary text-white outline-none transition-colors text-sm font-sans"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono text-primary uppercase tracking-widest block">Target Exam Year</label>
-              <select
-                value={targetYear}
-                onChange={e => setTargetYear(parseInt(e.target.value))}
-                className="w-full px-0 py-2 bg-transparent border-b border-white/20 focus:border-primary text-white outline-none transition-colors text-sm font-mono"
-              >
-                {[currentYear, currentYear + 1, currentYear + 2, currentYear + 3].map(y => (
-                  <option key={y} value={y} className="bg-black text-white">JEE {y}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex gap-3 pt-2">
+        {/* ─── Right Pane: Strategic Telemetry & Learning Hub (col-span-5) ─── */}
+        <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-20">
+          {/* Biggest Gap Metacognitive Alert Tile */}
+          {biggestGap && biggestGap.gap !== undefined && (
+            <div className={`p-5 border-l-4 ${
+              biggestGap.status === 'OVERCONFIDENT' ? 'border-l-status-overconfident' : 'border-l-status-weak'
+            } border-t border-r border-b border-white/10 bg-black space-y-2`}>
+              <div className="text-[11px] font-mono text-status-overconfident uppercase tracking-widest font-bold">
+                Metacognitive Gap Alert
+              </div>
+              <h4 className="text-lg font-light text-white tracking-tight">
+                {biggestGap.topic_name}
+              </h4>
+              <div className="flex items-center gap-3 text-xs font-mono text-white/60 pt-1">
+                <span>Self-rating: <strong className="text-white">{biggestGap.confidence}/10</strong></span>
+                <span>&middot;</span>
+                <span>Accuracy: <strong className="text-white">{biggestGap.evaluation_accuracy}%</strong></span>
+              </div>
               <button
-                onClick={handleSave}
-                className="flex-1 py-3 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest hover:brightness-110 transition-all cursor-pointer"
+                onClick={() => navigate(`/topics/${biggestGap.topic_id}`)}
+                className="mt-2 inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wider text-primary hover:underline cursor-pointer"
               >
-                Save Changes
-              </button>
-              <button
-                onClick={() => setEditing(false)}
-                className="flex-1 py-3 border border-white/20 text-white/60 text-xs font-mono uppercase tracking-widest hover:text-white transition-colors cursor-pointer"
-              >
-                Cancel
+                <span>Drill this topic</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
-          </div>
-        )}
-      </div>
+          )}
 
-      {/* Action Live Tiles */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
-        <div
-          onClick={() => navigate('/history')}
-          className="cursor-pointer bg-black/40 border border-white/10 hover:border-primary p-6 flex flex-col justify-between transition-all group"
-        >
-          <History className="w-8 h-8 text-primary mb-6 group-hover:scale-110 transition-transform" />
-          <div>
-            <div className="text-xs font-mono text-primary uppercase tracking-widest mb-1">Activity Log</div>
-            <h3 className="text-xl font-light text-white">Session History</h3>
-            <p className="text-xs text-white/50 font-mono mt-1">Review past evaluations, practice drills, and longitudinal trends.</p>
+          {/* Diagnostic Action Live Tiles */}
+          <div className="space-y-3">
+            <div
+              onClick={() => navigate('/history')}
+              className="cursor-pointer bg-black border-l-4 border-l-white/30 border-t border-r border-b border-white/10 hover:border-primary p-5 flex items-start gap-4 transition-all group"
+            >
+              <History className="w-7 h-7 text-primary mt-0.5 group-hover:scale-110 transition-transform shrink-0" />
+              <div>
+                <div className="text-[11px] font-mono text-primary uppercase tracking-widest mb-0.5">Activity Log</div>
+                <h4 className="text-lg font-light text-white">Session History</h4>
+                <p className="text-xs text-white/50 font-mono mt-1">Review past evaluations, practice drills, and longitudinal progress.</p>
+              </div>
+            </div>
+
+            <div
+              onClick={() => navigate('/practice')}
+              className="cursor-pointer bg-black border-l-4 border-l-primary border-t border-r border-b border-white/10 hover:border-primary p-5 flex items-start gap-4 transition-all group"
+            >
+              <Play className="w-7 h-7 text-primary mt-0.5 group-hover:scale-110 transition-transform shrink-0" />
+              <div>
+                <div className="text-[11px] font-mono text-primary uppercase tracking-widest mb-0.5">Foundation</div>
+                <h4 className="text-lg font-light text-white">Practice Drill</h4>
+                <p className="text-xs text-white/50 font-mono mt-1">Untimed question sets with instant step-by-step LaTeX solution reveals.</p>
+              </div>
+            </div>
+
+            <div
+              onClick={() => navigate('/evaluate')}
+              className="cursor-pointer bg-black border-l-4 border-l-primary border-t border-r border-b border-white/10 hover:border-primary p-5 flex items-start gap-4 transition-all group"
+            >
+              <Timer className="w-7 h-7 text-primary mt-0.5 group-hover:scale-110 transition-transform shrink-0" />
+              <div>
+                <div className="text-[11px] font-mono text-primary uppercase tracking-widest mb-0.5">Diagnostic</div>
+                <h4 className="text-lg font-light text-white">Timed Evaluation</h4>
+                <p className="text-xs text-white/60 font-mono mt-1">Simulated test conditions to scientifically calibrate your confidence-accuracy gap.</p>
+              </div>
+            </div>
           </div>
         </div>
-
-        <div
-          onClick={() => navigate('/practice')}
-          className="cursor-pointer bg-black/40 border border-white/10 hover:border-primary p-6 flex flex-col justify-between transition-all group"
-        >
-          <Play className="w-8 h-8 text-primary mb-6 group-hover:scale-110 transition-transform" />
-          <div>
-            <div className="text-xs font-mono text-primary uppercase tracking-widest mb-1">Foundation</div>
-            <h3 className="text-xl font-light text-white">Practice Drill</h3>
-            <p className="text-xs text-white/50 font-mono mt-1">Untimed question sets with instant step-by-step LaTeX solution reveal.</p>
-          </div>
-        </div>
-
-        <div
-          onClick={() => navigate('/evaluate')}
-          className="cursor-pointer bg-primary/10 border border-primary/40 hover:border-primary p-6 flex flex-col justify-between transition-all group"
-        >
-          <Timer className="w-8 h-8 text-primary mb-6 group-hover:scale-110 transition-transform" />
-          <div>
-            <div className="text-xs font-mono text-primary uppercase tracking-widest mb-1">Diagnostic</div>
-            <h3 className="text-xl font-light text-white">Timed Evaluation</h3>
-            <p className="text-xs text-white/60 font-mono mt-1">Simulated test conditions to scientifically calibrate your confidence gap.</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Admin Section */}
-      {profile?.is_admin && (
-        <div className="border border-primary/40 bg-primary/[0.03] p-6 space-y-4 text-left">
-          <div className="flex justify-between items-center flex-wrap gap-2">
-            <h3 className="text-xs font-mono text-primary uppercase tracking-widest flex items-center gap-2 font-bold">
-              <Shield className="w-4 h-4" />
-              Administrative Operations
-            </h3>
-            <button
-              onClick={() => navigate('/admin')}
-              className="px-4 py-2 bg-primary text-black text-xs font-mono uppercase tracking-widest font-bold hover:brightness-110 flex items-center gap-1.5 transition-all cursor-pointer"
-            >
-              <span>Open Mission Control</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <button
-              onClick={() => navigate('/admin')}
-              className="p-4 border border-white/10 bg-surface-container/60 hover:border-primary transition-colors text-left rounded-sm group flex items-start gap-3"
-            >
-              <Activity className="w-5 h-5 text-status-weak mt-0.5 group-hover:scale-110 transition-transform flex-shrink-0" />
-              <div>
-                <div className="text-sm font-semibold text-white">Observability</div>
-                <div className="text-xs text-white/50 font-mono mt-0.5">Real-time telemetry and cohort metrics</div>
-              </div>
-            </button>
-
-            <button
-              onClick={() => navigate('/admin/questions')}
-              className="p-4 border border-white/10 bg-surface-container/60 hover:border-primary transition-colors text-left rounded-sm group flex items-start gap-3"
-            >
-              <BookOpen className="w-5 h-5 text-primary mt-0.5 group-hover:scale-110 transition-transform flex-shrink-0" />
-              <div>
-                <div className="text-sm font-semibold text-white">Question Bank</div>
-                <div className="text-xs text-white/50 font-mono mt-0.5">Full CRUD editor, LaTeX previews, deletion</div>
-              </div>
-            </button>
-
-            <button
-              onClick={() => navigate('/admin/curriculum')}
-              className="p-4 border border-white/10 bg-surface-container/60 hover:border-primary transition-colors text-left rounded-sm group flex items-start gap-3"
-            >
-              <LayoutGrid className="w-5 h-5 text-primary mt-0.5 group-hover:scale-110 transition-transform flex-shrink-0" />
-              <div>
-                <div className="text-sm font-semibold text-white">Curriculum Matrix</div>
-                <div className="text-xs text-white/50 font-mono mt-0.5">Syllabus coverage gap auditor</div>
-              </div>
-            </button>
-
-            <button
-              onClick={() => navigate('/admin/content')}
-              className="p-4 border border-white/10 bg-surface-container/60 hover:border-primary transition-colors text-left rounded-sm group flex items-start gap-3"
-            >
-              <UploadCloud className="w-5 h-5 text-primary mt-0.5 group-hover:scale-110 transition-transform flex-shrink-0" />
-              <div>
-                <div className="text-sm font-semibold text-white">Content Ops</div>
-                <div className="text-xs text-white/50 font-mono mt-0.5">Upload exam PDFs and verify extracted candidates</div>
-              </div>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Sign out */}
-      <div className="pt-6 flex justify-center">
-        <button
-          onClick={signOut}
-          className="flex items-center gap-2 px-6 py-2.5 border border-white/10 text-white/60 text-xs font-mono uppercase tracking-widest hover:text-error hover:border-error transition-colors rounded-sm"
-        >
-          <LogOut className="w-4 h-4" />
-          Sign Out of Platform
-        </button>
       </div>
     </div>
   );

@@ -154,7 +154,7 @@ export default function EvaluationPage() {
   // ─── Screen 1: Evaluation Setup Screen ───
   if (!evaluation) {
     return (
-      <div className="w-full max-w-4xl mx-auto animate-fade-in space-y-8 text-left">
+      <div className="w-full min-w-0 animate-fade-in space-y-8 text-left">
         <div className="border-b border-white/10 pb-5">
           <div className="text-xs font-mono uppercase tracking-[0.2em] text-primary font-bold">
             Exam Simulation &middot; Timed Calibration
@@ -173,9 +173,10 @@ export default function EvaluationPage() {
           </div>
         )}
 
-        <div className="space-y-6">
-          {/* Topic Selector with Hierarchical TopicPicker */}
-          <div className="space-y-2">
+        {/* Responsive Layout: Dual-Column on lg+, Single-Column on mobile */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left Column: Topic Selector */}
+          <div className="lg:col-span-7 space-y-3">
             <label className="block text-label-sm-mono text-primary uppercase tracking-widest text-xs font-bold">
               1. Select Curriculum Topic
             </label>
@@ -187,76 +188,79 @@ export default function EvaluationPage() {
             />
           </div>
 
-          {/* Question count selector */}
-          <div className="space-y-2">
-            <label className="block text-label-sm-mono text-primary uppercase tracking-widest text-xs font-bold">
-              2. Number of Questions
-            </label>
-            <div className="grid grid-cols-6 gap-2">
-              {[5, 10, 15, 20, 25, 30].map(n => (
-                <button
-                  key={n}
-                  onClick={() => setQuestionCount(n)}
-                  className={`py-2.5 border text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                    questionCount === n
-                      ? 'bg-primary border-primary text-black font-bold shadow-sm'
-                      : 'bg-transparent border-white/15 text-white/60 hover:border-white/40 hover:text-white'
-                  }`}
-                >
-                  {n}
-                </button>
-              ))}
+          {/* Right Column: Parameters & Launch Cockpit */}
+          <div className="lg:col-span-5 space-y-6">
+            {/* Question count selector */}
+            <div className="space-y-2">
+              <label className="block text-label-sm-mono text-primary uppercase tracking-widest text-xs font-bold">
+                2. Number of Questions
+              </label>
+              <div className="grid grid-cols-6 gap-2">
+                {[5, 10, 15, 20, 25, 30].map(n => (
+                  <button
+                    key={n}
+                    onClick={() => setQuestionCount(n)}
+                    className={`py-2.5 border text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                      questionCount === n
+                        ? 'bg-primary border-primary text-black font-bold shadow-sm'
+                        : 'bg-transparent border-white/15 text-white/60 hover:border-white/40 hover:text-white'
+                    }`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Duration Selector */}
-          <div className="space-y-2">
-            <label className="block text-label-sm-mono text-primary uppercase tracking-widest text-xs font-bold">
-              3. Time Limit
-            </label>
-            <div className="grid grid-cols-4 gap-2.5">
-              {[
-                { label: '15 min', val: 900 },
-                { label: '30 min', val: 1800 },
-                { label: '45 min', val: 2700 },
-                { label: '60 min', val: 3600 },
-              ].map(({ label, val }) => (
-                <button
-                  key={val}
-                  onClick={() => setDurationSeconds(val)}
-                  className={`py-2.5 border text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                    durationSeconds === val
-                      ? 'bg-primary border-primary text-black font-bold shadow-sm'
-                      : 'bg-transparent border-white/15 text-white/60 hover:border-white/40 hover:text-white'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
+            {/* Duration Selector */}
+            <div className="space-y-2">
+              <label className="block text-label-sm-mono text-primary uppercase tracking-widest text-xs font-bold">
+                3. Time Limit
+              </label>
+              <div className="grid grid-cols-4 gap-2.5">
+                {[
+                  { label: '15 min', val: 900 },
+                  { label: '30 min', val: 1800 },
+                  { label: '45 min', val: 2700 },
+                  { label: '60 min', val: 3600 },
+                ].map(({ label, val }) => (
+                  <button
+                    key={val}
+                    onClick={() => setDurationSeconds(val)}
+                    className={`py-2.5 border text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                      durationSeconds === val
+                        ? 'bg-primary border-primary text-black font-bold shadow-sm'
+                        : 'bg-transparent border-white/15 text-white/60 hover:border-white/40 hover:text-white'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Examination Protocol Notice */}
-          <div className="p-4 border-l-2 border-error bg-error/[0.04] space-y-1.5">
-            <div className="text-xs font-mono uppercase tracking-wider text-error font-bold flex items-center gap-1.5">
-              <AlertTriangle className="w-3.5 h-3.5" />
-              <span>Examination Protocol</span>
+            {/* Examination Protocol Notice */}
+            <div className="p-4 border-l-2 border-error bg-error/[0.04] space-y-1.5">
+              <div className="text-xs font-mono uppercase tracking-wider text-error font-bold flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                <span>Examination Protocol</span>
+              </div>
+              <p className="text-xs text-white/70 font-light leading-relaxed">
+                No solutions or hints will be displayed during the test. Your final score will benchmark your confidence-performance gap on the Knowledge Map. When time expires, your test auto-submits.
+              </p>
             </div>
-            <p className="text-xs text-white/70 font-light leading-relaxed">
-              No solutions or hints will be displayed during the test. Your final score will benchmark your confidence-performance gap on the Knowledge Map. When time expires, your test auto-submits.
-            </p>
-          </div>
 
-          {/* Start Test Button */}
-          <div className="pt-2">
-            <button
-              onClick={startEvaluation}
-              disabled={!selectedTopic || loading}
-              className="w-full py-4 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest hover:brightness-110 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed shadow-lg shadow-primary/20 cursor-pointer"
-            >
-              <TimerIcon className="w-4 h-4 stroke-[2]" />
-              <span>{loading ? 'Assembling Question Set...' : 'Begin Timed Evaluation'}</span>
-            </button>
+            {/* Start Test Button */}
+            <div className="pt-2">
+              <button
+                onClick={startEvaluation}
+                disabled={!selectedTopic || loading}
+                className="w-full py-4 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest hover:brightness-110 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed shadow-lg shadow-primary/20 cursor-pointer"
+              >
+                <TimerIcon className="w-4 h-4 stroke-[2]" />
+                <span>{loading ? 'Assembling Question Set...' : 'Begin Timed Evaluation'}</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

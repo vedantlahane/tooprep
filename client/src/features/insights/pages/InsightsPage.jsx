@@ -140,95 +140,99 @@ export default function InsightsPage() {
 
       {/* Educational Guide Card (Toggleable) */}
       {showLegend && (
-        <div className="border border-primary/30 p-6 rounded-sm animate-fade-in bg-black/40">
-          <h3 className="text-xs font-mono text-primary uppercase tracking-widest mb-3 flex items-center gap-2">
+        <div className="border-l-2 border-primary bg-white/[0.02] p-5 text-left space-y-4">
+          <div className="flex items-center gap-2 text-xs font-mono text-primary uppercase tracking-widest font-bold">
             <Info className="w-4 h-4" />
             Metacognitive Calibration Framework
-          </h3>
-          <p className="text-xs text-white/70 leading-relaxed font-sans mb-4">
-            In competitive exams like JEE, knowing <em>what you do not know</em> is as crucial as knowing the formulas. Overconfidence leads to negative marking on tricky questions, while underconfidence causes wasted time and unattempted easy questions.
+          </div>
+          <p className="text-xs text-white/70 leading-relaxed font-mono">
+            In competitive exams like JEE, knowing <em>what you do not know</em> is as crucial as knowing formulas. Overconfidence leads to negative marking on tricky questions, while underconfidence causes wasted time and unattempted easy questions.
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs font-mono">
-            <div className="p-3 bg-status-overconfident/10 border border-status-overconfident/30 rounded-sm">
-              <div className="text-status-overconfident font-bold uppercase mb-1">OVERCONFIDENT (Gap &lt; -15%)</div>
-              <p className="text-white/70 font-sans">High self-rating (7-10) but low mock score (&lt;50%). High danger of negative marks. Action: Reset with untimed foundation drill.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs font-mono pt-1">
+            <div className="p-3 border-l-2 border-status-overconfident bg-status-overconfident/5">
+              <div className="text-status-overconfident font-bold uppercase mb-1">OVERCONFIDENT (&lt; -15%)</div>
+              <p className="text-white/60 font-sans text-[11px]">High self-rating (7-10) but low mock score (&lt;50%). High risk of negative marks. Action: Reset with foundation drill.</p>
             </div>
-            <div className="p-3 bg-status-weak/10 border border-status-weak/30 rounded-sm">
-              <div className="text-status-weak font-bold uppercase mb-1">WEAK ALIGNED (Score &lt; 50%)</div>
-              <p className="text-white/70 font-sans">Low confidence matching low score. Accurate self-awareness of struggling topic. Action: Review theory before testing.</p>
+            <div className="p-3 border-l-2 border-status-weak bg-status-weak/5">
+              <div className="text-status-weak font-bold uppercase mb-1">WEAK ALIGNED (&lt; 50%)</div>
+              <p className="text-white/60 font-sans text-[11px]">Low confidence matching low score. Accurate self-awareness. Action: Review theory before testing.</p>
             </div>
-            <div className="p-3 bg-status-underconfident/10 border border-status-underconfident/30 rounded-sm">
-              <div className="text-status-underconfident font-bold uppercase mb-1">UNDERCONFIDENT (Gap &gt; +15%)</div>
-              <p className="text-white/70 font-sans">Low self-rating but high mock score (&gt;70%). Imposter syndrome. Action: Take timed mock to build speed and trust.</p>
+            <div className="p-3 border-l-2 border-status-underconfident bg-status-underconfident/5">
+              <div className="text-status-underconfident font-bold uppercase mb-1">UNDERCONFIDENT (&gt; +15%)</div>
+              <p className="text-white/60 font-sans text-[11px]">Low self-rating but high mock score (&gt;70%). Imposter syndrome. Action: Take timed mocks to build trust.</p>
             </div>
-            <div className="p-3 bg-status-aligned/10 border border-status-aligned/30 rounded-sm">
-              <div className="text-status-aligned font-bold uppercase mb-1">ALIGNED (Within ±15%)</div>
-              <p className="text-white/70 font-sans">Perceived mastery matches empirical test data. Healthy calibration. Action: Maintain with periodic review.</p>
+            <div className="p-3 border-l-2 border-status-aligned bg-status-aligned/5">
+              <div className="text-status-aligned font-bold uppercase mb-1">ALIGNED (±15%)</div>
+              <p className="text-white/60 font-sans text-[11px]">Perceived mastery matches empirical test data. Healthy calibration. Action: Maintain periodic review.</p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Status Summary Live Tiles - Windows 10 Mobile Live Tiles */}
+      {/* Status Summary Live Tiles - Flat Lumia Style */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {[
-          { label: 'overconfident', count: insights.overconfident.length, accent: 'bg-status-overconfident', textAccent: 'text-status-overconfident', bgTint: 'bg-status-overconfident/10 border-status-overconfident/30', desc: 'Negative mark risk', icon: AlertTriangle },
-          { label: 'weak aligned', count: insights.weakAligned.length, accent: 'bg-status-weak', textAccent: 'text-status-weak', bgTint: 'bg-status-weak/10 border-status-weak/30', desc: 'Needs foundation', icon: TrendingDown },
-          { label: 'underconfident', count: insights.underconfident.length, accent: 'bg-status-underconfident', textAccent: 'text-status-underconfident', bgTint: 'bg-status-underconfident/10 border-status-underconfident/30', desc: 'Ready for mocks', icon: TrendingUp },
-          { label: 'aligned', count: insights.aligned.length, accent: 'bg-status-aligned', textAccent: 'text-status-aligned', bgTint: 'bg-status-aligned/10 border-status-aligned/30', desc: 'Calibrated mastery', icon: CheckCircle2 },
-          { label: 'untested', count: insights.noData.length, accent: 'bg-white/30', textAccent: 'text-white/60', bgTint: 'bg-surface-container/60 border-white/10', desc: 'Needs mock exam', icon: HelpCircle },
+          { label: 'overconfident', count: insights.overconfident.length, accent: 'bg-status-overconfident', textAccent: 'text-status-overconfident', borderAccent: 'border-status-overconfident/40 bg-status-overconfident/5', desc: 'Negative mark risk', icon: AlertTriangle },
+          { label: 'weak aligned', count: insights.weakAligned.length, accent: 'bg-status-weak', textAccent: 'text-status-weak', borderAccent: 'border-status-weak/40 bg-status-weak/5', desc: 'Needs foundation', icon: TrendingDown },
+          { label: 'underconfident', count: insights.underconfident.length, accent: 'bg-status-underconfident', textAccent: 'text-status-underconfident', borderAccent: 'border-status-underconfident/40 bg-status-underconfident/5', desc: 'Ready for mocks', icon: TrendingUp },
+          { label: 'aligned', count: insights.aligned.length, accent: 'bg-status-aligned', textAccent: 'text-status-aligned', borderAccent: 'border-status-aligned/40 bg-status-aligned/5', desc: 'Calibrated mastery', icon: CheckCircle2 },
+          { label: 'untested', count: insights.noData.length, accent: 'bg-white/30', textAccent: 'text-white/60', borderAccent: 'border-white/15 bg-white/[0.02]', desc: 'Needs mock exam', icon: HelpCircle },
         ].map(s => {
           const TileIcon = s.icon;
           return (
-            <div key={s.label} className={`p-5 rounded-sm flex flex-col justify-between relative overflow-hidden group border ${s.bgTint}`}>
+            <div key={s.label} className={`p-4 flex flex-col justify-between relative overflow-hidden text-left border ${s.borderAccent}`}>
               <div className={`absolute top-0 left-0 right-0 h-1 ${s.accent}`} />
-              <TileIcon className="absolute top-3.5 right-3.5 opacity-20 w-6 h-6 group-hover:scale-125 transition-transform" />
               <div>
-                <div className={`text-3xl font-light font-sans mb-1 tracking-tight ${s.textAccent}`}>{s.count}</div>
+                <div className={`text-3xl font-light font-sans mb-0.5 tracking-tight ${s.textAccent}`}>{s.count}</div>
                 <div className="text-xs font-mono uppercase tracking-widest text-white/90 font-semibold">{s.label}</div>
               </div>
-              <div className="text-[10px] font-mono text-white/50 uppercase tracking-wider mt-3">{s.desc}</div>
+              <div className="text-[10px] font-mono text-white/40 uppercase tracking-wider mt-3">{s.desc}</div>
             </div>
           );
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-        {/* Subject Mastery Progress */}
-        <div className="border border-white/10 p-6 md:p-8 rounded-sm bg-black/30">
-          <h3 className="text-xs font-mono text-white/60 uppercase tracking-widest mb-6 flex items-center gap-2">
-            <BarChart3 className="w-4 h-4 text-primary" />
-            SUBJECT-LEVEL MASTERY AGGREGATE
-          </h3>
-          <div className="space-y-6">
+      {/* Responsive Widescreen Dual-Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left Column: Subject Mastery Progress */}
+        <div className="lg:col-span-6 space-y-4 text-left">
+          <div className="flex items-center justify-between border-b border-white/10 pb-3">
+            <h3 className="text-xs font-mono text-primary uppercase tracking-widest flex items-center gap-2 font-bold">
+              <BarChart3 className="w-4 h-4" />
+              SUBJECT-LEVEL MASTERY AGGREGATE
+            </h3>
+            <span className="text-[10px] font-mono text-white/40 uppercase">Curriculum Overview</span>
+          </div>
+
+          <div className="space-y-4">
             {Object.entries(insights.bySubject).map(([name, s]) => {
               const acc = s.avgAccuracyNum || 0;
               const barColor = acc >= 70 ? 'bg-status-aligned' : acc >= 40 ? 'bg-status-weak' : 'bg-status-overconfident';
               return (
-                <div key={name} className="space-y-3 bg-surface-container/40 p-4 rounded-sm border border-white/5">
+                <div key={name} className="border-b border-white/10 pb-5 pt-2 space-y-2.5">
                   <div className="flex justify-between items-end">
-                    <h4 className="text-lg font-light text-white capitalize">{name}</h4>
+                    <h4 className="text-base font-light text-white capitalize">{name}</h4>
                     <span className="text-[11px] font-mono text-white/50 uppercase tracking-wider">{s.attempted}/{s.total} tested</span>
                   </div>
                   
                   {/* Progress Bar */}
-                  <div className="w-full h-1.5 bg-white/10 rounded-none overflow-hidden">
-                    <div className={`h-full ${barColor} transition-all duration-1000`} style={{ width: `${acc}%` }}></div>
+                  <div className="w-full h-1 bg-white/10 overflow-hidden">
+                    <div className={`h-full ${barColor} transition-all duration-700`} style={{ width: `${acc}%` }}></div>
                   </div>
                   
                   <div className="grid grid-cols-3 gap-2 text-center text-xs font-mono pt-1">
-                    <div className="bg-black/40 p-2 rounded-xs border border-white/5">
-                      <div className="text-[10px] text-white/40 uppercase mb-0.5">Accuracy</div>
+                    <div className="p-2 bg-white/[0.01] border-l-2 border-white/20 text-left">
+                      <div className="text-[9px] text-white/40 uppercase">Accuracy</div>
                       <div className={`font-bold ${acc >= 70 ? 'text-status-aligned' : acc >= 40 ? 'text-status-weak' : 'text-status-overconfident'}`}>
                         {s.avgAccuracyNum !== null ? `${acc}%` : '—'}
                       </div>
                     </div>
-                    <div className="bg-black/40 p-2 rounded-xs border border-white/5">
-                      <div className="text-[10px] text-white/40 uppercase mb-0.5">Overconfident</div>
+                    <div className="p-2 bg-white/[0.01] border-l-2 border-status-overconfident text-left">
+                      <div className="text-[9px] text-white/40 uppercase">Overconfident</div>
                       <div className="font-bold text-status-overconfident">{s.overconfident}</div>
                     </div>
-                    <div className="bg-black/40 p-2 rounded-xs border border-white/5">
-                      <div className="text-[10px] text-white/40 uppercase mb-0.5">Aligned</div>
+                    <div className="p-2 bg-white/[0.01] border-l-2 border-status-aligned text-left">
+                      <div className="text-[9px] text-white/40 uppercase">Aligned</div>
                       <div className="font-bold text-status-aligned">{s.aligned}</div>
                     </div>
                   </div>
@@ -238,61 +242,60 @@ export default function InsightsPage() {
           </div>
         </div>
 
-        <div className="space-y-8">
+        {/* Right Column: Overconfidence Gaps & Needs Evidence */}
+        <div className="lg:col-span-6 space-y-6 text-left">
           {/* Priority Critical Topics */}
           {insights.overconfident.length > 0 && (
-            <div className="border border-error/40 bg-error/5 p-6 md:p-8 rounded-sm relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                <Flame className="w-36 h-36 text-error" />
-              </div>
-              
-              <div className="flex items-center justify-between mb-6 relative z-10">
-                <h3 className="text-xs font-mono text-error uppercase tracking-widest font-bold flex items-center gap-2">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <h3 className="text-xs font-mono text-status-overconfident uppercase tracking-widest font-bold flex items-center gap-2">
                   <Flame className="w-4 h-4" />
-                  High Priority &middot; Overconfidence Gaps
+                  OVERCONFIDENCE GAPS ({insights.overconfident.length})
                 </h3>
-                <span className="text-[10px] font-mono text-error/80 px-2 py-0.5 bg-error/10 border border-error/20 rounded-xs">
-                  {insights.overconfident.length} topics
+                <span className="text-[10px] font-mono text-status-overconfident/80 uppercase">
+                  Negative Mark Risk
                 </span>
               </div>
               
-              <div className="space-y-3 relative z-10">
+              <div className="space-y-2">
                 {insights.overconfident.slice(0, 5).map(t => (
                   <div
                     key={t.topic_id}
-                    className="p-4 bg-surface-container/80 border-l-4 border-error border-y border-r border-white/5 rounded-r-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
+                    className="p-3 border-b border-white/10 hover:border-status-overconfident/50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left"
                   >
                     <div
                       onClick={() => navigate(`/topics/${t.topic_id}`)}
                       className="flex-1 cursor-pointer"
                     >
-                      <div className="text-sm font-medium text-white group-hover:text-primary transition-colors">{t.topic_name}</div>
-                      <div className="text-[11px] font-mono text-white/50 uppercase mt-0.5">
+                      <div className="text-sm font-light text-white hover:text-primary transition-colors">{t.topic_name}</div>
+                      <div className="text-[10px] font-mono text-white/40 uppercase mt-0.5">
                         {t.subject_name} &rsaquo; {t.chapter_name}
                       </div>
-                      <div className="flex items-center gap-2 mt-2 text-[10px] font-mono">
-                        <span className="px-2 py-0.5 bg-black/40 border border-white/10 rounded-xs text-white/70">
+                      <div className="flex items-center gap-2 mt-1.5 text-[10px] font-mono">
+                        <span className="text-white/60">
                           Conf: <strong className="text-primary">{t.confidence}/10</strong>
                         </span>
-                        <span className="px-2 py-0.5 bg-black/40 border border-white/10 rounded-xs text-white/70">
+                        <span className="text-white/30">&middot;</span>
+                        <span className="text-white/60">
                           Eval: <strong className="text-white">{t.evaluation_accuracy}%</strong>
                         </span>
-                        <span className="px-2 py-0.5 bg-error/20 border border-error/30 rounded-xs text-error font-bold">
+                        <span className="text-white/30">&middot;</span>
+                        <span className="text-status-overconfident font-bold">
                           Gap: {t.gap}%
                         </span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={() => setDrillTopic(t)}
-                        className="px-3 py-1.5 bg-error/15 border border-error/40 text-error text-[11px] font-mono uppercase tracking-wider font-semibold hover:bg-error hover:text-white transition-colors rounded-sm"
+                        className="px-2.5 py-1 bg-status-overconfident/15 border border-status-overconfident/40 text-status-overconfident text-[11px] font-mono uppercase tracking-wider font-semibold hover:bg-status-overconfident hover:text-white transition-colors rounded-none"
                       >
                         drill
                       </button>
                       <button
                         onClick={() => navigate(`/evaluate?topic=${t.topic_id}`)}
-                        className="px-3 py-1.5 bg-white/5 border border-white/15 text-white/80 text-[11px] font-mono uppercase tracking-wider hover:bg-white/10 hover:text-white transition-colors rounded-sm"
+                        className="px-2.5 py-1 bg-white/5 border border-white/15 text-white/80 text-[11px] font-mono uppercase tracking-wider hover:border-primary hover:text-white transition-colors rounded-none"
                       >
                         mock
                       </button>
@@ -303,31 +306,31 @@ export default function InsightsPage() {
             </div>
           )}
 
-          {/* Untested topics */}
+          {/* Untested Topics (Needs Evidence) */}
           {insights.noData.length > 0 && (
-            <div className="border border-white/10 p-6 md:p-8 rounded-sm bg-black/30">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xs font-mono text-white/60 uppercase tracking-widest flex items-center gap-2">
-                  <ListCheck className="w-4 h-4 text-primary" />
+            <div className="space-y-4 pt-2">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <h3 className="text-xs font-mono text-primary uppercase tracking-widest flex items-center gap-2 font-bold">
+                  <ListCheck className="w-4 h-4" />
                   NEEDS EVALUATION EVIDENCE ({insights.noData.length})
                 </h3>
-                <span className="text-[10px] font-mono text-white/40">Untested topics</span>
+                <span className="text-[10px] font-mono text-white/40 uppercase">Untested Topics</span>
               </div>
-              <p className="text-xs text-white/50 mb-4 font-mono">
-                Click any topic to view details or launch an evaluation to calibrate your score.
+              <p className="text-xs text-white/50 font-mono">
+                Click any topic to view diagnostic history or launch a timed mock test.
               </p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 pt-1">
                 {insights.noData.slice(0, 16).map(t => (
                   <button
                     key={t.topic_id}
                     onClick={() => navigate(`/topics/${t.topic_id}`)}
-                    className="px-3 py-1.5 bg-surface-container border border-white/10 hover:border-primary hover:text-primary transition-colors text-xs font-mono rounded-xs text-white/80"
+                    className="px-3 py-1.5 bg-transparent border border-white/15 hover:border-primary hover:text-primary transition-colors text-xs font-mono rounded-none text-white/80"
                   >
                     {t.topic_name}
                   </button>
                 ))}
                 {insights.noData.length > 16 && (
-                  <span className="px-3 py-1.5 text-xs font-mono text-white/40 bg-surface-dim rounded-xs border border-dashed border-white/10">
+                  <span className="px-3 py-1.5 text-xs font-mono text-white/40 border border-dashed border-white/15">
                     +{insights.noData.length - 16} more
                   </span>
                 )}

@@ -6,7 +6,7 @@ import { confidenceService } from '@/features/confidence/services/confidenceServ
 import { practiceService } from '@/features/practice/services/practiceService';
 import ConfidenceSlider from '@/features/confidence/components/ConfidenceSlider';
 import { MathText } from '@/features/questions/components/QuestionCard';
-import Icon, { Sparkles, CheckCircle2, AlertTriangle, RotateCcw, ArrowLeft, BookOpen } from '@/shared/components/Icon';
+import Icon, { Sparkles, CheckCircle2, AlertTriangle, RotateCcw, ArrowLeft, BookOpen, Timer, Play, ArrowRight } from '@/shared/components/Icon';
 
 export default function ResultsPage() {
   const { id } = useParams();
@@ -131,8 +131,8 @@ export default function ResultsPage() {
   })();
 
   return (
-    <div className="w-full max-w-5xl min-w-0 mx-auto animate-slide-up pb-16 space-y-8 text-left">
-      {/* Header */}
+    <div className="w-full min-w-0 animate-fade-in pb-20 space-y-8 text-left">
+      {/* Header Bar */}
       <div className="border-b border-white/10 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <div className="text-label-sm-mono text-primary uppercase tracking-[0.25em] mb-1.5 flex items-center gap-2">
@@ -150,7 +150,7 @@ export default function ResultsPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => navigate('/')}
-            className="flex items-center gap-2 px-4 py-2 bg-surface-container border border-white/10 hover:border-primary text-white/80 hover:text-white text-xs font-mono uppercase tracking-wider rounded-sm transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-transparent border border-white/15 hover:border-primary text-white/80 hover:text-white text-xs font-mono uppercase tracking-wider rounded-none transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             knowledge map
@@ -158,7 +158,7 @@ export default function ResultsPage() {
           {topicId && (
             <button
               onClick={() => navigate(`/practice?topic=${topicId}`)}
-              className="flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/30 text-primary hover:bg-primary hover:text-white text-xs font-mono uppercase tracking-wider rounded-sm transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/40 text-primary hover:bg-primary hover:text-black text-xs font-mono uppercase tracking-wider font-bold rounded-none transition-all"
             >
               drill topic
             </button>
@@ -166,279 +166,304 @@ export default function ResultsPage() {
         </div>
       </div>
 
-      {/* POST_EVALUATION Confidence Re-Rating Prompt */}
-      {showConfidencePrompt && !confidenceSubmitted && topicId && (
-        <div className="border border-primary/40 bg-primary/[0.04] p-6 animate-fade-in relative overflow-hidden text-left">
-          <div className="flex items-start gap-4 mb-4">
-            <Sparkles className="w-7 h-7 text-primary flex-shrink-0 mt-0.5" />
-            <div>
-              <div className="text-xs font-mono uppercase tracking-widest text-primary mb-1">Calibration Check</div>
-              <h3 className="text-xl font-light text-white">Re-rate Your Confidence</h3>
-              <p className="text-sm text-white/60 mt-1">
-                Now that you have completed this timed evaluation, how confident do you feel about this topic?
-              </p>
-            </div>
-          </div>
-          <ConfidenceSlider value={newConfidence} onChange={setNewConfidence} />
-          <div className="flex gap-3 mt-6">
-            <button
-              onClick={handleConfidenceSubmit}
-              disabled={confidenceLoading}
-              className="flex-1 py-3 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest hover:brightness-110 transition-all rounded-none disabled:opacity-50 shadow-md shadow-primary/20 cursor-pointer"
-            >
-              {confidenceLoading ? 'Saving...' : 'Save Updated Rating'}
-            </button>
-            <button
-              onClick={() => setShowConfidencePrompt(false)}
-              className="px-6 py-3 border border-white/10 text-white/60 hover:text-white hover:bg-white/5 text-xs font-mono uppercase tracking-widest rounded-none transition-colors"
-            >
-              Skip
-            </button>
-          </div>
-        </div>
-      )}
-
-      {confidenceSubmitted && (
-        <div className="p-4 bg-status-aligned/10 border border-status-aligned/30 text-sm text-white flex items-center gap-3 font-mono">
-          <CheckCircle2 className="w-5 h-5 text-status-aligned flex-shrink-0" />
-          <span>Confidence recalibrated to <strong>{newConfidence}/10</strong>. Knowledge map gap score will update immediately.</span>
-        </div>
-      )}
-
-      {recommendation && (
-        <div className={`mb-6 border-l-2 p-5 ${
-          recommendation.tone === 'error'
-            ? 'border-error bg-error/10 text-error'
-            : recommendation.tone === 'primary'
-              ? 'border-primary bg-primary/5 text-primary'
-              : 'border-status-aligned bg-status-aligned/10 text-status-aligned'
-        }`}>
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <div className="text-xs font-mono uppercase tracking-widest">Next recommendation</div>
-              <div className="mt-1 text-2xl font-light">{recommendation.title}</div>
-              <p className="mt-2 text-sm text-white/80 max-w-2xl font-light">{recommendation.description}</p>
-            </div>
-            <button
-              onClick={() => navigate(recommendation.target, { state: topicId ? { topic: topicId } : undefined })}
-              className="px-5 py-2.5 border border-current bg-white/10 text-xs font-mono uppercase tracking-widest font-semibold hover:opacity-90 transition-colors"
-            >
-              {recommendation.cta}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Score Cards with Staggered Entrance */}
-      {summary && (
-        <>
-          <motion.div
-            initial="hidden"
-            animate="show"
-            variants={{
-              hidden: { opacity: 0 },
-              show: {
-                opacity: 1,
-                transition: { staggerChildren: 0.06 }
-              }
-            }}
-            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3"
-          >
-            <motion.div
-              variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}
-              className="p-4 border border-primary/40 bg-primary/10 text-left relative overflow-hidden"
-            >
-              <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
-              <div className="text-2xl md:text-3xl font-light text-primary font-sans mt-0.5">{summary.correct}/{summary.total_questions}</div>
-              <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-1 font-semibold">Total Score</div>
-            </motion.div>
-
-            <motion.div
-              variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}
-              className="p-4 border border-white/10 bg-white/[0.02] text-left relative overflow-hidden"
-            >
-              <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
-              <div className={`text-2xl md:text-3xl font-light font-sans mt-0.5 ${
-                summary.accuracy >= 70 ? 'text-status-aligned' :
-                summary.accuracy >= 40 ? 'text-status-weak' : 'text-error'
-              }`}>
-                {summary.accuracy}%
+      {/* Main Dual-Pane Responsive Cockpit */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left Column (Main Debrief, Mistakes, Solutions) */}
+        <div className="lg:col-span-7 xl:col-span-8 space-y-6 min-w-0">
+          {/* Recommendation Banner */}
+          {recommendation && (
+            <div className={`p-6 border-l-4 text-left ${
+              recommendation.tone === 'error'
+                ? 'border-error bg-error/10 text-error'
+                : recommendation.tone === 'primary'
+                  ? 'border-primary bg-primary/5 text-primary'
+                  : 'border-status-aligned bg-status-aligned/10 text-status-aligned'
+            }`}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1 max-w-2xl">
+                  <div className="text-[10px] font-mono uppercase tracking-widest opacity-80">Next Tactical Step</div>
+                  <div className="text-xl md:text-2xl font-light text-white">{recommendation.title}</div>
+                  <p className="text-xs text-white/80 font-mono leading-relaxed mt-2">{recommendation.description}</p>
+                </div>
+                <button
+                  onClick={() => navigate(recommendation.target, { state: topicId ? { topic: topicId } : undefined })}
+                  className="px-5 py-2.5 bg-primary text-black font-mono text-xs font-bold uppercase tracking-widest hover:brightness-110 transition-all rounded-none self-start sm:self-center shrink-0 cursor-pointer shadow-md shadow-primary/20"
+                >
+                  {recommendation.cta}
+                </button>
               </div>
-              <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-1 font-semibold">Accuracy</div>
-            </motion.div>
-
-            <motion.div
-              variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}
-              className="p-4 border border-white/10 bg-white/[0.02] text-left relative overflow-hidden"
-            >
-              <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
-              <div className="text-2xl md:text-3xl font-light text-white font-sans mt-0.5">{summary.attempt_rate}%</div>
-              <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-1 font-semibold">Attempt Rate</div>
-            </motion.div>
-
-            <motion.div
-              variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}
-              className="p-4 border border-white/10 bg-white/[0.02] text-left relative overflow-hidden"
-            >
-              <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
-              <div className="text-2xl md:text-3xl font-light text-white font-sans mt-0.5">
-                {Math.floor(summary.avg_time_seconds / 60)}:{String(summary.avg_time_seconds % 60).padStart(2, '0')}
-              </div>
-              <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-1 font-semibold">Avg Time/Q</div>
-            </motion.div>
-
-            <motion.div
-              variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}
-              className="p-4 border border-white/10 bg-white/[0.02] text-left col-span-2 sm:col-span-1 relative overflow-hidden"
-            >
-              <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
-              <div className={`text-2xl md:text-3xl font-light font-sans mt-0.5 ${
-                summary.pyq_accuracy !== null && summary.pyq_accuracy >= 70 ? 'text-status-aligned' :
-                summary.pyq_accuracy !== null && summary.pyq_accuracy >= 40 ? 'text-status-weak' : 'text-white/50'
-              }`}>
-                {summary.pyq_accuracy !== null ? `${summary.pyq_accuracy}%` : '—'}
-              </div>
-              <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-1 font-semibold">PYQ Accuracy</div>
-            </motion.div>
-          </motion.div>
-
-          {summary.attempt_rate < 100 && (
-            <div className="px-4 py-3 bg-error/10 border border-error/30 text-error text-xs font-mono rounded-sm flex items-center gap-3">
-              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-              <span>You left {summary.total_questions - summary.answered} questions unattempted. In JEE Main, unattempted questions yield 0 marks — practice pacing to attempt every solvable question.</span>
             </div>
           )}
-        </>
-      )}
 
-      {/* Difficulty Breakdown */}
-      {diffBreakdown && (
-        <div className="border border-white/10 p-5 bg-black/40 text-left">
-          <h3 className="text-xs font-mono uppercase tracking-widest text-primary mb-5 flex items-center gap-2 font-bold">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-            DIFFICULTY ACCURACY BREAKDOWN
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {['easy', 'medium', 'hard'].map(diff => {
-              const d = diffBreakdown[diff];
-              if (!d || d.total === 0) return null;
-              const colorClass = diff === 'easy' ? 'text-status-aligned' : diff === 'medium' ? 'text-status-weak' : 'text-error';
-              const barClass = diff === 'easy' ? 'bg-status-aligned' : diff === 'medium' ? 'bg-status-weak' : 'bg-error';
+          {/* Unattempted Warning */}
+          {summary && summary.attempt_rate < 100 && (
+            <div className="px-4 py-3 bg-error/10 border-l-4 border-error text-error text-xs font-mono flex items-center gap-3">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+              <span>You left {summary.total_questions - summary.answered} questions unattempted. In JEE Main, unattempted questions score 0 — pace yourself to at least review all solvable questions.</span>
+            </div>
+          )}
 
-              return (
-                <div key={diff} className="bg-white/[0.02] border border-white/10 p-4 text-center">
-                  <div className={`text-2xl font-light font-mono ${colorClass}`}>
-                    {d.accuracy !== null ? `${d.accuracy}%` : '—'}
-                  </div>
-                  <div className="text-xs font-mono uppercase tracking-wider text-white mt-1 capitalize">{diff}</div>
-                  <div className="text-[11px] font-mono text-white/40 mt-0.5">{d.correct}/{d.total} correct</div>
-                  {/* Mini progress bar */}
-                  <div className="w-full h-1 bg-white/10 rounded-none mt-3 overflow-hidden">
-                    <div
-                      className={`h-full ${barClass} transition-all duration-500`}
-                      style={{ width: `${d.accuracy || 0}%` }}
-                    />
-                  </div>
+          {/* Missed Questions / Error Analysis */}
+          {mistakes.length > 0 ? (
+            <div className="space-y-4 pt-2">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+                <div>
+                  <h3 className="text-xs font-mono uppercase tracking-widest text-error flex items-center gap-2 font-bold">
+                    <AlertTriangle className="w-4 h-4" />
+                    ERROR ANALYSIS &amp; MISSED QUESTIONS ({mistakes.length})
+                  </h3>
+                  <p className="text-xs text-white/50 font-mono mt-1">Review step-by-step verified solutions or re-drill missed items.</p>
                 </div>
-              );
-            })}
+                <button
+                  onClick={handleReDrill}
+                  disabled={reDrillLoading}
+                  className="px-4 py-2 bg-error text-white text-xs font-mono uppercase tracking-widest font-semibold hover:bg-error/80 transition-colors rounded-none flex items-center gap-2 cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  {reDrillLoading ? 'Starting Drill...' : 'Re-drill All Mistakes'}
+                </button>
+              </div>
+
+              {/* Questions Stream */}
+              <div className="space-y-6">
+                {mistakes.map((m, i) => (
+                  <div key={i} className="border-b border-white/10 pb-6 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-mono text-white/40">#{i + 1}</span>
+                      <span className={`text-[10px] font-mono px-2 py-0.5 uppercase tracking-wider font-bold border ${
+                        m.difficulty === 'easy' ? 'bg-status-aligned/15 text-status-aligned border-status-aligned/30' :
+                        m.difficulty === 'medium' ? 'bg-status-weak/15 text-status-weak border-status-weak/30' :
+                        'bg-error/15 text-error border-error/30'
+                      }`}>
+                        {m.difficulty || 'MEDIUM'}
+                      </span>
+                      {m.source_type && (
+                        <span className="text-[10px] font-mono px-2 py-0.5 bg-primary/10 border border-primary/30 text-primary uppercase">
+                          {m.source_type}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="text-base text-white/95 leading-relaxed font-light max-w-3xl">
+                      <MathText text={m.question_text} />
+                    </div>
+
+                    {/* Answer Comparison */}
+                    <div className="flex flex-wrap gap-4 text-xs font-mono p-3 bg-white/[0.02] border-l-2 border-error">
+                      <span className="text-error">Your answer: <strong>{m.selected_answer || 'Skipped'}</strong></span>
+                      <span className="text-status-aligned">Correct answer: <strong>{m.correct_answer}</strong></span>
+                    </div>
+
+                    {/* Step-by-step Solution */}
+                    {m.solution_text && (
+                      <div className="p-4 bg-white/[0.01] border-l-2 border-primary space-y-2 mt-3">
+                        <div className="text-xs font-mono text-primary font-bold tracking-widest uppercase">VERIFIED STEP-BY-STEP DERIVATION</div>
+                        <div className="text-sm text-white/80 leading-relaxed font-light max-w-3xl">
+                          <MathText text={m.solution_text} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Bottom Re-drill CTA */}
+              <button
+                onClick={handleReDrill}
+                disabled={reDrillLoading}
+                className="w-full py-4 bg-error text-white text-xs font-mono font-bold uppercase tracking-widest hover:bg-error/80 transition-colors rounded-none flex items-center justify-center gap-2 cursor-pointer mt-4"
+              >
+                <RotateCcw className="w-4 h-4" />
+                {reDrillLoading ? 'Starting Targeted Drill...' : `Practice All ${mistakes.length} Missed Questions Now`}
+              </button>
+            </div>
+          ) : (
+            <div className="p-8 border-l-4 border-status-aligned bg-status-aligned/5 text-left space-y-2">
+              <div className="flex items-center gap-2 text-status-aligned font-mono text-xs uppercase tracking-widest font-bold">
+                <CheckCircle2 className="w-5 h-5" />
+                Flawless Evaluation
+              </div>
+              <h3 className="text-2xl font-light text-white">100% Accuracy — All Questions Correct</h3>
+              <p className="text-xs text-white/70 font-mono">
+                No mistakes were recorded during this session. This topic demonstrates verified mastery.
+              </p>
+            </div>
+          )}
+
+          {/* Navigation Action Strip */}
+          <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-white/10">
+            <button
+              onClick={() => navigate('/')}
+              className="flex-1 py-3.5 border border-white/20 text-white/80 hover:text-white hover:border-primary text-xs font-mono uppercase tracking-widest rounded-none transition-colors text-center cursor-pointer"
+            >
+              Return to Knowledge Map
+            </button>
+            {topicId && (
+              <button
+                onClick={() => navigate(`/topics/${topicId}`)}
+                className="flex-1 py-3.5 bg-primary text-black text-xs font-mono uppercase tracking-widest font-bold hover:brightness-110 transition-all rounded-none text-center shadow-md shadow-primary/20 cursor-pointer"
+              >
+                View Topic Telemetry
+              </button>
+            )}
           </div>
         </div>
-      )}
 
-      {/* Mistakes List */}
-      {mistakes.length > 0 && (
-        <div className="border border-white/10 p-5 bg-black/40 text-left">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-            <div>
-              <h3 className="text-xs font-mono uppercase tracking-widest text-error flex items-center gap-2 font-bold">
-                <AlertTriangle className="w-4 h-4" />
-                ERROR ANALYSIS & MISSED QUESTIONS ({mistakes.length})
-              </h3>
-              <p className="text-xs text-white/50 font-mono mt-1">Review the step-by-step verified solutions or re-drill missed items.</p>
+        {/* Right Column (Persistent Telemetry & Calibration Cockpit) */}
+        <div className="lg:col-span-5 xl:col-span-4 lg:sticky lg:top-4 space-y-6">
+          {/* Live Scorecard Tiles */}
+          {summary && (
+            <div className="space-y-3">
+              <div className="text-xs font-mono text-white/50 uppercase tracking-widest">
+                SESSION TELEMETRY
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {/* Total Score */}
+                <div className="p-4 border border-primary/40 bg-primary/10 relative overflow-hidden text-left">
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
+                  <div className="text-2xl md:text-3xl font-light text-primary font-sans mt-0.5">
+                    {summary.correct}/{summary.total_questions}
+                  </div>
+                  <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-1 font-semibold">Total Score</div>
+                </div>
+
+                {/* Accuracy */}
+                <div className="p-4 border border-white/10 bg-white/[0.02] relative overflow-hidden text-left">
+                  <div className={`absolute top-0 left-0 right-0 h-1 ${
+                    summary.accuracy >= 70 ? 'bg-status-aligned' : summary.accuracy >= 40 ? 'bg-status-weak' : 'bg-error'
+                  }`} />
+                  <div className={`text-2xl md:text-3xl font-light font-sans mt-0.5 ${
+                    summary.accuracy >= 70 ? 'text-status-aligned' : summary.accuracy >= 40 ? 'text-status-weak' : 'text-error'
+                  }`}>
+                    {summary.accuracy}%
+                  </div>
+                  <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-1 font-semibold">Accuracy</div>
+                </div>
+
+                {/* Attempt Rate */}
+                <div className="p-4 border border-white/10 bg-white/[0.02] relative overflow-hidden text-left">
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
+                  <div className="text-2xl md:text-3xl font-light text-white font-sans mt-0.5">
+                    {summary.attempt_rate}%
+                  </div>
+                  <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-1 font-semibold">Attempt Rate</div>
+                </div>
+
+                {/* Avg Time */}
+                <div className="p-4 border border-white/10 bg-white/[0.02] relative overflow-hidden text-left">
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
+                  <div className="text-2xl md:text-3xl font-light text-white font-sans mt-0.5">
+                    {Math.floor(summary.avg_time_seconds / 60)}:{String(summary.avg_time_seconds % 60).padStart(2, '0')}
+                  </div>
+                  <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-1 font-semibold">Avg Time/Q</div>
+                </div>
+
+                {/* PYQ Accuracy */}
+                <div className="p-4 border border-white/10 bg-white/[0.02] relative overflow-hidden text-left col-span-2">
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
+                  <div className={`text-2xl md:text-3xl font-light font-sans mt-0.5 ${
+                    summary.pyq_accuracy !== null && summary.pyq_accuracy >= 70 ? 'text-status-aligned' :
+                    summary.pyq_accuracy !== null && summary.pyq_accuracy >= 40 ? 'text-status-weak' : 'text-white/50'
+                  }`}>
+                    {summary.pyq_accuracy !== null ? `${summary.pyq_accuracy}%` : '—'}
+                  </div>
+                  <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-1 font-semibold">JEE PYQ Accuracy</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Calibration Check Prompt */}
+          {showConfidencePrompt && !confidenceSubmitted && topicId && (
+            <div className="border border-primary/40 bg-primary/[0.04] p-5 relative overflow-hidden text-left space-y-4">
+              <div className="flex items-start gap-3">
+                <Sparkles className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <div className="text-[10px] font-mono uppercase tracking-widest text-primary font-bold">Calibration Check</div>
+                  <h3 className="text-lg font-light text-white mt-0.5">Recalibrate Confidence</h3>
+                  <p className="text-xs text-white/60 mt-1 font-mono">
+                    Post-evaluation rating recalibrates your metacognitive knowledge map gap.
+                  </p>
+                </div>
+              </div>
+              <ConfidenceSlider value={newConfidence} onChange={setNewConfidence} />
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={handleConfidenceSubmit}
+                  disabled={confidenceLoading}
+                  className="flex-1 py-2.5 bg-primary text-black text-xs font-mono font-bold uppercase tracking-widest hover:brightness-110 transition-all rounded-none disabled:opacity-50 cursor-pointer"
+                >
+                  {confidenceLoading ? 'Saving...' : 'Save Rating'}
+                </button>
+                <button
+                  onClick={() => setShowConfidencePrompt(false)}
+                  className="px-4 py-2.5 border border-white/15 text-white/60 hover:text-white text-xs font-mono uppercase tracking-widest rounded-none transition-colors"
+                >
+                  Skip
+                </button>
+              </div>
+            </div>
+          )}
+
+          {confidenceSubmitted && (
+            <div className="p-4 bg-status-aligned/10 border-l-4 border-status-aligned text-xs text-white flex items-center gap-3 font-mono">
+              <CheckCircle2 className="w-4 h-4 text-status-aligned shrink-0" />
+              <span>Confidence recalibrated to <strong>{newConfidence}/10</strong>. Knowledge map updated.</span>
+            </div>
+          )}
+
+          {/* Difficulty Accuracy Breakdown */}
+          {diffBreakdown && (
+            <div className="space-y-3 pt-2">
+              <div className="text-xs font-mono text-white/50 uppercase tracking-widest">
+                TIER ACCURACY BREAKDOWN
+              </div>
+              <div className="space-y-2">
+                {['easy', 'medium', 'hard'].map(diff => {
+                  const d = diffBreakdown[diff];
+                  if (!d || d.total === 0) return null;
+                  const colorClass = diff === 'easy' ? 'text-status-aligned' : diff === 'medium' ? 'text-status-weak' : 'text-error';
+                  const barClass = diff === 'easy' ? 'bg-status-aligned' : diff === 'medium' ? 'bg-status-weak' : 'bg-error';
+
+                  return (
+                    <div key={diff} className="p-3 border border-white/10 bg-white/[0.01] space-y-2">
+                      <div className="flex justify-between items-center text-xs font-mono">
+                        <span className="uppercase text-white/80 font-bold">{diff}</span>
+                        <span className={colorClass}>
+                          <strong>{d.accuracy !== null ? `${d.accuracy}%` : '—'}</strong> ({d.correct}/{d.total})
+                        </span>
+                      </div>
+                      <div className="w-full h-1 bg-white/10 overflow-hidden">
+                        <div className={`h-full ${barClass}`} style={{ width: `${d.accuracy || 0}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Quick Actions Rail */}
+          <div className="space-y-2 pt-2">
+            <div className="text-xs font-mono text-white/50 uppercase tracking-widest">
+              NEXT ACTIONS
             </div>
             <button
-              onClick={handleReDrill}
-              disabled={reDrillLoading}
-              className="px-4 py-2 bg-error text-white text-xs font-mono uppercase tracking-widest font-semibold hover:bg-error/80 transition-colors rounded-none flex items-center gap-2 cursor-pointer"
+              onClick={() => navigate(`/practice?topic=${topicId}`)}
+              className="w-full py-3 bg-white/5 border border-white/15 hover:border-primary text-white/90 hover:text-white text-xs font-mono uppercase tracking-widest font-semibold transition-colors flex items-center justify-between px-4"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
-              {reDrillLoading ? 'Starting Drill...' : 'Re-drill Mistakes'}
+              <span>Practice Questions In Topic</span>
+              <ArrowRight className="w-4 h-4 text-primary" />
+            </button>
+            <button
+              onClick={() => navigate(`/evaluate?topic=${topicId}`)}
+              className="w-full py-3 bg-white/5 border border-white/15 hover:border-primary text-white/90 hover:text-white text-xs font-mono uppercase tracking-widest font-semibold transition-colors flex items-center justify-between px-4"
+            >
+              <span>Retake Timed Evaluation</span>
+              <ArrowRight className="w-4 h-4 text-primary" />
             </button>
           </div>
-
-          <div className="space-y-4">
-            {mistakes.map((m, i) => (
-              <div key={i} className="p-5 bg-white/[0.02] border border-white/10">
-                <div className="flex items-start gap-3 mb-3">
-                  <span className={`text-[10px] font-mono px-2 py-0.5 uppercase tracking-wider font-bold border ${
-                    m.difficulty === 'easy' ? 'bg-status-aligned/15 text-status-aligned border-status-aligned/30' :
-                    m.difficulty === 'medium' ? 'bg-status-weak/15 text-status-weak border-status-weak/30' :
-                    'bg-error/15 text-error border-error/30'
-                  }`}>
-                    {m.difficulty || 'MEDIUM'}
-                  </span>
-                  {m.source_type && (
-                    <span className="text-[10px] font-mono px-2 py-0.5 bg-primary/10 border border-primary/30 text-primary uppercase">
-                      {m.source_type}
-                    </span>
-                  )}
-                </div>
-
-                <div className="text-base text-white/90 mb-4 leading-relaxed font-light">
-                  <MathText text={m.question_text} />
-                </div>
-
-                <div className="flex flex-wrap gap-4 text-xs font-mono p-3 bg-black/40 border border-white/5">
-                  <span className="text-error">Your answer: <strong>{m.selected_answer || 'Skipped'}</strong></span>
-                  <span className="text-status-aligned">Correct answer: <strong>{m.correct_answer}</strong></span>
-                </div>
-
-                {m.solution_text && (
-                  <div className="mt-4 p-4 bg-white/[0.02] border-l-2 border-primary space-y-2">
-                    <div className="text-xs font-mono text-primary font-bold tracking-widest uppercase">VERIFIED STEP-BY-STEP SOLUTION</div>
-                    <div className="text-sm text-white/90 leading-relaxed font-light">
-                      <MathText text={m.solution_text} />
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <motion.button
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleReDrill}
-            disabled={reDrillLoading}
-            className="w-full mt-6 py-3.5 bg-error text-white text-xs font-mono font-bold uppercase tracking-widest hover:bg-error/80 transition-colors rounded-none flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <RotateCcw className="w-4 h-4" />
-            {reDrillLoading ? 'Starting Targeted Session...' : `Practice All ${mistakes.length} Mistakes Now`}
-          </motion.button>
         </div>
-      )}
-
-      {/* Bottom Actions */}
-      <div className="flex flex-col sm:flex-row gap-3 pt-4">
-        <motion.button
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => navigate('/')}
-          className="flex-1 py-3.5 border border-white/15 text-white/80 hover:text-white hover:border-white/30 text-xs font-mono uppercase tracking-widest rounded-sm transition-colors text-center cursor-pointer"
-        >
-          Return to Knowledge Map
-        </motion.button>
-        {topicId && (
-          <motion.button
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => navigate(`/topics/${topicId}`)}
-            className="flex-1 py-3.5 bg-primary text-black text-xs font-mono uppercase tracking-widest font-bold hover:brightness-110 transition-all rounded-sm text-center shadow-md shadow-primary/20 cursor-pointer"
-          >
-            View Full Topic Telemetry
-          </motion.button>
-        )}
       </div>
     </div>
   );

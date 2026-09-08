@@ -201,6 +201,7 @@ export default function QuestionsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(true);
 
   // Admin Question Editor Modal
   const [modalOpen, setModalOpen] = useState(false);
@@ -355,46 +356,72 @@ export default function QuestionsPage() {
 
       {/* Multi-Curriculum Filter Area */}
       <div className="space-y-4 pt-1">
-        <CurriculumMultiPicker
-          hierarchy={hierarchy}
-          selectedSubject={selectedSubject}
-          onSubjectChange={setSelectedSubject}
-          selectedChapters={selectedChapters}
-          onChaptersChange={setSelectedChapters}
-          selectedTopics={selectedTopics}
-          onTopicsChange={setSelectedTopics}
-        />
-
-        {/* Secondary Filter: Difficulty Buttons & Search Filter */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-white/10">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[10px] font-mono text-white/50 uppercase tracking-wider mr-1">Difficulty:</span>
-            {DIFFICULTIES.map(d => (
-              <button
-                key={d}
-                onClick={() => setSelectedDifficulty(d)}
-                className={`px-3.5 py-1.5 border text-xs font-mono uppercase tracking-wider transition-all cursor-pointer ${
-                  selectedDifficulty === d
-                    ? 'bg-primary border-primary text-black font-bold shadow-sm'
-                    : 'bg-transparent border-white/15 text-white/60 hover:text-white hover:border-white/40'
-                }`}
-              >
-                {d}
-              </button>
-            ))}
+        <div className="flex items-center justify-between border-b border-white/10 pb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono uppercase tracking-widest text-primary font-bold">
+              Curriculum Filter &amp; Scope
+            </span>
+            {filteredQuestions.length > 0 && (
+              <span className="text-[10px] font-mono px-2 py-0.5 bg-primary/10 border border-primary/30 text-primary">
+                {filteredQuestions.length} in archive
+              </span>
+            )}
           </div>
 
-          <div className="relative max-w-xs w-full">
-            <Search className="w-3.5 h-3.5 text-white/40 absolute left-2.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchFilter}
-              onChange={e => setSearchFilter(e.target.value)}
-              placeholder="Search in questions or derivations..."
-              className="w-full bg-white/[0.03] border-b border-white/20 focus:border-primary pl-8 pr-3 py-1.5 text-xs font-mono text-white placeholder:text-white/30 outline-none transition-colors"
-            />
-          </div>
+          <button
+            type="button"
+            onClick={() => setFiltersOpen(v => !v)}
+            className="text-xs font-mono uppercase tracking-wider text-white/60 hover:text-white flex items-center gap-1 cursor-pointer"
+          >
+            <span>{filtersOpen ? 'Minimize Filter' : 'Expand Filter'}</span>
+            {filtersOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
         </div>
+
+        {filtersOpen && (
+          <div className="space-y-4 animate-fade-in">
+            <CurriculumMultiPicker
+              hierarchy={hierarchy}
+              selectedSubject={selectedSubject}
+              onSubjectChange={setSelectedSubject}
+              selectedChapters={selectedChapters}
+              onChaptersChange={setSelectedChapters}
+              selectedTopics={selectedTopics}
+              onTopicsChange={setSelectedTopics}
+            />
+
+            {/* Secondary Filter: Difficulty Buttons & Search Filter */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-white/10">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-mono text-white/50 uppercase tracking-wider mr-1">Difficulty:</span>
+                {DIFFICULTIES.map(d => (
+                  <button
+                    key={d}
+                    onClick={() => setSelectedDifficulty(d)}
+                    className={`px-3.5 py-1.5 border text-xs font-mono uppercase tracking-wider transition-all cursor-pointer ${
+                      selectedDifficulty === d
+                        ? 'bg-primary border-primary text-black font-bold shadow-sm'
+                        : 'bg-transparent border-white/15 text-white/60 hover:text-white hover:border-white/40'
+                    }`}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+
+              <div className="relative max-w-xs w-full">
+                <Search className="w-3.5 h-3.5 text-white/40 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchFilter}
+                  onChange={e => setSearchFilter(e.target.value)}
+                  placeholder="Search in questions or derivations..."
+                  className="w-full bg-white/[0.03] border-b border-white/20 focus:border-primary pl-8 pr-3 py-1.5 text-xs font-mono text-white placeholder:text-white/30 outline-none transition-colors"
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {error && (
@@ -417,116 +444,192 @@ export default function QuestionsPage() {
           <p className="text-xs text-white/50 font-mono">Try selecting different chapters/topics or clear your search term.</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {/* Top Pagination Toolbar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 py-2 px-3 border-t border-b border-white/10 text-xs font-mono bg-white/[0.02]">
-            <div className="flex items-center gap-2 text-white/70 flex-wrap">
-              <span className="text-white/50 uppercase tracking-widest text-[11px]">Per page:</span>
-              {[10, 20, 50, 100].map(size => (
-                <button
-                  key={size}
-                  onClick={() => { setPageSize(size); setCurrentPage(1); }}
-                  className={`px-2.5 py-1 border transition-colors cursor-pointer text-xs ${
-                    pageSize === size ? 'bg-primary border-primary text-black font-bold' : 'border-outline-variant hover:border-primary text-white/70'
-                  }`}
-                >
-                  {size}
-                </button>
-              ))}
-              <span className="text-white/30 ml-2">|</span>
-              <span className="text-white/70 ml-1">
-                Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filteredQuestions.length)} of {filteredQuestions.length}
-              </span>
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+          {/* Main Question Stream (Left 8 or 9 cols on xl) */}
+          <div className="xl:col-span-8 2xl:col-span-9 space-y-4 min-w-0">
+            {/* Top Pagination Toolbar */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 py-2 px-3 border-t border-b border-white/10 text-xs font-mono bg-white/[0.02]">
+              <div className="flex items-center gap-2 text-white/70 flex-wrap">
+                <span className="text-white/50 uppercase tracking-widest text-[11px]">Per page:</span>
+                {[10, 20, 50, 100].map(size => (
+                  <button
+                    key={size}
+                    onClick={() => { setPageSize(size); setCurrentPage(1); }}
+                    className={`px-2.5 py-1 border transition-colors cursor-pointer text-xs ${
+                      pageSize === size ? 'bg-primary border-primary text-black font-bold' : 'border-outline-variant hover:border-primary text-white/70'
+                    }`}
+                  >
+                    {size}
+                  </button>
+                ))}
+                <span className="text-white/30 ml-2">|</span>
+                <span className="text-white/70 ml-1">
+                  Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filteredQuestions.length)} of {filteredQuestions.length}
+                </span>
+              </div>
+
+              {totalPages > 1 && (
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    className="px-2 py-1 border border-outline-variant text-white/70 disabled:opacity-20 hover:border-primary transition-colors cursor-pointer disabled:cursor-not-allowed"
+                    title="First Page"
+                  >
+                    &laquo;
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-2.5 py-1 border border-white/10 rounded-sm text-white/70 disabled:opacity-20 hover:border-primary hover:text-white transition-colors cursor-pointer disabled:cursor-not-allowed flex items-center gap-0.5"
+                    title="Previous Page"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="px-2.5 py-1 bg-surface-container border border-white/10 rounded-sm text-primary font-bold">
+                    {currentPage} / {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-2 py-1 border border-outline-variant text-white/70 disabled:opacity-20 hover:border-primary transition-colors cursor-pointer disabled:cursor-not-allowed flex items-center gap-0.5"
+                    title="Next Page"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage === totalPages}
+                    className="px-2 py-1 border border-outline-variant text-white/70 disabled:opacity-20 hover:border-primary transition-colors cursor-pointer disabled:cursor-not-allowed"
+                    title="Last Page"
+                  >
+                    &raquo;
+                  </button>
+                </div>
+              )}
             </div>
 
+            <div className="space-y-4">
+              {paginatedQuestions.map((q) => (
+                <QuestionBrowserCard
+                  key={q.id}
+                  q={q}
+                  isAdmin={isAdmin}
+                  onEditQuestion={handleEditQuestion}
+                  onPracticeTopic={(topicId) => navigate(`/practice?topic=${topicId}`)}
+                />
+              ))}
+            </div>
+
+            {/* Bottom Pagination Toolbar if multiple pages */}
             {totalPages > 1 && (
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setCurrentPage(1)}
-                  disabled={currentPage === 1}
-                  className="px-2 py-1 border border-outline-variant text-white/70 disabled:opacity-20 hover:border-primary transition-colors cursor-pointer disabled:cursor-not-allowed"
-                  title="First Page"
-                >
-                  &laquo;
-                </button>
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="px-2.5 py-1 border border-white/10 rounded-sm text-white/70 disabled:opacity-20 hover:border-primary hover:text-white transition-colors cursor-pointer disabled:cursor-not-allowed flex items-center gap-0.5"
-                  title="Previous Page"
-                >
-                  <ChevronLeft className="w-3.5 h-3.5" />
-                </button>
-                <span className="px-2.5 py-1 bg-surface-container border border-white/10 rounded-sm text-primary font-bold">
-                  {currentPage} / {totalPages}
+              <div className="flex items-center justify-between py-2 px-3 border-t border-b border-white/10 text-xs font-mono bg-white/[0.02]">
+                <span className="text-white/50">
+                  Page {currentPage} of {totalPages}
                 </span>
-                <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="px-2 py-1 border border-outline-variant text-white/70 disabled:opacity-20 hover:border-primary transition-colors cursor-pointer disabled:cursor-not-allowed flex items-center gap-0.5"
-                  title="Next Page"
-                >
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => setCurrentPage(totalPages)}
-                  disabled={currentPage === totalPages}
-                  className="px-2 py-1 border border-outline-variant text-white/70 disabled:opacity-20 hover:border-primary transition-colors cursor-pointer disabled:cursor-not-allowed"
-                  title="Last Page"
-                >
-                  &raquo;
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => {
+                      setCurrentPage(p => Math.max(1, p - 1));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1.5 border border-white/10 rounded-sm text-white/70 disabled:opacity-20 hover:border-primary hover:text-white transition-colors cursor-pointer disabled:cursor-not-allowed flex items-center gap-1"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <span>Prev</span>
+                  </button>
+                  <span className="px-3 py-1.5 bg-surface-container border border-white/10 rounded-sm text-primary font-bold">
+                    {currentPage} / {totalPages}
+                  </span>
+                  <button
+                    onClick={() => {
+                      setCurrentPage(p => Math.min(totalPages, p + 1));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1.5 border border-outline-variant text-white/70 disabled:opacity-20 hover:border-primary transition-colors cursor-pointer disabled:cursor-not-allowed flex items-center gap-1"
+                  >
+                    <span>Next</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             )}
           </div>
 
-          <div className="space-y-4">
-            {paginatedQuestions.map((q) => (
-              <QuestionBrowserCard
-                key={q.id}
-                q={q}
-                isAdmin={isAdmin}
-                onEditQuestion={handleEditQuestion}
-                onPracticeTopic={(topicId) => navigate(`/practice?topic=${topicId}`)}
-              />
-            ))}
-          </div>
-
-          {/* Bottom Pagination Toolbar if multiple pages */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between py-2 px-3 border-t border-b border-white/10 text-xs font-mono bg-white/[0.02]">
-              <span className="text-white/50">
-                Page {currentPage} of {totalPages}
-              </span>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => {
-                    setCurrentPage(p => Math.max(1, p - 1));
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1.5 border border-white/10 rounded-sm text-white/70 disabled:opacity-20 hover:border-primary hover:text-white transition-colors cursor-pointer disabled:cursor-not-allowed flex items-center gap-1"
-                >
-                  <ChevronLeft className="w-3.5 h-3.5" />
-                  <span>Prev</span>
-                </button>
-                <span className="px-3 py-1.5 bg-surface-container border border-white/10 rounded-sm text-primary font-bold">
-                  {currentPage} / {totalPages}
+          {/* Sticky Side Cockpit (Right on xl only) */}
+          <div className="hidden xl:block xl:col-span-4 2xl:col-span-3 xl:sticky xl:top-4 space-y-4">
+            {/* Archive Telemetry & Summary */}
+            <div className="border border-white/10 bg-black/40 p-4 space-y-3.5 text-left">
+              <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                <span className="text-xs font-mono uppercase tracking-widest text-white/80 font-bold">
+                  Archive Telemetry
                 </span>
-                <button
-                  onClick={() => {
-                    setCurrentPage(p => Math.min(totalPages, p + 1));
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1.5 border border-outline-variant text-white/70 disabled:opacity-20 hover:border-primary transition-colors cursor-pointer disabled:cursor-not-allowed flex items-center gap-1"
-                >
-                  <span>Next</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
+                <span className="text-[10px] font-mono text-primary font-bold">
+                  {filteredQuestions.length} Found
+                </span>
               </div>
+
+              <div className="space-y-2 text-xs font-mono">
+                <div className="flex justify-between py-1 border-b border-white/5 text-white/60">
+                  <span>Discipline:</span>
+                  <span className="text-white font-medium">{selectedSubject || 'All Subjects'}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-white/5 text-white/60">
+                  <span>Difficulty:</span>
+                  <span className="text-primary font-bold">{selectedDifficulty}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-white/5 text-white/60">
+                  <span>Active Page:</span>
+                  <span className="text-white">{currentPage} / {totalPages}</span>
+                </div>
+              </div>
+
+              {selectedTopics.length > 0 && (
+                <div className="pt-2 space-y-2">
+                  <button
+                    onClick={() => navigate(`/practice?topic=${selectedTopics[0]}`)}
+                    className="w-full py-2.5 bg-primary text-black text-xs font-mono uppercase tracking-wider font-bold hover:brightness-110 transition-all flex items-center justify-center gap-1.5 shadow cursor-pointer"
+                  >
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                    <span>Drill Selected Topic</span>
+                  </button>
+                  <button
+                    onClick={() => navigate(`/evaluate?topic=${selectedTopics[0]}`)}
+                    className="w-full py-2.5 bg-transparent border border-white/20 hover:border-primary text-white hover:text-primary text-xs font-mono uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Timer className="w-3.5 h-3.5 stroke-[2]" />
+                    <span>Mock Test</span>
+                  </button>
+                </div>
+              )}
             </div>
-          )}
+
+            {/* Quick Page Jump Navigation */}
+            {totalPages > 1 && (
+              <div className="border border-white/10 bg-black/40 p-4 space-y-3 text-left">
+                <div className="text-[10px] font-mono uppercase tracking-widest text-white/50 border-b border-white/10 pb-2">
+                  Jump To Page
+                </div>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {Array.from({ length: Math.min(25, totalPages) }, (_, i) => i + 1).map(p => (
+                    <button
+                      key={p}
+                      onClick={() => { setCurrentPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                      className={`py-1.5 text-center text-xs font-mono border transition-all cursor-pointer ${
+                        currentPage === p
+                          ? 'bg-primary border-primary text-black font-bold shadow'
+                          : 'bg-white/[0.02] border-white/10 text-white/60 hover:text-white hover:border-white/30'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

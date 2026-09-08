@@ -144,13 +144,13 @@ export default function SessionHistoryPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => navigate('/practice')}
-            className="px-4 py-2 bg-primary/10 border border-primary/30 text-primary hover:bg-primary hover:text-white text-xs font-mono uppercase tracking-wider rounded-sm transition-colors"
+            className="px-4 py-2 bg-transparent border border-white/15 text-white/80 hover:text-white hover:border-primary text-xs font-mono uppercase tracking-wider rounded-none transition-colors"
           >
             drill practice
           </button>
           <button
             onClick={() => navigate('/evaluate')}
-            className="px-4 py-2 bg-primary text-black hover:brightness-110 text-xs font-mono uppercase tracking-wider font-bold rounded-sm transition-all shadow-md shadow-primary/20 cursor-pointer"
+            className="px-4 py-2 bg-primary text-black hover:brightness-110 text-xs font-mono uppercase tracking-wider font-bold rounded-none transition-all shadow-md shadow-primary/20 cursor-pointer"
           >
             take mock
           </button>
@@ -158,187 +158,218 @@ export default function SessionHistoryPage() {
       </div>
 
       {error && (
-        <div className="p-4 bg-error/10 border-l-4 border-error text-error text-xs font-mono rounded-r-sm">
+        <div className="p-4 bg-error/10 border-l-4 border-error text-error text-xs font-mono">
           {error}
         </div>
       )}
 
       {allSessions.length === 0 ? (
-        <div className="text-center py-16 border border-white/10 rounded-sm bg-black/30">
-          <History className="w-14 h-14 text-primary block opacity-60 mb-4 mx-auto" />
-          <h3 className="text-xl font-light text-white mb-2">No sessions recorded yet</h3>
-          <p className="text-sm text-white/50 max-w-md mx-auto mb-6 font-mono">
+        <div className="text-left py-12 border-l-2 border-white/20 bg-white/[0.01] p-8 space-y-4">
+          <History className="w-10 h-10 text-primary opacity-60" />
+          <h3 className="text-xl font-light text-white">No sessions recorded yet</h3>
+          <p className="text-xs text-white/50 max-w-md font-mono">
             Start a practice drill or take a timed evaluation to track your historical attempts here.
           </p>
           <button
             onClick={() => navigate('/practice')}
-            className="px-6 py-3 bg-primary text-black text-xs font-mono uppercase tracking-widest font-bold rounded-sm hover:brightness-110 transition-all shadow-md shadow-primary/20 cursor-pointer"
+            className="px-6 py-3 bg-primary text-black text-xs font-mono uppercase tracking-widest font-bold rounded-none hover:brightness-110 transition-all shadow-md shadow-primary/20 cursor-pointer"
           >
             Start Practice
           </button>
         </div>
       ) : (
-        <>
-          {/* Analytics KPI Cards */}
-          {analytics && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="border border-primary/40 bg-primary/10 rounded-sm p-4 text-center relative overflow-hidden">
-                <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
-                <div className="text-[10px] font-mono text-white/60 uppercase tracking-widest mb-1 font-semibold">Total Sessions</div>
-                <div className="text-2xl md:text-3xl font-light font-sans text-primary">{analytics.totalSessions}</div>
-                <div className="text-[10px] font-mono text-white/40 mt-1">evals & drills</div>
-              </div>
-
-              <div className="border border-white/10 bg-black/40 rounded-sm p-4 text-center relative overflow-hidden">
-                <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
-                <div className="text-[10px] font-mono text-white/60 uppercase tracking-widest mb-1 font-semibold">Time Invested</div>
-                <div className="text-2xl md:text-3xl font-light font-sans text-white">{analytics.totalHours}h</div>
-                <div className="text-[10px] font-mono text-white/40 mt-1">active testing</div>
-              </div>
-
-              <div className="border border-white/10 bg-black/40 rounded-sm p-4 text-center">
-                <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest mb-1">Avg Accuracy</div>
-                <div className={`text-2xl md:text-3xl font-light font-mono ${
-                  analytics.avgAccuracy >= 70 ? 'text-status-aligned' :
-                  analytics.avgAccuracy >= 40 ? 'text-status-weak' : 'text-error'
-                }`}>
-                  {analytics.avgAccuracy}%
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left Column (Sticky Telemetry Rail on Widescreen) */}
+          <div className="lg:col-span-4 lg:sticky lg:top-4 space-y-6 text-left">
+            {/* Analytics KPI Tiles */}
+            {analytics && (
+              <div className="space-y-3">
+                <div className="text-xs font-mono text-white/50 uppercase tracking-widest">
+                  PORTFOLIO TELEMETRY
                 </div>
-                <div className="text-[10px] font-mono text-white/40 mt-1">overall average</div>
-              </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="border border-primary/40 bg-primary/10 p-4 relative overflow-hidden text-left">
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
+                    <div className="text-[10px] font-mono text-white/60 uppercase tracking-widest mb-0.5 font-semibold">Total Sessions</div>
+                    <div className="text-2xl md:text-3xl font-light font-sans text-primary">{analytics.totalSessions}</div>
+                    <div className="text-[10px] font-mono text-white/40 mt-1">evals &amp; drills</div>
+                  </div>
 
-              <div className={`rounded-sm p-4 text-center border ${
-                analytics.trend === 'improving'
-                  ? 'bg-status-aligned/10 border-status-aligned/30'
-                  : 'border border-white/10 bg-black/40'
-              }`}>
-                <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest mb-1">Recent Trend</div>
-                <div className={`text-2xl md:text-3xl font-light font-mono flex items-center justify-center gap-1.5 ${
-                  analytics.trend === 'improving' ? 'text-status-aligned' : 'text-white'
-                }`}>
-                  {analytics.recentAvg !== null ? `${analytics.recentAvg}%` : '—'}
-                  {analytics.trend === 'improving' && <TrendingUp className="w-4 h-4 text-status-aligned flex-shrink-0" />}
-                </div>
-                <div className="text-[10px] font-mono text-white/40 mt-1">last 7 sessions</div>
-              </div>
-            </div>
-          )}
+                  <div className="border border-white/15 bg-white/[0.02] p-4 relative overflow-hidden text-left">
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
+                    <div className="text-[10px] font-mono text-white/60 uppercase tracking-widest mb-0.5 font-semibold">Time Invested</div>
+                    <div className="text-2xl md:text-3xl font-light font-sans text-white">{analytics.totalHours}h</div>
+                    <div className="text-[10px] font-mono text-white/40 mt-1">active testing</div>
+                  </div>
 
-          {/* Filters & Sort Controls */}
-          <div className="border-t border-b border-white/10 py-3 px-1 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest mr-1">Filter:</span>
-              {['ALL', 'PRACTICE', 'EVALUATION'].map(type => (
-                <button
-                  key={type}
-                  onClick={() => setTypeFilter(type)}
-                  className={`px-3 py-1.5 rounded-xs text-xs font-mono uppercase tracking-wider transition-colors ${
-                    typeFilter === type
-                      ? 'bg-primary text-black font-semibold'
-                      : 'bg-transparent border border-white/10 text-white/60 hover:text-white hover:border-white/20'
-                  }`}
-                >
-                  {type === 'ALL' ? 'All' : type === 'PRACTICE' ? 'Practice' : 'Mocks'}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest whitespace-nowrap">Sort:</span>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="w-full sm:w-auto px-3 py-1.5 bg-black border border-white/15 rounded-xs text-xs font-mono text-white outline-none focus:border-primary"
-              >
-                <option value="DATE_DESC">Newest First</option>
-                <option value="ACCURACY_DESC">Highest Accuracy</option>
-                <option value="DURATION_DESC">Longest Duration</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Sessions Timeline */}
-          <div className="space-y-2">
-            {allSessions.map((session) => {
-              const accuracy = session.accuracy ?? session.summary?.accuracy;
-              const isEval = session.type === 'EVALUATION';
-
-              return (
-                <div
-                  key={`${session.type}-${session.sessionId}`}
-                  className="p-4 border-b border-white/10 hover:bg-white/[0.02] transition-all cursor-pointer group flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                  onClick={() => {
-                    if (isEval) {
-                      navigate(`/results/${session.sessionId}`);
-                    } else if (session.topic_id) {
-                      navigate(`/topics/${session.topic_id}`);
-                    }
-                  }}
-                >
-                  <div className="flex items-center gap-4 flex-1">
-                    <span className={`px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider rounded-xs font-semibold ${
-                      isEval ? 'bg-primary/20 text-primary border border-primary/40' : 'bg-white/10 text-white/80 border border-white/15'
+                  <div className="border border-white/15 bg-white/[0.02] p-4 text-left">
+                    <div className="text-[10px] font-mono text-white/60 uppercase tracking-widest mb-0.5">Avg Accuracy</div>
+                    <div className={`text-2xl md:text-3xl font-light font-mono ${
+                      analytics.avgAccuracy >= 70 ? 'text-status-aligned' :
+                      analytics.avgAccuracy >= 40 ? 'text-status-weak' : 'text-error'
                     }`}>
-                      {isEval ? 'Mock' : 'Drill'}
-                    </span>
-
-                    <div>
-                      <div className="text-sm font-medium text-white group-hover:text-primary transition-colors">
-                        {session.topicName}
-                      </div>
-                      <div className="text-[11px] font-mono text-white/40 mt-0.5">
-                        {new Date(session.started_at || session.created_at).toLocaleString('en-IN', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </div>
+                      {analytics.avgAccuracy}%
                     </div>
+                    <div className="text-[10px] font-mono text-white/40 mt-1">overall average</div>
                   </div>
 
-                  <div className="flex items-center justify-between sm:justify-end gap-6 pt-2 sm:pt-0 border-t border-white/5 sm:border-0">
-                    {accuracy !== null && accuracy !== undefined && (
-                      <div className="text-center sm:text-right">
-                        <div className={`text-lg font-light font-mono ${
-                          accuracy >= 70 ? 'text-status-aligned' :
-                          accuracy >= 40 ? 'text-status-weak' : 'text-error'
-                        }`}>
-                          {accuracy}%
-                        </div>
-                        <div className="text-[9px] font-mono text-white/40 uppercase">Accuracy</div>
-                      </div>
-                    )}
-
-                    <div className="text-center sm:text-right">
-                      <div className="text-lg font-light font-mono text-white">
-                        {session.correct_count !== undefined && session.total_questions !== undefined
-                          ? `${session.correct_count}/${session.total_questions}`
-                          : session.summary?.total_questions || session.question_count || '—'}
-                      </div>
-                      <div className="text-[9px] font-mono text-white/40 uppercase">
-                        {session.correct_count !== undefined ? 'Score' : 'Questions'}
-                      </div>
+                  <div className={`p-4 text-left border ${
+                    analytics.trend === 'improving'
+                      ? 'bg-status-aligned/10 border-status-aligned/40'
+                      : 'border-white/15 bg-white/[0.02]'
+                  }`}>
+                    <div className="text-[10px] font-mono text-white/60 uppercase tracking-widest mb-0.5">Recent Trend</div>
+                    <div className={`text-2xl md:text-3xl font-light font-mono flex items-center gap-1.5 ${
+                      analytics.trend === 'improving' ? 'text-status-aligned' : 'text-white'
+                    }`}>
+                      {analytics.recentAvg !== null ? `${analytics.recentAvg}%` : '—'}
+                      {analytics.trend === 'improving' && <TrendingUp className="w-4 h-4 text-status-aligned shrink-0" />}
                     </div>
-
-                    <div className="text-center sm:text-right">
-                      <div className="text-lg font-light font-mono text-white/70">
-                        {isEval
-                          ? `${Math.floor((session.duration_seconds || session.summary?.duration_seconds || 0) / 60)}m`
-                          : `${Math.round((session.summary?.total_time_seconds || 0) / 60)}m`
-                        }
-                      </div>
-                      <div className="text-[9px] font-mono text-white/40 uppercase">Time</div>
-                    </div>
-
-                    <ArrowRight className="w-4 h-4 text-white/30 group-hover:text-primary transition-colors flex-shrink-0" />
+                    <div className="text-[10px] font-mono text-white/40 mt-1">last 7 sessions</div>
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            )}
+
+            {/* Top Practiced Topics */}
+            {analytics?.topTopics?.length > 0 && (
+              <div className="space-y-3 pt-2">
+                <div className="text-xs font-mono text-white/50 uppercase tracking-widest">
+                  MOST ACTIVE TOPICS
+                </div>
+                <div className="space-y-1">
+                  {analytics.topTopics.map((item) => (
+                    <div
+                      key={item.name}
+                      className="p-2.5 border-b border-white/10 flex items-center justify-between text-xs font-mono"
+                    >
+                      <span className="text-white/80 truncate mr-2">{item.name}</span>
+                      <span className="text-primary font-bold">{item.count} sets</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-        </>
+
+          {/* Right Column (Session Stream) */}
+          <div className="lg:col-span-8 space-y-4 text-left">
+            {/* Filters & Sort Controls */}
+            <div className="border-b border-white/10 pb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest mr-1">Filter:</span>
+                {['ALL', 'PRACTICE', 'EVALUATION'].map(type => (
+                  <button
+                    key={type}
+                    onClick={() => setTypeFilter(type)}
+                    className={`px-3 py-1 text-xs font-mono uppercase tracking-wider rounded-none transition-colors ${
+                      typeFilter === type
+                        ? 'bg-primary text-black font-bold'
+                        : 'bg-transparent border border-white/15 text-white/60 hover:text-white hover:border-primary'
+                    }`}
+                  >
+                    {type === 'ALL' ? 'All' : type === 'PRACTICE' ? 'Practice' : 'Mocks'}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest whitespace-nowrap">Sort:</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full sm:w-auto px-3 py-1 bg-black border border-white/20 rounded-none text-xs font-mono text-white outline-none focus:border-primary"
+                >
+                  <option value="DATE_DESC">Newest First</option>
+                  <option value="ACCURACY_DESC">Highest Accuracy</option>
+                  <option value="DURATION_DESC">Longest Duration</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Sessions Timeline Stream */}
+            <div className="space-y-1">
+              {allSessions.map((session) => {
+                const accuracy = session.accuracy ?? session.summary?.accuracy;
+                const isEval = session.type === 'EVALUATION';
+
+                return (
+                  <div
+                    key={`${session.type}-${session.sessionId}`}
+                    className="p-3.5 border-b border-white/10 hover:border-primary/50 transition-colors cursor-pointer group flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    onClick={() => {
+                      if (isEval) {
+                        navigate(`/results/${session.sessionId}`);
+                      } else if (session.topic_id) {
+                        navigate(`/topics/${session.topic_id}`);
+                      }
+                    }}
+                  >
+                    <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                      <span className={`px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider font-bold rounded-none shrink-0 ${
+                        isEval ? 'bg-primary/20 text-primary border border-primary/40' : 'bg-white/10 text-white/80 border border-white/20'
+                      }`}>
+                        {isEval ? 'Mock' : 'Drill'}
+                      </span>
+
+                      <div className="min-w-0">
+                        <div className="text-sm font-light text-white group-hover:text-primary transition-colors truncate">
+                          {session.topicName}
+                        </div>
+                        <div className="text-[10px] font-mono text-white/40 mt-0.5">
+                          {new Date(session.started_at || session.created_at).toLocaleString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between sm:justify-end gap-6 shrink-0">
+                      {accuracy !== null && accuracy !== undefined && (
+                        <div className="text-center sm:text-right">
+                          <div className={`text-base font-light font-mono ${
+                            accuracy >= 70 ? 'text-status-aligned' :
+                            accuracy >= 40 ? 'text-status-weak' : 'text-error'
+                          }`}>
+                            {accuracy}%
+                          </div>
+                          <div className="text-[9px] font-mono text-white/40 uppercase">Accuracy</div>
+                        </div>
+                      )}
+
+                      <div className="text-center sm:text-right">
+                        <div className="text-base font-light font-mono text-white">
+                          {session.correct_count !== undefined && session.total_questions !== undefined
+                            ? `${session.correct_count}/${session.total_questions}`
+                            : session.summary?.total_questions || session.question_count || '—'}
+                        </div>
+                        <div className="text-[9px] font-mono text-white/40 uppercase">
+                          {session.correct_count !== undefined ? 'Score' : 'Questions'}
+                        </div>
+                      </div>
+
+                      <div className="text-center sm:text-right">
+                        <div className="text-base font-light font-mono text-white/70">
+                          {isEval
+                            ? `${Math.floor((session.duration_seconds || session.summary?.duration_seconds || 0) / 60)}m`
+                            : `${Math.round((session.summary?.total_time_seconds || 0) / 60)}m`
+                          }
+                        </div>
+                        <div className="text-[9px] font-mono text-white/40 uppercase">Time</div>
+                      </div>
+
+                      <ArrowRight className="w-4 h-4 text-white/30 group-hover:text-primary transition-colors shrink-0" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

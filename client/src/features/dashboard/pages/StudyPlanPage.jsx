@@ -129,189 +129,206 @@ export default function StudyPlanPage() {
 
         <button
           onClick={() => navigate('/')}
-          className="flex items-center gap-2 px-4 py-2 bg-surface-container border border-white/10 hover:border-primary text-white/80 hover:text-white text-xs font-mono uppercase tracking-wider rounded-sm transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-transparent border border-white/15 hover:border-primary text-white/80 hover:text-white text-xs font-mono uppercase tracking-wider rounded-none transition-colors"
         >
           open knowledge map
         </button>
       </div>
 
       {error && (
-        <div className="p-4 bg-error/10 border-l-4 border-error text-error text-xs font-mono rounded-r-md">
+        <div className="p-4 bg-error/10 border-l-4 border-error text-error text-xs font-mono">
           {error}
         </div>
       )}
 
-      {/* KPI Priority Tiles */}
+      {/* KPI Priority Tiles - Flat Lumia Style */}
       <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
-        <div className="border border-status-overconfident/30 p-5 rounded-sm bg-status-overconfident/5">
-          <div className="text-[10px] font-mono uppercase tracking-widest text-status-overconfident flex items-center gap-1.5">
+        <div className="border border-status-overconfident/40 p-5 bg-status-overconfident/5 relative overflow-hidden text-left">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-status-overconfident" />
+          <div className="text-[10px] font-mono uppercase tracking-widest text-status-overconfident flex items-center gap-1.5 font-bold">
             <AlertTriangle className="w-3.5 h-3.5" />
             Priority Revision (Gaps)
           </div>
           <div className="mt-2 text-3xl font-light font-mono text-status-overconfident">{topPriority.length}</div>
-          <div className="text-xs text-white/40 font-mono mt-1">High negative mark risk</div>
+          <div className="text-xs text-white/40 font-mono mt-1">High negative mark risk in mock exams</div>
         </div>
 
-        <div className="border border-status-underconfident/30 p-5 rounded-sm bg-status-underconfident/5">
-          <div className="text-[10px] font-mono uppercase tracking-widest text-status-underconfident flex items-center gap-1.5">
+        <div className="border border-status-underconfident/40 p-5 bg-status-underconfident/5 relative overflow-hidden text-left">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-status-underconfident" />
+          <div className="text-[10px] font-mono uppercase tracking-widest text-status-underconfident flex items-center gap-1.5 font-bold">
             <TrendingUp className="w-3.5 h-3.5" />
             Quick Wins (Underconfident)
           </div>
           <div className="mt-2 text-3xl font-light font-mono text-status-underconfident">{quickWins.length}</div>
-          <div className="text-xs text-white/40 font-mono mt-1">Ready for timed mocks</div>
+          <div className="text-xs text-white/40 font-mono mt-1">High empirical accuracy, ready for mocks</div>
         </div>
 
-        <div className="border border-white/10 p-5 rounded-sm bg-black/40">
-          <div className="text-[10px] font-mono uppercase tracking-widest text-white/50 flex items-center gap-1.5">
+        <div className="border border-white/15 p-5 bg-white/[0.02] relative overflow-hidden text-left">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
+          <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 flex items-center gap-1.5 font-bold">
             <HelpCircle className="w-3.5 h-3.5 text-primary" />
             Untested Syllabus Topics
           </div>
           <div className="mt-2 text-3xl font-light font-mono text-primary">{untested.length}</div>
-          <div className="text-xs text-white/40 font-mono mt-1">Needs baseline evaluation</div>
+          <div className="text-xs text-white/40 font-mono mt-1">Needs baseline diagnostic evaluation</div>
         </div>
       </div>
 
-      {/* Today's Action Steps */}
-      <div className="space-y-4">
-        <h3 className="text-xs font-mono text-white/60 uppercase tracking-widest flex items-center gap-2">
-          <ListTodo className="w-4 h-4 text-primary" />
-          RECOMMENDED SESSION PROTOCOL
-        </h3>
+      {/* Responsive Widescreen Dual-Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left Column: Recommended Session Protocol */}
+        <div className="lg:col-span-7 xl:col-span-7 space-y-4">
+          <div className="flex items-center justify-between border-b border-white/10 pb-3">
+            <h3 className="text-xs font-mono text-primary uppercase tracking-widest flex items-center gap-2 font-bold">
+              <ListTodo className="w-4 h-4" />
+              RECOMMENDED SESSION PROTOCOL
+            </h3>
+            <span className="text-[10px] font-mono text-white/40 uppercase">{plan.length} steps scheduled</span>
+          </div>
 
-        {plan.map((task, idx) => {
-          const TaskIcon = task.icon || Sparkles;
-          return (
-            <div
-              key={task.title}
-              className={`p-6 rounded-sm border transition-all ${
-                task.tone === 'error' ? 'border-status-overconfident/40 bg-status-overconfident/5' :
-                task.tone === 'primary' ? 'border-primary/40 bg-primary/5' :
-                task.tone === 'tertiary' ? 'border-status-aligned/40 bg-status-aligned/5' :
-                'border-white/10 bg-surface-container/60'
-              }`}
-            >
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-start gap-4">
-                  <div className={`p-2.5 rounded-sm mt-0.5 ${
-                    task.tone === 'error' ? 'bg-status-overconfident/15 text-status-overconfident' :
-                    task.tone === 'primary' ? 'bg-primary/15 text-primary' :
-                    task.tone === 'tertiary' ? 'bg-status-aligned/15 text-status-aligned' :
-                    'bg-white/10 text-white'
-                  }`}>
-                    <TaskIcon className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="text-[10px] font-mono uppercase tracking-widest text-white/40">
-                      STEP 0{idx + 1} &middot; {task.subtitle}
-                    </div>
-                    <div className="text-lg font-light text-white mt-0.5">{task.title}</div>
-                    <div className="text-xs text-white/70 font-mono mt-2 leading-relaxed max-w-2xl">{task.reason}</div>
-                  </div>
-                </div>
-
-                <button
-                  onClick={task.onClick}
-                  className={`px-5 py-2.5 text-xs font-mono uppercase tracking-widest font-semibold rounded-sm transition-all flex items-center justify-center gap-2 flex-shrink-0 ${
-                    task.tone === 'error' ? 'bg-status-overconfident text-white hover:brightness-110' :
-                    task.tone === 'primary' ? 'bg-primary text-black font-semibold hover:brightness-110 shadow-md shadow-primary/20' :
-                    'bg-white/10 border border-white/20 text-white hover:bg-white/20'
+          <div className="space-y-4">
+            {plan.map((task, idx) => {
+              const TaskIcon = task.icon || Sparkles;
+              return (
+                <div
+                  key={task.title}
+                  className={`p-5 border-l-4 transition-all text-left ${
+                    task.tone === 'error' ? 'border-status-overconfident bg-status-overconfident/5' :
+                    task.tone === 'primary' ? 'border-primary bg-primary/5' :
+                    task.tone === 'tertiary' ? 'border-status-aligned bg-status-aligned/5' :
+                    'border-white/30 bg-white/[0.02]'
                   }`}
                 >
-                  {task.action}
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                    <div className="flex items-start gap-3.5">
+                      <div className={`p-2 shrink-0 mt-0.5 ${
+                        task.tone === 'error' ? 'bg-status-overconfident/15 text-status-overconfident' :
+                        task.tone === 'primary' ? 'bg-primary/15 text-primary' :
+                        task.tone === 'tertiary' ? 'bg-status-aligned/15 text-status-aligned' :
+                        'bg-white/10 text-white'
+                      }`}>
+                        <TaskIcon className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-mono uppercase tracking-widest text-white/50">
+                          STEP 0{idx + 1} &middot; {task.subtitle}
+                        </div>
+                        <div className="text-base md:text-lg font-light text-white mt-0.5">{task.title}</div>
+                        <div className="text-xs text-white/70 font-mono mt-1.5 leading-relaxed max-w-xl">{task.reason}</div>
+                      </div>
+                    </div>
 
-      {/* Priority Queues Detail */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="border border-white/10 rounded-sm p-6 bg-black/30">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xs font-mono text-white/60 uppercase tracking-widest flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-status-overconfident" />
-              PRIORITY OVERCONFIDENCE QUEUE
-            </h3>
-            <span className="text-[10px] font-mono text-white/40">{topPriority.length} queued</span>
-          </div>
-
-          <div className="space-y-3">
-            {topPriority.length === 0 ? (
-              <p className="text-xs font-mono text-white/40 p-4 bg-white/[0.02] border border-white/5 rounded-sm">No overconfidence gaps detected. Keep current drill steady.</p>
-            ) : topPriority.map(topic => (
-              <div
-                key={topic.topic_id}
-                className="p-3.5 rounded-sm border border-white/10 bg-white/[0.02] hover:border-white/20 transition-colors flex items-center justify-between gap-3"
-              >
-                <div>
-                  <div
-                    onClick={() => navigate(`/topics/${topic.topic_id}`)}
-                    className="text-sm font-medium text-white hover:text-primary cursor-pointer transition-colors"
-                  >
-                    {topic.topic_name}
-                  </div>
-                  <div className="text-[10px] font-mono text-white/40 uppercase mt-0.5">
-                    {topic.subject_name} › {topic.chapter_name}
+                    <button
+                      onClick={task.onClick}
+                      className={`px-4 py-2 text-xs font-mono uppercase tracking-widest font-bold rounded-none transition-all flex items-center justify-center gap-1.5 shrink-0 self-start sm:self-center cursor-pointer ${
+                        task.tone === 'error' ? 'bg-status-overconfident text-white hover:brightness-110' :
+                        task.tone === 'primary' ? 'bg-primary text-black hover:brightness-110 shadow-md shadow-primary/20' :
+                        'bg-white/10 border border-white/20 text-white hover:bg-white/20'
+                      }`}
+                    >
+                      <span>{task.action}</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <div className="text-sm font-mono font-bold text-primary">{topic.confidence ?? '—'}/10</div>
-                    <div className="text-[9px] font-mono text-white/40 uppercase">CONF</div>
-                  </div>
-                  <button
-                    onClick={() => navigate(`/practice?topic=${topic.topic_id}`)}
-                    className="px-3 py-1.5 bg-primary/10 border border-primary/30 text-primary text-xs font-mono uppercase rounded-sm hover:bg-primary hover:text-white transition-colors"
-                  >
-                    drill
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
-        <div className="border border-white/10 rounded-sm p-6 bg-black/30">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xs font-mono text-white/60 uppercase tracking-widest flex items-center gap-2">
-              <HelpCircle className="w-4 h-4 text-primary" />
-              UNTESTED SYLLABUS TOPICS
-            </h3>
-            <span className="text-[10px] font-mono text-white/40">{untested.length} topics</span>
-          </div>
-
+        {/* Right Column: Priority Queues Detail (Sticky Cockpit on Widescreen) */}
+        <div className="lg:col-span-5 xl:col-span-5 lg:sticky lg:top-4 space-y-6">
+          {/* Priority Overconfidence Queue */}
           <div className="space-y-3">
-            {untested.length === 0 ? (
-              <p className="text-xs font-mono text-white/40 p-4 bg-white/[0.02] border border-white/5 rounded-sm">All topics in the syllabus have at least one test recorded.</p>
-            ) : untested.map(topic => (
-              <div
-                key={topic.topic_id}
-                className="p-3.5 rounded-sm border border-white/10 bg-white/[0.02] hover:border-white/20 transition-colors flex items-center justify-between gap-3"
-              >
-                <div>
-                  <div
-                    onClick={() => navigate(`/topics/${topic.topic_id}`)}
-                    className="text-sm font-medium text-white hover:text-primary cursor-pointer transition-colors"
-                  >
-                    {topic.topic_name}
+            <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+              <h3 className="text-xs font-mono text-status-overconfident uppercase tracking-widest flex items-center gap-2 font-bold">
+                <AlertTriangle className="w-4 h-4" />
+                OVERCONFIDENCE QUEUE
+              </h3>
+              <span className="text-[10px] font-mono text-white/40">{topPriority.length} queued</span>
+            </div>
+
+            <div className="space-y-2">
+              {topPriority.length === 0 ? (
+                <p className="text-xs font-mono text-white/40 p-4 border-l-2 border-white/20 bg-white/[0.01]">
+                  No overconfidence gaps detected. Knowledge calibration is healthy.
+                </p>
+              ) : topPriority.map(topic => (
+                <div
+                  key={topic.topic_id}
+                  className="p-3 border-b border-white/10 hover:border-primary/50 transition-colors flex items-center justify-between gap-3 text-left"
+                >
+                  <div>
+                    <div
+                      onClick={() => navigate(`/topics/${topic.topic_id}`)}
+                      className="text-xs sm:text-sm font-light text-white hover:text-primary cursor-pointer transition-colors"
+                    >
+                      {topic.topic_name}
+                    </div>
+                    <div className="text-[10px] font-mono text-white/40 uppercase mt-0.5">
+                      {topic.subject_name} &rsaquo; {topic.chapter_name}
+                    </div>
                   </div>
-                  <div className="text-[10px] font-mono text-white/40 uppercase mt-0.5">
-                    {topic.subject_name} › {topic.chapter_name}
+
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <div className="text-right">
+                      <div className="text-xs font-mono font-bold text-status-overconfident">{topic.confidence ?? '—'}/10</div>
+                      <div className="text-[9px] font-mono text-white/40 uppercase">CONF</div>
+                    </div>
+                    <button
+                      onClick={() => navigate(`/practice?topic=${topic.topic_id}`)}
+                      className="px-2.5 py-1 bg-status-overconfident/15 border border-status-overconfident/40 text-status-overconfident text-[11px] font-mono uppercase rounded-none hover:bg-status-overconfident hover:text-white transition-colors"
+                    >
+                      drill
+                    </button>
                   </div>
                 </div>
+              ))}
+            </div>
+          </div>
 
-                <button
-                  onClick={() => navigate(`/evaluate?topic=${topic.topic_id}`)}
-                  className="px-3 py-1.5 bg-white/5 border border-white/15 text-white/80 hover:text-white hover:bg-white/10 text-xs font-mono uppercase rounded-sm transition-colors flex items-center gap-1.5"
+          {/* Untested Syllabus Topics */}
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+              <h3 className="text-xs font-mono text-primary uppercase tracking-widest flex items-center gap-2 font-bold">
+                <HelpCircle className="w-4 h-4" />
+                UNTESTED SYLLABUS TOPICS
+              </h3>
+              <span className="text-[10px] font-mono text-white/40">{untested.length} topics</span>
+            </div>
+
+            <div className="space-y-2">
+              {untested.length === 0 ? (
+                <p className="text-xs font-mono text-white/40 p-4 border-l-2 border-white/20 bg-white/[0.01]">
+                  All syllabus topics have at least one test attempt recorded.
+                </p>
+              ) : untested.map(topic => (
+                <div
+                  key={topic.topic_id}
+                  className="p-3 border-b border-white/10 hover:border-primary/50 transition-colors flex items-center justify-between gap-3 text-left"
                 >
-                  mock test
-                  <ArrowRight className="w-3 h-3 text-primary" />
-                </button>
-              </div>
-            ))}
+                  <div>
+                    <div
+                      onClick={() => navigate(`/topics/${topic.topic_id}`)}
+                      className="text-xs sm:text-sm font-light text-white hover:text-primary cursor-pointer transition-colors"
+                    >
+                      {topic.topic_name}
+                    </div>
+                    <div className="text-[10px] font-mono text-white/40 uppercase mt-0.5">
+                      {topic.subject_name} &rsaquo; {topic.chapter_name}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => navigate(`/evaluate?topic=${topic.topic_id}`)}
+                    className="px-2.5 py-1 bg-white/5 border border-white/15 text-white/80 hover:text-white hover:border-primary text-[11px] font-mono uppercase rounded-none transition-colors flex items-center gap-1 shrink-0"
+                  >
+                    mock test
+                    <ArrowRight className="w-3 h-3 text-primary" />
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

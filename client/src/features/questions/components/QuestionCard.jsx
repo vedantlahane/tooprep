@@ -63,8 +63,13 @@ export default function QuestionCard({
     return 'bg-black/30 border border-white/15 text-primary font-bold';
   };
 
+  const areOptionsShort = options.length > 0 && options.every(opt => {
+    const t = typeof opt.text === 'string' ? opt.text.trim() : '';
+    return t.length <= 45 && !t.includes('\n') && !t.includes('![');
+  });
+
   return (
-    <div className="w-full animate-slide-up space-y-6 text-left">
+    <div className="w-full max-w-4xl animate-slide-up space-y-6 text-left">
       {/* Question header */}
       <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4">
         <div className="flex items-center gap-3">
@@ -112,8 +117,8 @@ export default function QuestionCard({
         <MathText text={question.question_text} />
       </div>
 
-      {/* Options */}
-      <div className="space-y-2.5">
+      {/* Options - Responsive: 2-column grid for short answers, stacked for multi-line */}
+      <div className={areOptionsShort ? 'grid grid-cols-1 md:grid-cols-2 gap-3' : 'space-y-2.5'}>
         {options.map(opt => (
           <motion.button
             key={opt.id}

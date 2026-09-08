@@ -161,237 +161,251 @@ export default function TopicDetailPage() {
         </div>
       </div>
 
-      {/* KPI Tiles - Windows 10 Mobile Live Tiles */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="p-5 border border-primary/40 bg-primary/10 flex flex-col justify-between relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
-          <div className="text-3xl sm:text-4xl font-light text-primary font-sans mb-1 mt-0.5 tracking-tight">
-            {topic.confidence ? `${topic.confidence}/10` : '—'}
-          </div>
-          <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 font-semibold">CONFIDENCE</div>
-        </div>
-
-        <div className="p-5 border border-white/10 bg-white/[0.02] flex flex-col justify-between relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
-          <div className="text-3xl sm:text-4xl font-light text-white font-sans mb-1 mt-0.5 tracking-tight">
-            {topic.evaluation_accuracy !== null ? `${topic.evaluation_accuracy}%` : '—'}
-          </div>
-          <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 font-semibold">EVAL ACCURACY</div>
-        </div>
-
-        <div className="p-5 border border-white/10 bg-white/[0.02] flex flex-col justify-between relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
-          <div className={`text-3xl sm:text-4xl font-light font-sans mb-1 mt-0.5 tracking-tight ${getStatusColor(topic.status)}`}>
-            {topic.gap !== null ? (topic.gap >= 0 ? `+${topic.gap}%` : `${topic.gap}%`) : '—'}
-          </div>
-          <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 font-semibold">PERFORMANCE GAP</div>
-        </div>
-
-        <div className="p-5 border border-white/10 bg-white/[0.02] flex flex-col justify-between relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
-          <div className={`text-xl sm:text-2xl font-light font-sans uppercase tracking-wider mb-1 mt-0.5 ${getStatusColor(topic.status)}`}>
-            {topic.status?.replace('_', ' ')}
-          </div>
-          <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 font-semibold">STATUS</div>
-        </div>
-      </div>
-
-      {showConfidenceInput && (
-        <div className="bg-primary/20 border-l-4 border-primary p-6">
-          <h3 className="text-headline-md text-on-surface mb-2 font-light">Rate Your Baseline Confidence</h3>
-          <p className="text-body-md text-on-surface-variant mb-6">
-            Set your initial self-assessment before starting practice.
-          </p>
-          <ConfidenceSlider value={newConfidence} onChange={setNewConfidence} />
-          <button
-            onClick={handleSetConfidence}
-            disabled={confidenceLoading}
-            className="mt-6 px-8 py-3 bg-primary text-black text-xs font-mono font-bold uppercase tracking-wider hover:brightness-110 shadow-md shadow-primary/20 transition-all disabled:opacity-50 cursor-pointer"
-          >
-            {confidenceLoading ? 'Saving...' : 'Set Confidence'}
-          </button>
-        </div>
-      )}
-
       {/* Recommendation Block */}
-      <div className="border-l-2 border-primary/40 bg-white/[0.02] p-5">
+      <div className="border-l-4 border-primary/60 bg-white/[0.02] p-5">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-xs font-mono uppercase tracking-widest text-primary font-bold">Study Recommendation</h3>
           <span className={`text-xs font-mono uppercase tracking-widest font-bold ${getStatusColor(topic.status)}`}>
             {topic.status?.replace('_', ' ')}
           </span>
         </div>
-        <p className="text-sm text-white/90 font-light leading-relaxed">{getRecommendation(topic.status)}</p>
+        <p className="text-sm text-white/90 font-light leading-relaxed max-w-4xl">{getRecommendation(topic.status)}</p>
       </div>
 
-      {/* Action Hub */}
-      <div className="flex gap-3 flex-wrap md:flex-nowrap">
-        <button
-          onClick={() => setShowDrill(true)}
-          className="flex-1 py-3.5 border border-status-aligned/40 bg-status-aligned/10 text-status-aligned text-xs font-mono font-bold uppercase tracking-wider hover:bg-status-aligned hover:text-black transition-all rounded-sm flex items-center justify-center gap-2 cursor-pointer shadow-sm"
-        >
-          <Zap className="w-4 h-4" />
-          <span>Quick Drill</span>
-        </button>
-        <button
-          onClick={() => navigate(`/practice?topic=${id}`)}
-          className="flex-1 py-3.5 border border-primary/40 bg-primary/10 text-primary text-xs font-mono font-bold uppercase tracking-wider hover:bg-primary hover:text-black transition-all rounded-sm flex items-center justify-center gap-2 cursor-pointer shadow-sm"
-        >
-          <Play className="w-4 h-4 fill-current" />
-          <span>Practice Mode</span>
-        </button>
-        <button
-          onClick={() => navigate(`/evaluate?topic=${id}`)}
-          className="flex-1 py-3.5 bg-primary text-black text-xs font-mono font-bold uppercase tracking-wider hover:brightness-110 shadow-lg shadow-primary/20 transition-all rounded-sm flex items-center justify-center gap-2 cursor-pointer"
-        >
-          <Timer className="w-4 h-4" />
-          <span>Timed Evaluation</span>
-        </button>
-      </div>
+      {/* Main Dual-Pane Responsive Continuum Cockpit */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left Column: Evaluation Accuracy Progression & History */}
+        <div className="lg:col-span-7 xl:col-span-7 space-y-6 text-left">
+          {/* SVG Sparkline Progression */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <h3 className="text-xs font-mono uppercase tracking-widest font-bold text-primary">
+                EVALUATION ACCURACY PROGRESSION
+              </h3>
+              <span className="text-[10px] font-mono text-white/40 uppercase">
+                {evaluation_history?.length || 0} evaluations
+              </span>
+            </div>
 
-      <QuickDrillModal
-        topicId={id}
-        topicName={data?.topic?.name}
-        isOpen={showDrill}
-        onClose={() => setShowDrill(false)}
-        onComplete={() => loadTopic()}
-      />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Confidence Trend */}
-        <div className="border border-white/10 p-5 bg-black/40 text-left">
-          <h3 className="text-sm font-mono uppercase tracking-widest font-bold mb-4 text-primary">Confidence Calibration Trend</h3>
-          {confidenceTrend.length > 0 ? (
-            <div className="flex h-36 items-end gap-2 pt-4">
-              {confidenceTrend.map((point, index) => (
-                <div key={point.id || index} className="flex-1 flex flex-col items-center gap-2">
-                  <div className="w-full h-full flex items-end justify-center">
-                    <div
-                      className="w-full bg-primary/80"
-                      style={{ height: `${Math.max(12, (point.confidence / maxTrend) * 100)}%` }}
+            {chronEvals.length >= 2 ? (
+              <div className="py-2">
+                <svg viewBox="0 0 400 90" className="w-full h-28 overflow-visible">
+                  {[0, 25, 50, 75, 100].map(y => (
+                    <line
+                      key={y}
+                      x1="0"
+                      y1={90 - y * 0.85}
+                      x2="400"
+                      y2={90 - y * 0.85}
+                      stroke="rgba(255,255,255,0.06)"
+                      strokeWidth="1"
                     />
-                  </div>
-                  <span className="text-[10px] text-white/50 font-mono uppercase tracking-widest">
-                    {new Date(point.recorded_at).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs font-mono text-white/40">No confidence history yet.</p>
-          )}
-        </div>
-
-        {/* Metrics Grid */}
-        <div className="border border-white/10 p-5 bg-black/40 text-left">
-          <h3 className="text-sm font-mono uppercase tracking-widest font-bold mb-4 text-primary">Engagement Telemetry</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-4 bg-white/[0.02] border border-white/5">
-              <div className="text-3xl font-light text-white">{topic.questions_attempted || 0}</div>
-              <div className="text-[10px] font-mono text-white/50 uppercase tracking-widest mt-1">QUESTIONS ATTEMPTED</div>
-            </div>
-            <div className="p-4 bg-white/[0.02] border border-white/5">
-              <div className="text-3xl font-light text-white">
-                {topic.pyq_accuracy !== null ? `${topic.pyq_accuracy}%` : '—'}
+                  ))}
+                  <defs>
+                    <linearGradient id="evalChartGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#00D2FF" stopOpacity="0.3" />
+                      <stop offset="100%" stopColor="#00D2FF" stopOpacity="0" />
+                    </linearGradient>
+                  </defs>
+                  {(() => {
+                    const pts = chronEvals.map((ev, i) => ({
+                      x: (i / (chronEvals.length - 1)) * 380 + 10,
+                      y: 90 - ((ev.accuracy || 0) * 0.85),
+                      accuracy: ev.accuracy || 0
+                    }));
+                    const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+                    const areaPath = linePath + ` L${pts[pts.length - 1].x.toFixed(1)},90 L${pts[0].x.toFixed(1)},90 Z`;
+                    return (
+                      <>
+                        <path d={areaPath} fill="url(#evalChartGrad)" />
+                        <path d={linePath} stroke="#00D2FF" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                        {pts.map((p, i) => (
+                          <g key={i}>
+                            <circle cx={p.x} cy={p.y} r="3.5" fill="#00D2FF" stroke="#000000" strokeWidth="1.5" />
+                            <text x={p.x} y={Math.max(10, p.y - 7)} textAnchor="middle" fill="#A0A0A0" fontSize="8.5" fontFamily="'Segoe UI', monospace">
+                              {p.accuracy}%
+                            </text>
+                          </g>
+                        ))}
+                      </>
+                    );
+                  })()}
+                </svg>
               </div>
-              <div className="text-[10px] font-mono text-white/50 uppercase tracking-widest mt-1">PYQ ACCURACY</div>
-            </div>
-            <div className="p-4 bg-white/[0.02] border border-white/5 col-span-2">
-              <div className="text-[10px] font-mono text-white/50 uppercase tracking-widest mb-1">LAST PRACTICED</div>
-              <div className="text-sm font-mono text-white/80">{formatDate(topic.last_practiced_at)}</div>
-            </div>
+            ) : (
+              <p className="text-xs font-mono text-white/40 py-4 border-l-2 border-white/10 bg-white/[0.01]">
+                Complete at least 2 timed evaluations on this topic to generate an empirical trajectory chart.
+              </p>
+            )}
           </div>
-        </div>
-      </div>
 
-      {/* Evaluation History Chart & List */}
-      <div className="border border-white/10 p-5 bg-black/40 text-left">
-        <h3 className="text-sm font-mono uppercase tracking-widest font-bold mb-4 text-primary">Evaluation Accuracy Progression</h3>
-        
-        {/* SVG Sparkline Chart */}
-        {chronEvals.length >= 2 && (
-          <div className="mb-6 bg-surface-dim p-4 rounded-sm border border-white/10">
-            <svg viewBox="0 0 400 90" className="w-full h-24 overflow-visible">
-              {[0, 25, 50, 75, 100].map(y => (
-                <line
-                  key={y}
-                  x1="0"
-                  y1={90 - y * 0.85}
-                  x2="400"
-                  y2={90 - y * 0.85}
-                  stroke="rgba(255,255,255,0.06)"
-                  strokeWidth="1"
-                />
-              ))}
-              <defs>
-                <linearGradient id="evalChartGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#00BFFF" stopOpacity="0.4" />
-                  <stop offset="100%" stopColor="#00BFFF" stopOpacity="0" />
-                </linearGradient>
-              </defs>
-              {(() => {
-                const pts = chronEvals.map((ev, i) => ({
-                  x: (i / (chronEvals.length - 1)) * 380 + 10,
-                  y: 90 - ((ev.accuracy || 0) * 0.85),
-                  accuracy: ev.accuracy || 0
-                }));
-                const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
-                const areaPath = linePath + ` L${pts[pts.length - 1].x.toFixed(1)},90 L${pts[0].x.toFixed(1)},90 Z`;
-                return (
-                  <>
-                    <path d={areaPath} fill="url(#evalChartGrad)" />
-                    <path d={linePath} stroke="#00BFFF" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                    {pts.map((p, i) => (
-                      <g key={i}>
-                        <circle cx={p.x} cy={p.y} r="4.5" fill="#00BFFF" stroke="#121212" strokeWidth="1.5" />
-                        <text x={p.x} y={Math.max(12, p.y - 8)} textAnchor="middle" fill="#A0A0A0" fontSize="9" fontFamily="'Segoe UI', sans-serif">
-                          {p.accuracy}%
-                        </text>
-                      </g>
-                    ))}
-                  </>
-                );
-              })()}
-            </svg>
-          </div>
-        )}
+          {/* History List */}
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <h3 className="text-xs font-mono uppercase tracking-widest font-bold text-white/70">
+                EVALUATION ATTEMPTS ARCHIVE
+              </h3>
+              <span className="text-[10px] font-mono text-white/40 uppercase">Review Sessions</span>
+            </div>
 
-        {/* History List */}
-        {evaluation_history && evaluation_history.length > 0 ? (
-          <div className="space-y-2">
-            {evaluation_history.map((ev, i) => (
-              <div
-                key={ev.id || i}
-                onClick={() => navigate(`/results/${ev.id}`)}
-                className="flex items-center justify-between p-4 bg-surface-dim hover:bg-surface-bright cursor-pointer transition-colors rounded-sm border border-white/10 group"
-              >
-                <div className="flex items-center gap-4">
-                  <div className={`text-headline-md font-light w-16 ${
-                    ev.accuracy >= 70 ? 'text-status-aligned' : ev.accuracy >= 40 ? 'text-status-weak' : 'text-error'
-                  }`}>
-                    {ev.accuracy}%
-                  </div>
-                  <div>
-                    <div className="text-body-md font-semibold text-on-surface">
-                      {ev.correct_count}/{ev.total_questions} Questions Correct
-                    </div>
-                    {ev.pyq_accuracy !== null && (
-                      <div className="text-label-sm-mono text-on-surface-variant">
-                        PYQ Accuracy: {ev.pyq_accuracy}%
+            {evaluation_history && evaluation_history.length > 0 ? (
+              <div className="space-y-1">
+                {evaluation_history.map((ev, i) => (
+                  <div
+                    key={ev.id || i}
+                    onClick={() => navigate(`/results/${ev.id}`)}
+                    className="flex items-center justify-between p-3.5 border-b border-white/10 hover:border-primary/50 cursor-pointer transition-colors group text-left"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={`text-2xl font-light font-mono w-16 ${
+                        ev.accuracy >= 70 ? 'text-status-aligned' : ev.accuracy >= 40 ? 'text-status-weak' : 'text-error'
+                      }`}>
+                        {ev.accuracy}%
                       </div>
-                    )}
+                      <div>
+                        <div className="text-sm font-light text-white">
+                          {ev.correct_count}/{ev.total_questions} Solved Correctly
+                        </div>
+                        {ev.pyq_accuracy !== null && (
+                          <div className="text-[10px] font-mono text-white/50">
+                            PYQ Accuracy: {ev.pyq_accuracy}%
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-mono text-white/40 uppercase">{formatDate(ev.started_at)}</span>
+                      <ArrowRight className="w-4 h-4 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-label-sm-mono text-on-surface-variant uppercase">{formatDate(ev.started_at)}</span>
-                  <ArrowRight className="w-4 h-4 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
+                ))}
               </div>
-            ))}
+            ) : (
+              <p className="text-xs font-mono text-white/40 py-4 border-l-2 border-white/10 bg-white/[0.01]">
+                No evaluations recorded yet. Complete a timed evaluation to track results here.
+              </p>
+            )}
           </div>
-        ) : (
-          <p className="text-body-md text-on-surface-variant">No evaluations recorded yet. Complete a timed evaluation to track results here.</p>
-        )}
+        </div>
+
+        {/* Right Column: Sticky Telemetry & Actions Cockpit */}
+        <div className="lg:col-span-5 xl:col-span-5 lg:sticky lg:top-4 space-y-6 text-left">
+          {/* KPI Live Tiles */}
+          <div className="space-y-3">
+            <div className="text-xs font-mono text-white/50 uppercase tracking-widest">
+              DIAGNOSTIC TELEMETRY
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-4 border border-primary/40 bg-primary/10 relative overflow-hidden text-left">
+                <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
+                <div className="text-3xl font-light text-primary font-sans mt-0.5">
+                  {topic.confidence ? `${topic.confidence}/10` : '—'}
+                </div>
+                <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-1 font-semibold">CONFIDENCE</div>
+              </div>
+
+              <div className="p-4 border border-white/15 bg-white/[0.02] relative overflow-hidden text-left">
+                <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
+                <div className="text-3xl font-light text-white font-sans mt-0.5">
+                  {topic.evaluation_accuracy !== null ? `${topic.evaluation_accuracy}%` : '—'}
+                </div>
+                <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-1 font-semibold">EVAL ACCURACY</div>
+              </div>
+
+              <div className="p-4 border border-white/15 bg-white/[0.02] relative overflow-hidden text-left">
+                <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
+                <div className={`text-3xl font-light font-sans mt-0.5 ${getStatusColor(topic.status)}`}>
+                  {topic.gap !== null ? (topic.gap >= 0 ? `+${topic.gap}%` : `${topic.gap}%`) : '—'}
+                </div>
+                <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-1 font-semibold">PERFORMANCE GAP</div>
+              </div>
+
+              <div className="p-4 border border-white/15 bg-white/[0.02] relative overflow-hidden text-left">
+                <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
+                <div className={`text-lg font-light font-sans uppercase tracking-wider mt-1 ${getStatusColor(topic.status)}`}>
+                  {topic.status?.replace('_', ' ')}
+                </div>
+                <div className="text-[10px] font-mono uppercase tracking-widest text-white/60 mt-1 font-semibold">CALIBRATION</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Hub */}
+          <div className="space-y-2">
+            <div className="text-xs font-mono text-white/50 uppercase tracking-widest">
+              LAUNCH WORKFLOW
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowDrill(true)}
+                className="flex-1 py-3 border border-status-aligned/40 bg-status-aligned/10 text-status-aligned text-xs font-mono font-bold uppercase tracking-wider hover:bg-status-aligned hover:text-black transition-all rounded-none flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Zap className="w-3.5 h-3.5" />
+                <span>Quick Drill</span>
+              </button>
+              <button
+                onClick={() => navigate(`/practice?topic=${id}`)}
+                className="flex-1 py-3 border border-primary/40 bg-primary/10 text-primary text-xs font-mono font-bold uppercase tracking-wider hover:bg-primary hover:text-black transition-all rounded-none flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Play className="w-3.5 h-3.5 fill-current" />
+                <span>Practice</span>
+              </button>
+              <button
+                onClick={() => navigate(`/evaluate?topic=${id}`)}
+                className="flex-1 py-3 bg-primary text-black text-xs font-mono font-bold uppercase tracking-wider hover:brightness-110 shadow-md shadow-primary/20 transition-all rounded-none flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Timer className="w-3.5 h-3.5" />
+                <span>Mock Eval</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Baseline Confidence Input */}
+          {showConfidenceInput && (
+            <div className="border-l-4 border-primary bg-white/[0.02] p-5 space-y-4">
+              <div>
+                <h3 className="text-base font-light text-white">Rate Baseline Confidence</h3>
+                <p className="text-xs text-white/60 font-mono mt-0.5">
+                  Set initial self-assessment to compute your metacognitive knowledge gap.
+                </p>
+              </div>
+              <ConfidenceSlider value={newConfidence} onChange={setNewConfidence} />
+              <button
+                onClick={handleSetConfidence}
+                disabled={confidenceLoading}
+                className="w-full py-2.5 bg-primary text-black text-xs font-mono font-bold uppercase tracking-wider hover:brightness-110 shadow-md shadow-primary/20 transition-all disabled:opacity-50 cursor-pointer rounded-none"
+              >
+                {confidenceLoading ? 'Saving...' : 'Set Confidence Rating'}
+              </button>
+            </div>
+          )}
+
+          {/* Engagement Telemetry */}
+          <div className="space-y-3 pt-2">
+            <div className="text-xs font-mono text-white/50 uppercase tracking-widest">
+              ENGAGEMENT TELEMETRY
+            </div>
+            <div className="space-y-2">
+              <div className="p-3 border-b border-white/10 flex items-center justify-between text-xs font-mono">
+                <span className="text-white/60 uppercase">Questions Attempted</span>
+                <span className="text-white font-bold text-base font-sans">{topic.questions_attempted || 0}</span>
+              </div>
+              <div className="p-3 border-b border-white/10 flex items-center justify-between text-xs font-mono">
+                <span className="text-white/60 uppercase">JEE PYQ Accuracy</span>
+                <span className={`text-base font-sans font-bold ${
+                  topic.pyq_accuracy !== null && topic.pyq_accuracy >= 70 ? 'text-status-aligned' :
+                  topic.pyq_accuracy !== null && topic.pyq_accuracy >= 40 ? 'text-status-weak' : 'text-white/50'
+                }`}>
+                  {topic.pyq_accuracy !== null ? `${topic.pyq_accuracy}%` : '—'}
+                </span>
+              </div>
+              <div className="p-3 border-b border-white/10 flex items-center justify-between text-xs font-mono">
+                <span className="text-white/60 uppercase">Last Activity</span>
+                <span className="text-white/80">{formatDate(topic.last_practiced_at)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Admin Question Composer Modal */}
