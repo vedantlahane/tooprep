@@ -22,6 +22,9 @@ export function cleanOcrArtifacts(text) {
   if (!text || typeof text !== 'string') return '';
 
   return text
+    // Strip synthetic pseudo-circuit Mermaid blocks (flowcharts of resistors/lenses/nodes)
+    .replace(/```mermaid\s*\n\s*graph\s+(?:LR|TD|TB|RL)[\s\S]*?```/gi, '')
+    .replace(/```mermaid[\s\S]*?(?:---|\bR\d+\b|Slab|Lens|Battery|Resistor)[\s\S]*?```/gi, '')
     // Strip engineering_drawing annotations
     .replace(/engineering_drawing:[^\n\r]*/gi, '')
     // Strip *[Diagram: ...]* tags
@@ -93,34 +96,15 @@ export function extractExamProvenance(text) {
 }
 
 /**
- * Search Tavily for a JEE question and return research findings.
- *
- * @param {Object} params
- * @param {string} params.questionText
- * @param {Object} [params.options]
- * @param {string} [params.currentAnswer]
- * @param {string} [params.currentSolution]
- * @param {string} [params.subject]
- * @returns {Promise<Object>}
+ * Query Tavily for authentic JEE Main / Advanced question reference context.
  */
-export async function researchQuestionWithTavily({
-  questionText,
-  options = {},
-  currentAnswer = '',
-  currentSolution = '',
-  subject = ''
-}) {
+export async function fetchTavilyContext(questionText) {
   const apiKey = process.env.TAVILY_API_KEY;
-  if (!apiKey) {
-    throw Object.assign(new Error('TAVILY_API_KEY is not configured in server environment'), {
-      statusCode: 503
-    });
-  }
+  if (!apiKey) return null;
 
   const cleanedText = cleanOcrArtifacts(questionText);
   const examInfo = extractExamProvenance(questionText) || extractExamProvenance(cleanedText);
 
-  // Extract key search query: first 150 chars of cleaned text + exam name + year
   const searchCore = cleanedText
     .replace(/\[JEE[^\]]*\]/gi, '')
     .replace(/[^\w\s.,+\-=]/g, ' ')
@@ -134,9 +118,6 @@ export async function researchQuestionWithTavily({
   queryParts.push('question solution');
 
   const query = queryParts.join(' ');
-  logger.info({ query }, '[tavily.provider] Researching question on web');
-
-  let tavilyData;
   try {
     const res = await fetch(TAVILY_API_URL, {
       method: 'POST',
@@ -152,22 +133,44 @@ export async function researchQuestionWithTavily({
     });
 
     if (!res.ok) {
-      const errText = await res.text();
-      logger.error({ status: res.status, body: errText }, '[tavily.provider] Tavily API error');
-      throw new Error(`Tavily API responded with status ${res.status}: ${errText}`);
+      const errText = await res.text().catch(() => '');
+      logger.warn({ status: res.status, body: errText.slice(0, 150) }, '[tavily.provider] Tavily API warning');
+      return null;
     }
 
-    tavilyData = await res.json();
+    const tavilyData = await res.json();
+    const answer = tavilyData.answer || '';
+    const results = tavilyData.results || [];
+    const sources = results.map(r => ({ title: r.title, url: r.url }));
+    const webContext = [
+      answer ? `Tavily Direct Answer: ${answer}` : '',
+      results.slice(0, 3).map((r, i) => `Source ${i + 1} (${r.title}):\n${r.content}`).join('\n\n')
+    ].filter(Boolean).join('\n\n');
+
+    return { answer, results, sources, webContext, query };
   } catch (err) {
-    logger.error({ err: err.message }, '[tavily.provider] Failed to fetch from Tavily');
-    throw err;
+    logger.warn({ err: err.message }, '[tavily.provider] Failed to fetch Tavily context');
+    return null;
   }
+}
 
-  const answer = tavilyData.answer || '';
-  const results = tavilyData.results || [];
-  const sources = results.map(r => ({ title: r.title, url: r.url }));
+/**
+ * Search Tavily for a JEE question and return research findings.
+ */
+export async function researchQuestionWithTavily({
+  questionText,
+  options = {},
+  currentAnswer = '',
+  currentSolution = '',
+  subject = ''
+}) {
+  const tavilyData = await fetchTavilyContext(questionText);
+  const answer = tavilyData?.answer || '';
+  const results = tavilyData?.results || [];
+  const sources = tavilyData?.sources || [];
+  const webContext = tavilyData?.webContext || '';
 
-  // Synthesize research results
+  let cleanedText = cleanOcrArtifacts(questionText);
   let suggestedAnswerKey = currentAnswer;
   let parsedOptions = { ...options };
   let solutionDraft = cleanOcrArtifacts(currentSolution);
@@ -184,31 +187,7 @@ export async function researchQuestionWithTavily({
     suggestedAnswerKey = numMap[rawOpt] || rawOpt;
   }
 
-  // 2. Build or polish solution from Tavily answer and educational snippets
-  if (answer && answer.length > 30) {
-    const cleanAnswer = answer
-      .replace(/###\s*/g, '')
-      .replace(/\*\*/g, '')
-      .trim();
-
-    // Preserve any existing mermaid diagrams from currentSolution
-    const mermaidMatch = (currentSolution || '').match(/```mermaid[\s\S]*?```/);
-    const mermaidBlock = mermaidMatch ? `\n\n${mermaidMatch[0]}` : '';
-
-    // Check if cleaned solution has substantial mathematical derivation text
-    const textWithoutMermaid = (solutionDraft || '').replace(/```mermaid[\s\S]*?```/g, '').trim();
-
-    if (!textWithoutMermaid || textWithoutMermaid.length < 40 || textWithoutMermaid.includes('engineering_drawing')) {
-      solutionDraft = `${cleanAnswer}${mermaidBlock}`;
-    } else {
-      // If current solution has good math derivation, append Tavily derivation cleanly
-      if (!solutionDraft.includes(cleanAnswer.slice(0, 40))) {
-        solutionDraft = `${solutionDraft}\n\n**Key Concept & Derivation:**\n${cleanAnswer}`;
-      }
-    }
-  }
-
-  // 3. Scan results for option values if missing
+  // 2. Scan results for option values if missing
   if (!parsedOptions.A && !parsedOptions.B && !parsedOptions.C && !parsedOptions.D) {
     for (const r of results) {
       const content = r.content || '';
@@ -229,14 +208,9 @@ export async function researchQuestionWithTavily({
     }
   }
 
-  // 3.5. Synthesize publication-grade STEM solution and verification via Gemini 3.8 Flash
+  // 3. Synthesize publication-grade STEM solution and verification via Gemini 3.8 Flash
   let aiDerived = null;
   try {
-    const webContext = [
-      answer ? `Tavily Direct Answer: ${answer}` : '',
-      results.slice(0, 3).map((r, i) => `Source ${i + 1} (${r.title}):\n${r.content}`).join('\n\n')
-    ].filter(Boolean).join('\n\n');
-
     aiDerived = await solveAndDeriveQuestion({
       questionText: cleanedText,
       options: parsedOptions,
@@ -261,6 +235,9 @@ export async function researchQuestionWithTavily({
     }
   } catch (aiErr) {
     logger.warn({ error: aiErr.message }, '[tavily.provider] AI derivation fallback to standard synthesis');
+    if (answer && answer.length > 30) {
+      solutionDraft = answer.replace(/###\s*/g, '').replace(/\*\*/g, '').trim();
+    }
   }
 
   // 4. Auto-classify curriculum topic and difficulty

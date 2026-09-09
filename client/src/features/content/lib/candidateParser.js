@@ -221,13 +221,9 @@ export function autoFormatAndCleanMath(rawText) {
 export function cleanSolutionText(solutionText) {
   if (!solutionText || typeof solutionText !== 'string') return '';
 
-  // 1. Extract and preserve any Mermaid diagrams
-  const mermaidBlocks = [];
-  let text = solutionText.replace(/```mermaid[\s\S]*?```/g, (block) => {
-    const placeholder = `__MERMAID_BLOCK_${mermaidBlocks.length}__`;
-    mermaidBlocks.push(block);
-    return placeholder;
-  });
+  // 1. Strip synthetic pseudo-circuit / optical flowchart Mermaid blocks
+  let text = solutionText.replace(/```mermaid\s*\n\s*graph\s+(?:LR|TD|TB|RL)[\s\S]*?```/gi, '');
+  text = text.replace(/```mermaid[\s\S]*?(?:---|\bR\d+\b|Slab|Lens|Battery|Resistor)[\s\S]*?```/gi, '');
 
   // 2. Strip broken OCR tables (empty headers or diagram text layout fragments)
   text = text.replace(/<table>[\s\S]*?<\/table>/gi, (tableHtml) => {
@@ -263,11 +259,6 @@ export function cleanSolutionText(solutionText) {
   text = text.replace(/\$\$\s*\$\$/g, '');
   text = text.replace(/\$\s*\$/g, '');
   text = text.replace(/\n{3,}/g, '\n\n');
-
-  // 7. Restore Mermaid blocks
-  for (let i = 0; i < mermaidBlocks.length; i++) {
-    text = text.replace(`__MERMAID_BLOCK_${i}__`, mermaidBlocks[i]);
-  }
 
   return text.trim();
 }

@@ -264,7 +264,7 @@ export async function classifyQuestionCurriculum({ questionText, topicList, subj
 }
 
 /**
- * Perform deep STEM reasoning to generate or polish a complete JEE solution in LaTeX.
+ * Perform deep STEM reasoning to solve, verify, and generate an immaculate JEE solution in KaTeX.
  */
 export async function solveAndDeriveQuestion({
   questionText,
@@ -275,26 +275,29 @@ export async function solveAndDeriveQuestion({
   subject = ''
 }) {
   const systemPrompt =
-    'You are a master JEE educator producing authentic, publication-grade solution derivations for JEE Main & Advanced.\n' +
-    'Your solutions must be rigorous, clean, and pedagogical:\n' +
-    '1. Start with "### **Key Concept & Formula:**" stating physical/chemical/mathematical principles.\n' +
-    '2. Provide step-by-step derivation with clean KaTeX math ($...$ inline, $$...$$ display block).\n' +
-    '3. Verify which option (A, B, C, or D) is mathematically correct.\n' +
-    '4. Preserve or integrate any Mermaid circuit/diagram blocks (```mermaid ... ```) if present.\n' +
-    '5. Format all options with proper KaTeX math symbols.\n' +
+    'You are a senior JEE Physics, Chemistry, and Mathematics master educator and examiner.\n' +
+    'Your task is to VERIFY, SOLVE, AND REPAIR this JEE question and produce an immaculate, publication-grade entry:\n' +
+    '1. QUESTION STEM: Standardize all math, variables, and units into valid KaTeX ($...$). Preserve any problem figure image markdown (e.g. ![Figure](...)).\n' +
+    '2. OPTIONS: Ensure all options A, B, C, D have standard KaTeX formatting with units ($45^\\circ\\text{C}$, etc.).\n' +
+    '3. VERIFICATION & SOLVING: Solve the problem independently from first principles. Verify which option key (A, B, C, or D) is mathematically correct. Ensure correct_answer matches the derived answer exactly.\n' +
+    '4. SOLUTION DERIVATION:\n' +
+    '   - Provide a complete, rigorous, step-by-step KaTeX derivation ($...$ inline, $$...$$ display block).\n' +
+    '   - CRITICAL: DO NOT generate or preserve any Mermaid diagrams (```mermaid ... ```) for circuits, optics, or physics setups as they render poorly and distort the physics. Express equivalent circuits, ray optics, and physical mechanisms through clean mathematical reasoning and formulas.\n' +
+    '   - If the existing draft solution has wrong steps, inaccurate equations (like mixing up voltage V with temperature difference ΔT), or broken tables/mermaid, DISCARD the wrong parts and rewrite the derivation accurately.\n' +
+    '5. CURRICULUM & DIFFICULTY: Accurately classify Subject, Chapter, and Topic.\n\n' +
     'Respond with JSON only matching this schema:\n' +
     '{\n' +
-    '  "cleaned_question_text": "<clean markdown stem with KaTeX>",\n' +
+    '  "cleaned_question_text": "<clean markdown stem with KaTeX and preserved ![Figure](...)>",\n' +
     '  "options": { "A": "<opt A>", "B": "<opt B>", "C": "<opt C>", "D": "<opt D>" },\n' +
     '  "correct_answer": "A" | "B" | "C" | "D",\n' +
-    '  "solution_text": "<step-by-step KaTeX derivation>",\n' +
+    '  "solution_text": "<step-by-step KaTeX derivation without any mermaid diagrams>",\n' +
     '  "subject": "Physics" | "Chemistry" | "Mathematics",\n' +
     '  "suggested_chapter": "<chapter name>",\n' +
     '  "suggested_topic": "<topic name>",\n' +
     '  "difficulty": "easy" | "medium" | "hard"\n' +
     '}';
 
-  let userPrompt = `QUESTION:\n${questionText}\n\n`;
+  let userPrompt = `QUESTION STEM:\n${questionText}\n\n`;
 
   const optEntries = Object.entries(options || {}).filter(([_, v]) => Boolean(v));
   if (optEntries.length > 0) {
@@ -302,9 +305,9 @@ export async function solveAndDeriveQuestion({
   }
   if (currentAnswer) userPrompt += `PREVIOUS ANSWER KEY: (${currentAnswer})\n\n`;
   if (currentSolution) userPrompt += `EXISTING DRAFT SOLUTION:\n${currentSolution}\n\n`;
-  if (webContext) userPrompt += `WEB RESEARCH FINDINGS & REFERENCE CONTEXT:\n${webContext}\n\n`;
+  if (webContext) userPrompt += `WEB RESEARCH REFERENCE CONTEXT:\n${webContext}\n\n`;
 
-  userPrompt += 'Generate the complete, verified solution and polished question.';
+  userPrompt += 'Verify, solve, and repair the question, options, answer key, and solution.';
 
   const result = await callLlmWithFallback({
     systemPrompt,
@@ -321,6 +324,26 @@ export async function solveAndDeriveQuestion({
 }
 
 /**
+ * Deep AI Verification & Repair combining web context and Gemini 3.8 Flash solving.
+ */
+export async function verifyAndFormatQuestion({
+  questionText = '',
+  options = {},
+  solutionText = '',
+  rawText = '',
+  webContext = '',
+  subject = ''
+}) {
+  return solveAndDeriveQuestion({
+    questionText: questionText || rawText,
+    options,
+    currentSolution: solutionText,
+    webContext,
+    subject
+  });
+}
+
+/**
  * 1-Click AI Format and Polish for Question Stem, Options, and Solution.
  */
 export async function formatAndCleanQuestion({
@@ -328,44 +351,14 @@ export async function formatAndCleanQuestion({
   options = {},
   solutionText = '',
   rawText = '',
+  webContext = '',
   subject = ''
 }) {
-  const systemPrompt =
-    'You are a professional JEE textbook and test platform editor.\n' +
-    'Your job is to polish raw, OCR-extracted JEE questions into immaculate LaTeX and markdown format:\n' +
-    '1. Clean up glued math symbols (e.g. ^\\circC -> ^\\circ \\text{C}, \\lambda_n2 -> \\lambda_n^2).\n' +
-    '2. Ensure all formulas, exponents, and variables are wrapped in valid KaTeX ($...$ or $$...$$).\n' +
-    '3. Format options (A, B, C, D) cleanly.\n' +
-    '4. Clean solution text: strip any OCR layout table artifacts (<table>...</table>), convert HTML <sub>/<sup> to LaTeX, and preserve any Mermaid diagrams (```mermaid ... ```).\n' +
-    '5. Accurately identify curriculum Subject, Chapter, and Topic.\n' +
-    'Respond with JSON only matching this schema:\n' +
-    '{\n' +
-    '  "cleaned_question_text": "<clean text>",\n' +
-    '  "options": { "A": "<opt A>", "B": "<opt B>", "C": "<opt C>", "D": "<opt D>" },\n' +
-    '  "correct_answer": "<A/B/C/D if detectable, else null>",\n' +
-    '  "solution_text": "<clean solution with KaTeX and preserved Mermaid diagrams>",\n' +
-    '  "subject": "<Physics/Chemistry/Mathematics>",\n' +
-    '  "suggested_chapter": "<chapter name>",\n' +
-    '  "suggested_topic": "<topic name>",\n' +
-    '  "difficulty": "easy" | "medium" | "hard"\n' +
-    '}';
-
-  const userPrompt =
-    `QUESTION TEXT:\n${questionText || rawText}\n\n` +
-    `OPTIONS:\n${JSON.stringify(options, null, 2)}\n\n` +
-    `SOLUTION TEXT:\n${solutionText || '(None)'}\n\n` +
-    `SUBJECT: ${subject || 'Physics'}`;
-
-  const result = await callLlmWithFallback({
-    systemPrompt,
-    userPrompt,
-    requireJson: true,
-    temperature: 0.1
+  return solveAndDeriveQuestion({
+    questionText: questionText || rawText,
+    options,
+    currentSolution: solutionText,
+    webContext,
+    subject
   });
-
-  return {
-    ...(result.data || {}),
-    model: result.model,
-    provider: result.provider
-  };
 }

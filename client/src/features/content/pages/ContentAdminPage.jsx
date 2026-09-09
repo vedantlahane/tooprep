@@ -1321,9 +1321,9 @@ function CandidateCard({
       setTopicId(inferredTopicId);
     }
 
-    // 2. Deep AI Formatting with Gemini 3.8 Flash
+    // 2. Deep AI Solving & Verification with Gemini 3.8 Flash + Tavily
     setFormatting(true);
-    setResearchFeedback('🤖 Formatting with Gemini 3.8 Flash...');
+    setResearchFeedback('🔍 Verifying & solving with Gemini + Tavily...');
     try {
       const optsObj = (options || []).reduce((acc, o) => {
         acc[o.id] = o.text;
@@ -1352,7 +1352,8 @@ function CandidateCard({
         if (aiRes.solution_text) setSolutionText(cleanSolutionText(aiRes.solution_text));
         if (aiRes.suggested_topic_id) setTopicId(aiRes.suggested_topic_id);
         if (aiRes.difficulty) setDifficulty(aiRes.difficulty);
-        setResearchFeedback(`✨ Formatted with ${aiRes.model?.replace('gemini-', 'Gemini ') || 'Gemini 3.8 Flash'}`);
+        const provText = aiRes.sources?.length ? ' + Tavily' : '';
+        setResearchFeedback(`✨ Verified & Solved with ${aiRes.model?.replace('gemini-', 'Gemini ') || 'Gemini 3.8 Flash'}${provText}`);
         setTimeout(() => setResearchFeedback(''), 6000);
       }
     } catch (err) {
@@ -1607,10 +1608,10 @@ function CandidateCard({
             onClick={handleAutoCleanAndPolish}
             disabled={formatting}
             className="px-2 py-1 text-label-sm-mono uppercase tracking-widest border border-status-aligned/60 bg-status-aligned/10 hover:bg-status-aligned hover:text-black text-status-aligned transition-colors rounded-sm flex items-center gap-1 text-[11px] font-bold cursor-pointer disabled:opacity-50"
-            title="Gemini 3.8 Flash AI Format: standardize KaTeX math, split choices, clean solution tables, infer curriculum topic"
+            title="Gemini + Tavily AI Verify: solve from first principles, verify answer key, standardize KaTeX, remove broken diagrams, and map curriculum"
           >
             <Wand2 className={`w-3 h-3 ${formatting ? 'animate-spin' : ''}`} />
-            <span>{formatting ? 'Formatting...' : 'AI Format'}</span>
+            <span>{formatting ? 'Verifying...' : 'AI Format'}</span>
           </button>
 
           <button

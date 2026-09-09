@@ -175,14 +175,35 @@ export const contentController = {
       if (!question_text && !raw_text) {
         throw Object.assign(new Error('question_text or raw_text is required'), { statusCode: 400 });
       }
-      const { formatAndCleanQuestion } = await import('./ai-service.js');
-      const formatted = await formatAndCleanQuestion({
+
+      // 1. Fetch authentic JEE reference context from Tavily search
+      let webContext = '';
+      let sources = [];
+      try {
+        const { fetchTavilyContext } = await import('./tavily.provider.js');
+        const tavilyData = await fetchTavilyContext(question_text || raw_text);
+        if (tavilyData) {
+          webContext = tavilyData.webContext || '';
+          sources = tavilyData.sources || [];
+        }
+      } catch (tavErr) {
+        console.warn('[contentController] Tavily lookup in aiFormatQuestion skipped:', tavErr.message);
+      }
+
+      // 2. Perform deep STEM solving, verification, and KaTeX repair via Gemini 3.8 Flash
+      const { verifyAndFormatQuestion } = await import('./ai-service.js');
+      const formatted = await verifyAndFormatQuestion({
         questionText: question_text,
         options,
         solutionText: solution_text,
         rawText: raw_text,
+        webContext,
         subject
       });
+
+      if (sources.length > 0) {
+        formatted.sources = sources;
+      }
 
       if (formatted?.suggested_topic) {
         try {
