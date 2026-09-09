@@ -208,8 +208,8 @@ export const contentController = {
       } catch {}
     };
 
-    // 1. Replay historical buffer for this job (last 50 events)
-    const history = ingestionEvents.getHistory(jobId, 50);
+    // 1. Replay historical buffer for this job (last 200 events)
+    const history = ingestionEvents.getHistory(jobId, 200);
     for (const ev of history) {
       sendEvent(ev);
     }

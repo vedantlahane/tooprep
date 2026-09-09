@@ -33,7 +33,13 @@ import {
   Terminal,
   Shield,
   FileCode,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Copy,
+  Download,
+  Braces,
+  ArrowDown,
+  WrapText,
+  CheckCheck
 } from 'lucide-react';
 
 // 7 Real Ingestion Pipeline Stages
@@ -190,6 +196,108 @@ export default function AdminPipelinePage() {
   const [sseConnected, setSseConnected] = useState(false);
   const liveLogRef = useRef(null);
 
+  // ── Telemetry Controls, Filtering & Preferences ───────────────────────────
+  const [copyFeedback, setCopyFeedback] = useState({});
+  const [logSearch, setLogSearch] = useState('');
+  const [logLevelFilter, setLogLevelFilter] = useState('ALL'); // 'ALL', 'error', 'warn', 'success', 'info'
+  const [logStageFilter, setLogStageFilter] = useState('ALL'); // 'ALL' or station stage
+  const [autoScroll, setAutoScroll] = useState(true);
+  const [wrapLines, setWrapLines] = useState(true);
+  const [expandedEventMap, setExpandedEventMap] = useState({}); // { [index]: boolean }
+
+  const handleCopy = useCallback(async (text, key) => {
+    if (text === undefined || text === null) return;
+    try {
+      const content = typeof text === 'string' ? text : JSON.stringify(text, null, 2);
+      await navigator.clipboard.writeText(content);
+      setCopyFeedback(prev => ({ ...prev, [key]: true }));
+      setTimeout(() => {
+        setCopyFeedback(prev => ({ ...prev, [key]: false }));
+      }, 2000);
+    } catch (err) {
+      console.warn('Clipboard write failed:', err);
+    }
+  }, []);
+
+  const toggleEventDetail = useCallback((index) => {
+    setExpandedEventMap(prev => ({ ...prev, [index]: !prev[index] }));
+  }, []);
+
+  const handleToggleExpandAll = useCallback(() => {
+    const hasAnyExpanded = Object.values(expandedEventMap).some(Boolean);
+    if (hasAnyExpanded) {
+      setExpandedEventMap({});
+    } else {
+      const all = {};
+      liveEvents.forEach((ev, i) => {
+        if (ev.detail) all[i] = true;
+      });
+      setExpandedEventMap(all);
+    }
+  }, [expandedEventMap, liveEvents]);
+
+  const getFormattedLogsText = useCallback((eventsList) => {
+    return (eventsList || []).map((ev, i) => {
+      const time = new Date(ev.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const stage = `[${(ev.stage || 'STAGE')}]`;
+      const level = `[${(ev.level || 'info').toUpperCase()}]`;
+      const step = ev.step ? `(${ev.step}) ` : '';
+      const detail = ev.detail ? `\n    Detail: ${JSON.stringify(ev.detail, null, 2)}` : '';
+      return `#${String(i + 1).padStart(2, '0')} ${time} ${stage} ${level} ${step}${ev.message}${detail}`;
+    }).join('\n');
+  }, []);
+
+  const handleDownloadLogs = useCallback((format = 'txt') => {
+    if (!liveEvents || liveEvents.length === 0) return;
+    const jobId = selectedJobId || 'pipeline';
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    let blob, filename;
+
+    if (format === 'json') {
+      const jsonContent = JSON.stringify(liveEvents, null, 2);
+      blob = new Blob([jsonContent], { type: 'application/json' });
+      filename = `tooprep_pipeline_${jobId}_${timestamp}.json`;
+    } else {
+      const textLines = liveEvents.map((ev, i) => {
+        const time = new Date(ev.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const stage = `[${(ev.stage || 'STAGE').padEnd(14)}]`;
+        const level = `[${(ev.level || 'info').toUpperCase().padEnd(7)}]`;
+        const step = ev.step ? `(${ev.step}) ` : '';
+        const detailStr = ev.detail ? ` | DETAIL: ${JSON.stringify(ev.detail)}` : '';
+        return `#${String(i + 1).padStart(3, '0')} ${time} ${stage} ${level} ${step}${ev.message}${detailStr}`;
+      }).join('\n');
+      blob = new Blob([textLines], { type: 'text/plain;charset=utf-8' });
+      filename = `tooprep_pipeline_${jobId}_${timestamp}.log`;
+    }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [liveEvents, selectedJobId]);
+
+  const formatDeltaMs = (ms) => {
+    if (ms === null || ms === undefined || isNaN(ms) || ms < 0) return '';
+    if (ms < 1000) return `+${ms}ms`;
+    if (ms < 60_000) return `+${(ms / 1000).toFixed(1)}s`;
+    const mins = Math.floor(ms / 60_000);
+    const secs = Math.round((ms % 60_000) / 1000);
+    return `+${mins}m ${secs}s`;
+  };
+
+  const formatTotalDuration = (ms) => {
+    if (!ms || ms <= 0 || isNaN(ms)) return '0s';
+    if (ms < 1000) return `${ms}ms`;
+    if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
+    const mins = Math.floor(ms / 60_000);
+    const secs = Math.round((ms % 60_000) / 1000);
+    return `${mins}m ${secs}s`;
+  };
+
   // 1. Fetch Ingestion Jobs
   const loadJobs = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoadingJobs(true);
@@ -285,7 +393,7 @@ export default function AdminPipelinePage() {
       selectedJobId,
       (event) => {
         if (cancelled) return;
-        setLiveEvents(prev => [...prev, event].slice(-200));
+        setLiveEvents(prev => [...prev, event].slice(-500));
         if (event.step === 'sse_connected') setSseConnected(true);
       },
       () => { if (!cancelled) setSseConnected(false); }
@@ -305,12 +413,71 @@ export default function AdminPipelinePage() {
     };
   }, [selectedJobId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-scroll live log to bottom on new events
+  // Auto-scroll live log to bottom on new events (respects autoScroll toggle)
   useEffect(() => {
-    if (liveLogRef.current && liveEvents.length > 0) {
+    if (autoScroll && liveLogRef.current && liveEvents.length > 0) {
       liveLogRef.current.scrollTop = liveLogRef.current.scrollHeight;
     }
+  }, [liveEvents, autoScroll]);
+
+  // Telemetry Aggregated Statistics
+  const logStats = useMemo(() => {
+    let errorCount = 0;
+    let warnCount = 0;
+    let successCount = 0;
+    let infoCount = 0;
+    const stagesSet = new Set();
+
+    liveEvents.forEach(ev => {
+      const lvl = (ev.level || 'info').toLowerCase();
+      if (lvl === 'error') errorCount++;
+      else if (lvl === 'warn') warnCount++;
+      else if (lvl === 'success') successCount++;
+      else infoCount++;
+      if (ev.stage) stagesSet.add(ev.stage);
+    });
+
+    let totalDurationMs = 0;
+    if (liveEvents.length >= 2) {
+      const t0 = new Date(liveEvents[0].timestamp).getTime();
+      const tEnd = new Date(liveEvents[liveEvents.length - 1].timestamp).getTime();
+      if (!isNaN(t0) && !isNaN(tEnd)) {
+        totalDurationMs = Math.max(0, tEnd - t0);
+      }
+    }
+
+    return {
+      errorCount,
+      warnCount,
+      successCount,
+      infoCount,
+      stagesSeen: Array.from(stagesSet),
+      totalDurationMs
+    };
   }, [liveEvents]);
+
+  // Filtered Telemetry Stream
+  const filteredLiveEvents = useMemo(() => {
+    const q = logSearch.trim().toLowerCase();
+    return liveEvents.filter((ev) => {
+      if (logLevelFilter !== 'ALL' && (ev.level || 'info').toLowerCase() !== logLevelFilter.toLowerCase()) {
+        return false;
+      }
+      if (logStageFilter !== 'ALL' && (ev.stage || '').toUpperCase() !== logStageFilter.toUpperCase()) {
+        return false;
+      }
+      if (q) {
+        const msg = (ev.message || '').toLowerCase();
+        const stage = (ev.stage || '').toLowerCase();
+        const step = (ev.step || '').toLowerCase();
+        const detailStr = ev.detail ? JSON.stringify(ev.detail).toLowerCase() : '';
+        if (!msg.includes(q) && !stage.includes(q) && !step.includes(q) && !detailStr.includes(q)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [liveEvents, logLevelFilter, logStageFilter, logSearch]);
 
   // Job Actions
   const handleJobSelect = (jobId) => {
@@ -784,7 +951,26 @@ export default function AdminPipelinePage() {
                     </div>
 
                     <div className="flex items-center gap-4 text-xs font-mono text-white/50">
-                      <span>ID: <code className="text-white/70">{job.job_id}</code></span>
+                      <span className="flex items-center gap-1">
+                        <span>ID: <code className="text-white/70">{job.job_id}</code></span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopy(job.job_id, `jobId_${job.job_id}`);
+                          }}
+                          className="text-white/30 hover:text-primary transition-colors cursor-pointer p-0.5 inline-flex items-center"
+                          title="Copy Job ID"
+                        >
+                          {copyFeedback[`jobId_${job.job_id}`] ? (
+                            <span className="text-status-aligned text-[9px] flex items-center gap-0.5 font-bold">
+                              <Check className="w-2.5 h-2.5" /> Copied
+                            </span>
+                          ) : (
+                            <Copy className="w-2.5 h-2.5" />
+                          )}
+                        </button>
+                      </span>
                       <span>Pages: <strong className="text-white">{job.progress?.total_pages || job.progress?.processed_pages || '?'}</strong></span>
                       <span>Questions: <strong className="text-primary">{job.question_count || job.progress?.questions_extracted || 0}</strong></span>
                       <span className="hidden sm:inline text-white/40">
@@ -874,6 +1060,20 @@ export default function AdminPipelinePage() {
                 <span>ACTIVE JOB TELEMETRY COCKPIT</span>
                 <span className="text-white/30">&middot;</span>
                 <span className="text-white/60 font-normal">{currentJob.job_id}</span>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(currentJob.job_id, 'cockpitJobId')}
+                  className="text-white/40 hover:text-primary transition-colors cursor-pointer p-0.5 inline-flex items-center"
+                  title="Copy Job ID"
+                >
+                  {copyFeedback['cockpitJobId'] ? (
+                    <span className="text-status-aligned text-[9px] flex items-center gap-0.5 font-bold">
+                      <Check className="w-2.5 h-2.5" /> Copied ID
+                    </span>
+                  ) : (
+                    <Copy className="w-3 h-3" />
+                  )}
+                </button>
               </div>
               <h2 className="text-2xl font-light text-white">
                 {currentJob.source?.filename || 'Ingestion Job Details'}
@@ -1008,6 +1208,20 @@ export default function AdminPipelinePage() {
                             <span className="font-bold text-white bg-white/10 px-2 py-0.5">
                               Q.{cand.source_question_number || cand.candidate_key}
                             </span>
+                            <button
+                              type="button"
+                              onClick={() => handleCopy(cand.question_text, `cand_${cand.candidate_key}`)}
+                              className="text-white/30 hover:text-primary transition-colors cursor-pointer p-0.5 inline-flex items-center"
+                              title="Copy Question LaTeX text"
+                            >
+                              {copyFeedback[`cand_${cand.candidate_key}`] ? (
+                                <span className="text-status-aligned text-[9px] flex items-center gap-0.5 font-bold">
+                                  <Check className="w-2.5 h-2.5" /> Copied Text
+                                </span>
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
+                            </button>
                             {cand.source_pages?.length > 0 && (
                               <span className="text-white/40 text-[10px]">
                                 Page {cand.source_pages.join(', ')}
@@ -1122,112 +1336,531 @@ export default function AdminPipelinePage() {
             </div>
           )}
 
-          {/* ─── TAB 2: LIVE PIPELINE ACTIVITY LOG (SSE) ─── */}
+          {/* ─── TAB 2: LIVE PIPELINE ACTIVITY LOG & TELEMETRY ─── */}
           {activeCockpitTab === 'logs' && (
-            <div className="space-y-4 animate-fade-in font-mono text-xs">
+            <div className="space-y-5 animate-fade-in font-mono text-xs">
 
-              {/* Activity Log Header */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <Terminal className="w-4 h-4 text-primary" />
-                  <span className="text-white font-bold uppercase tracking-wider text-xs">Live Pipeline Activity Log</span>
-                  {sseConnected ? (
-                    <span className="flex items-center gap-1.5 px-2 py-0.5 bg-status-aligned/10 border border-status-aligned/30 text-status-aligned text-[10px] uppercase">
-                      <span className="w-1.5 h-1.5 rounded-full bg-status-aligned animate-ping" />
-                      <span>Live</span>
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1.5 px-2 py-0.5 bg-white/5 border border-white/10 text-white/40 text-[10px] uppercase">
-                      <span className="w-1.5 h-1.5 rounded-full bg-white/30" />
-                      <span>Connecting…</span>
-                    </span>
-                  )}
-                  <span className="text-white/30 text-[10px]">{liveEvents.length} events</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setLiveEvents([])}
-                  className="text-[10px] text-white/30 hover:text-white/60 uppercase cursor-pointer"
-                >
-                  Clear
-                </button>
-              </div>
-
-              {/* Terminal-style Scrolling Log */}
-              <div
-                ref={liveLogRef}
-                className="bg-[#050810] border border-white/10 rounded-sm p-3 max-h-[420px] overflow-y-auto space-y-1 font-mono text-[11px] leading-relaxed"
-              >
-                {liveEvents.length === 0 ? (
-                  <div className="text-white/30 text-center py-8 space-y-2">
-                    <Activity className="w-6 h-6 mx-auto text-white/20" />
-                    <p>Waiting for pipeline activity…</p>
-                    <p className="text-[10px]">Events will stream here in real-time as the worker processes this job.</p>
+              {/* 1. Telemetry HUD KPI Cards */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-left">
+                {/* SSE Stream State */}
+                <div className="border border-white/10 bg-black/60 p-3 relative overflow-hidden space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase text-white/50 tracking-wider">SSE Stream Bus</span>
+                    {sseConnected ? (
+                      <span className="flex items-center gap-1 text-[9px] font-bold text-status-aligned uppercase">
+                        <span className="w-1.5 h-1.5 rounded-full bg-status-aligned animate-ping" />
+                        Connected
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-[9px] text-white/40 uppercase">
+                        <span className="w-1.5 h-1.5 rounded-full bg-white/30" />
+                        Connecting
+                      </span>
+                    )}
                   </div>
-                ) : (
-                  liveEvents.map((ev, i) => {
-                    const levelColors = {
-                      success: 'text-status-aligned',
-                      error:   'text-error',
-                      warn:    'text-status-weak',
-                      info:    'text-white/80'
-                    };
-                    const stageColors = {
-                      PARSING:         'bg-purple-900/40 text-purple-300 border-purple-700/40',
-                      STRUCTURING:     'bg-orange-900/40 text-orange-300 border-orange-700/40',
-                      VALIDATING:      'bg-blue-900/40 text-blue-300 border-blue-700/40',
-                      CLASSIFYING:     'bg-cyan-900/40 text-cyan-300 border-cyan-700/40',
-                      STORING:         'bg-teal-900/40 text-teal-300 border-teal-700/40',
-                      INDEXING:        'bg-indigo-900/40 text-indigo-300 border-indigo-700/40',
-                      AWAITING_REVIEW: 'bg-amber-900/40 text-amber-300 border-amber-700/40',
-                      CONNECTED:       'bg-primary/10 text-primary border-primary/30',
-                      WORKING:         'bg-white/5 text-white/60 border-white/10'
-                    };
-                    const stageBadgeCls = stageColors[ev.stage] || 'bg-white/5 text-white/50 border-white/10';
-                    const msgCls = levelColors[ev.level] || 'text-white/80';
-                    const time = new Date(ev.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                  <div className="text-sm font-bold text-white flex items-baseline gap-1.5">
+                    <span>{liveEvents.length}</span>
+                    <span className="text-[10px] font-normal text-white/40">events logged</span>
+                  </div>
+                  <div className="text-[10px] text-white/40 truncate">
+                    Buffer capacity: 500 max
+                  </div>
+                </div>
 
-                    return (
-                      <div key={i} className="flex items-start gap-2 py-0.5 border-b border-white/[0.04] last:border-0">
-                        {/* Timestamp */}
-                        <span className="text-white/30 text-[10px] shrink-0 pt-px w-16">{time}</span>
+                {/* Pipeline Duration */}
+                <div className="border border-white/10 bg-black/60 p-3 relative overflow-hidden space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase text-white/50 tracking-wider">Pipeline Duration</span>
+                    <Clock className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                  <div className="text-sm font-bold text-primary flex items-baseline gap-1.5">
+                    <span>{formatTotalDuration(logStats.totalDurationMs)}</span>
+                  </div>
+                  <div className="text-[10px] text-white/40 truncate">
+                    First to latest timestamp
+                  </div>
+                </div>
 
-                        {/* Stage badge */}
-                        <span className={`text-[9px] px-1.5 py-0.5 border uppercase font-bold shrink-0 ${stageBadgeCls}`}>
-                          {ev.stage?.slice(0, 8)}
-                        </span>
+                {/* Execution Health */}
+                <div className={`border p-3 relative overflow-hidden space-y-1 ${
+                  logStats.errorCount > 0
+                    ? 'border-error/40 bg-error/10 text-error'
+                    : 'border-white/10 bg-black/60 text-status-aligned'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase text-white/50 tracking-wider">Health Status</span>
+                    {logStats.errorCount > 0 ? (
+                      <AlertTriangle className="w-3.5 h-3.5 text-error" />
+                    ) : (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-status-aligned" />
+                    )}
+                  </div>
+                  <div className="text-sm font-bold flex items-baseline gap-1.5">
+                    <span>{logStats.errorCount === 0 ? 'Zero Errors' : `${logStats.errorCount} Errors`}</span>
+                  </div>
+                  <div className="text-[10px] text-white/40 truncate">
+                    {logStats.warnCount} warnings · {logStats.successCount} completed
+                  </div>
+                </div>
 
-                        {/* Message */}
-                        <span className={`flex-1 ${msgCls}`}>
-                          {ev.level === 'success' && '✓ '}
-                          {ev.level === 'error'   && '✗ '}
-                          {ev.level === 'warn'    && '⚠ '}
-                          {ev.message}
-                        </span>
-                      </div>
-                    );
-                  })
-                )}
+                {/* Current Stage */}
+                <div className="border border-white/10 bg-black/60 p-3 relative overflow-hidden space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase text-white/50 tracking-wider">Current Station</span>
+                    <Activity className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                  <div className="text-sm font-bold text-white truncate">
+                    [{currentJob.stage || 'STAGE'}]
+                  </div>
+                  <div className="text-[10px] text-white/40 truncate">
+                    Step: {liveEvents[liveEvents.length - 1]?.step || 'Idle'}
+                  </div>
+                </div>
               </div>
 
-              {/* Detail Drawer: last event with detail payload */}
-              {liveEvents.length > 0 && liveEvents[liveEvents.length - 1]?.detail && (
-                <details className="border border-white/10 bg-black p-3">
-                  <summary className="text-[10px] text-white/50 uppercase tracking-wider cursor-pointer hover:text-white/70">
-                    Last Event Detail Payload
-                  </summary>
-                  <pre className="mt-2 text-[10px] text-primary overflow-x-auto">
-                    {JSON.stringify(liveEvents[liveEvents.length - 1].detail, null, 2)}
-                  </pre>
-                </details>
-              )}
+              {/* 2. Interactive Search & Filter Toolbar */}
+              <div className="border border-white/10 bg-[#060a14] p-3 space-y-3 text-left">
+                {/* Search & Selectors Row */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                  {/* Search Bar */}
+                  <div className="flex items-center gap-2 flex-1 relative">
+                    <Search className="w-3.5 h-3.5 text-white/40 absolute left-3 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={logSearch}
+                      onChange={e => setLogSearch(e.target.value)}
+                      placeholder="Filter telemetry logs by text, step, payload content..."
+                      className="w-full pl-9 pr-8 py-1.5 border border-white/15 bg-black/40 text-xs text-white placeholder:text-white/30 outline-none focus:border-primary font-mono rounded-none"
+                    />
+                    {logSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setLogSearch('')}
+                        className="absolute right-2.5 text-white/40 hover:text-white text-xs cursor-pointer"
+                        title="Clear filter"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
 
-              {/* Lifecycle Events (static from job record) */}
+                  {/* Stage Dropdown */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-white/40 text-[10px] uppercase">Stage:</span>
+                    <select
+                      value={logStageFilter}
+                      onChange={e => setLogStageFilter(e.target.value)}
+                      className="bg-black border border-white/20 text-white px-2 py-1.5 text-xs outline-none focus:border-primary"
+                    >
+                      <option value="ALL">All Stages ({liveEvents.length})</option>
+                      {PIPELINE_STATIONS.map(st => (
+                        <option key={st.id} value={st.stages[0]}>
+                          {st.title} ({liveEvents.filter(ev => st.stages.includes(ev.stage)).length})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Level Filter Buttons */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-white/5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-white/40 text-[10px] uppercase mr-1">Severity:</span>
+                    {[
+                      { id: 'ALL', label: 'All', count: liveEvents.length, cls: 'text-white' },
+                      { id: 'success', label: 'Success', count: logStats.successCount, cls: 'text-status-aligned' },
+                      { id: 'info', label: 'Info', count: logStats.infoCount, cls: 'text-white/70' },
+                      { id: 'warn', label: 'Warn', count: logStats.warnCount, cls: logStats.warnCount > 0 ? 'text-status-weak font-bold' : 'text-white/40' },
+                      { id: 'error', label: 'Error', count: logStats.errorCount, cls: logStats.errorCount > 0 ? 'text-error font-bold' : 'text-white/40' }
+                    ].map(lvl => (
+                      <button
+                        key={lvl.id}
+                        type="button"
+                        onClick={() => setLogLevelFilter(lvl.id)}
+                        className={`px-2 py-1 border transition-colors cursor-pointer text-[10px] uppercase tracking-wider flex items-center gap-1 ${
+                          logLevelFilter === lvl.id
+                            ? 'border-primary bg-primary/20 text-primary font-bold'
+                            : 'border-white/10 bg-black/40 hover:border-white/30 ' + lvl.cls
+                        }`}
+                      >
+                        <span>{lvl.label}</span>
+                        <span className="opacity-60 text-[9px]">({lvl.count})</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="text-[10px] text-white/40">
+                    Showing <strong className="text-white">{filteredLiveEvents.length}</strong> of {liveEvents.length} events
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Action Toolbar (Copy, Export, Download, Terminal Settings) */}
+              <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-black/50 border border-white/10 text-xs">
+                {/* Left: Copy & Export Controls */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Copy All Logs Plaintext */}
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(getFormattedLogsText(filteredLiveEvents), 'allLogsText')}
+                    disabled={filteredLiveEvents.length === 0}
+                    className="px-2.5 py-1.5 border border-white/20 hover:border-primary text-white hover:text-primary transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-30 disabled:pointer-events-none bg-white/[0.02]"
+                    title="Copy formatted timestamped log lines to clipboard"
+                  >
+                    {copyFeedback['allLogsText'] ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-status-aligned stroke-[3]" />
+                        <span className="text-status-aligned font-bold text-[11px]">Copied Logs!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-primary" />
+                        <span className="text-[11px] font-bold uppercase tracking-wider">Copy Log Text</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* Copy JSON Array */}
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(filteredLiveEvents, 'allLogsJson')}
+                    disabled={filteredLiveEvents.length === 0}
+                    className="px-2.5 py-1.5 border border-white/20 hover:border-primary text-white hover:text-primary transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-30 disabled:pointer-events-none bg-white/[0.02]"
+                    title="Copy raw event array as formatted JSON"
+                  >
+                    {copyFeedback['allLogsJson'] ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-status-aligned stroke-[3]" />
+                        <span className="text-status-aligned font-bold text-[11px]">Copied JSON!</span>
+                      </>
+                    ) : (
+                      <>
+                        <FileCode className="w-3.5 h-3.5 text-white/70" />
+                        <span className="text-[11px] font-bold uppercase tracking-wider">Copy JSON</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* Download .log File */}
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadLogs('txt')}
+                    disabled={liveEvents.length === 0}
+                    className="px-2.5 py-1.5 border border-white/15 hover:border-white/40 text-white/70 hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
+                    title="Export logs as a .log text file"
+                  >
+                    <Download className="w-3.5 h-3.5 text-white/60" />
+                    <span className="text-[11px] uppercase tracking-wider">Download .log</span>
+                  </button>
+
+                  {/* Download .json File */}
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadLogs('json')}
+                    disabled={liveEvents.length === 0}
+                    className="px-2.5 py-1.5 border border-white/15 hover:border-white/40 text-white/70 hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
+                    title="Export events as raw .json file"
+                  >
+                    <Download className="w-3.5 h-3.5 text-white/60" />
+                    <span className="text-[11px] uppercase tracking-wider">Download .json</span>
+                  </button>
+                </div>
+
+                {/* Right: Terminal Options & Utilities */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Expand / Collapse All Details */}
+                  <button
+                    type="button"
+                    onClick={handleToggleExpandAll}
+                    className="px-2 py-1 border border-white/10 hover:border-white/30 text-white/60 hover:text-white transition-colors flex items-center gap-1 cursor-pointer text-[10px] uppercase"
+                    title="Expand or collapse all event JSON detail drawers"
+                  >
+                    <Braces className="w-3 h-3 text-primary" />
+                    <span>{Object.values(expandedEventMap).some(Boolean) ? 'Collapse Details' : 'Expand Details'}</span>
+                  </button>
+
+                  {/* Auto-Scroll Toggle */}
+                  <button
+                    type="button"
+                    onClick={() => setAutoScroll(prev => !prev)}
+                    className={`px-2 py-1 border transition-colors flex items-center gap-1 cursor-pointer text-[10px] uppercase ${
+                      autoScroll
+                        ? 'border-status-aligned/50 text-status-aligned bg-status-aligned/10 font-bold'
+                        : 'border-white/10 text-white/40 hover:text-white'
+                    }`}
+                    title="Toggle automatic scrolling to latest log line"
+                  >
+                    <ArrowDown className={`w-3 h-3 ${autoScroll ? 'text-status-aligned' : 'text-white/40'}`} />
+                    <span>Auto-Scroll: {autoScroll ? 'ON' : 'OFF'}</span>
+                  </button>
+
+                  {/* Line Wrap Toggle */}
+                  <button
+                    type="button"
+                    onClick={() => setWrapLines(prev => !prev)}
+                    className={`px-2 py-1 border transition-colors flex items-center gap-1 cursor-pointer text-[10px] uppercase ${
+                      wrapLines
+                        ? 'border-white/30 text-white bg-white/5'
+                        : 'border-white/10 text-white/40 hover:text-white'
+                    }`}
+                    title="Toggle word wrapping vs horizontal scrolling"
+                  >
+                    <WrapText className="w-3 h-3" />
+                    <span>Wrap: {wrapLines ? 'ON' : 'OFF'}</span>
+                  </button>
+
+                  {/* Clear Terminal */}
+                  <button
+                    type="button"
+                    onClick={() => setLiveEvents([])}
+                    className="px-2 py-1 border border-white/10 hover:border-error/40 text-white/40 hover:text-error transition-colors flex items-center gap-1 cursor-pointer text-[10px] uppercase"
+                    title="Clear live events buffer"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>Clear</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 4. High-Performance Terminal Console */}
+              <div className="border border-white/15 bg-[#03060c] shadow-2xl relative text-left">
+                {/* Console Terminal Header Bar */}
+                <div className="flex items-center justify-between px-3 py-2 border-b border-white/10 bg-white/[0.03] text-[10px] select-none">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-red-500/70 inline-block" />
+                    <span className="w-2 h-2 rounded-full bg-amber-500/70 inline-block" />
+                    <span className="w-2 h-2 rounded-full bg-emerald-500/70 inline-block" />
+                    <span className="ml-2 text-white/50 tracking-wider">
+                      &gt;_ TOOPREP INGESTION ENGINE TELEMETRY BUS · JOB: [{currentJob.job_id}]
+                    </span>
+                  </div>
+                  <div className="text-white/40 font-mono text-[9px] uppercase tracking-wider">
+                    {filteredLiveEvents.length} frames active
+                  </div>
+                </div>
+
+                {/* Terminal Viewport */}
+                <div
+                  ref={liveLogRef}
+                  className={`p-3.5 max-h-[460px] overflow-y-auto space-y-1 font-mono text-[11px] leading-relaxed ${
+                    wrapLines ? 'whitespace-pre-wrap break-words' : 'whitespace-nowrap overflow-x-auto'
+                  }`}
+                >
+                  {liveEvents.length === 0 ? (
+                    <div className="text-white/30 text-center py-12 space-y-3">
+                      <Activity className="w-7 h-7 mx-auto text-primary/40 animate-pulse" />
+                      <p className="text-white/60 font-bold uppercase tracking-wider">Waiting for pipeline activity…</p>
+                      <p className="text-[10px] text-white/30 max-w-md mx-auto">
+                        Events stream in real-time as the worker parses PDF text, isolates drawings via PyMuPDF, and syncs vectors to Qdrant.
+                      </p>
+                    </div>
+                  ) : filteredLiveEvents.length === 0 ? (
+                    <div className="text-white/40 text-center py-8 space-y-2">
+                      <p>No events match the current search or filters.</p>
+                      <button
+                        type="button"
+                        onClick={() => { setLogSearch(''); setLogLevelFilter('ALL'); setLogStageFilter('ALL'); }}
+                        className="text-primary underline text-xs cursor-pointer uppercase"
+                      >
+                        Reset All Filters
+                      </button>
+                    </div>
+                  ) : (
+                    filteredLiveEvents.map((ev, i) => {
+                      const origIdx = liveEvents.indexOf(ev);
+                      const isExpanded = Boolean(expandedEventMap[origIdx]);
+                      const hasDetail = Boolean(ev.detail);
+
+                      // Delta latency calculation
+                      let deltaMs = null;
+                      if (origIdx > 0 && liveEvents[origIdx - 1]?.timestamp && ev.timestamp) {
+                        const tPrev = new Date(liveEvents[origIdx - 1].timestamp).getTime();
+                        const tCurr = new Date(ev.timestamp).getTime();
+                        if (!isNaN(tPrev) && !isNaN(tCurr)) {
+                          deltaMs = Math.max(0, tCurr - tPrev);
+                        }
+                      }
+
+                      const levelColors = {
+                        success: 'text-status-aligned font-medium',
+                        error:   'text-error font-medium',
+                        warn:    'text-status-weak font-medium',
+                        info:    'text-white/90'
+                      };
+                      const stageColors = {
+                        PARSING:         'bg-purple-900/40 text-purple-300 border-purple-700/40',
+                        STRUCTURING:     'bg-orange-900/40 text-orange-300 border-orange-700/40',
+                        VALIDATING:      'bg-blue-900/40 text-blue-300 border-blue-700/40',
+                        CLASSIFYING:     'bg-cyan-900/40 text-cyan-300 border-cyan-700/40',
+                        STORING:         'bg-teal-900/40 text-teal-300 border-teal-700/40',
+                        INDEXING:        'bg-indigo-900/40 text-indigo-300 border-indigo-700/40',
+                        AWAITING_REVIEW: 'bg-amber-900/40 text-amber-300 border-amber-700/40',
+                        CONNECTED:       'bg-primary/10 text-primary border-primary/30',
+                        WORKING:         'bg-white/5 text-white/60 border-white/10'
+                      };
+
+                      const stageBadgeCls = stageColors[ev.stage] || 'bg-white/5 text-white/50 border-white/10';
+                      const msgCls = levelColors[ev.level] || 'text-white/80';
+                      const time = new Date(ev.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+                      return (
+                        <div
+                          key={origIdx}
+                          className={`group transition-colors border-b border-white/[0.03] last:border-0 ${
+                            isExpanded ? 'bg-white/[0.02] pb-2' : 'hover:bg-white/[0.02]'
+                          }`}
+                        >
+                          <div className="flex items-start gap-2 py-1">
+                            {/* Sequence number */}
+                            <span className="text-white/20 text-[10px] shrink-0 pt-0.5 w-6 text-right select-none font-mono">
+                              #{origIdx + 1}
+                            </span>
+
+                            {/* Timestamp */}
+                            <span className="text-white/35 text-[10px] shrink-0 pt-0.5 w-14 font-mono select-none">
+                              {time}
+                            </span>
+
+                            {/* Latency Delta Badge */}
+                            <span className={`text-[9px] px-1 py-0.5 border shrink-0 font-mono select-none ${
+                              deltaMs === null
+                                ? 'opacity-0 w-12'
+                                : deltaMs > 10000
+                                ? 'border-purple-800/40 text-purple-300 bg-purple-950/40'
+                                : deltaMs > 3000
+                                ? 'border-amber-700/40 text-amber-300 bg-amber-950/40'
+                                : 'border-white/10 text-white/40 bg-white/5'
+                            }`}>
+                              {deltaMs !== null ? formatDeltaMs(deltaMs) : ''}
+                            </span>
+
+                            {/* Stage badge */}
+                            <span className={`text-[9px] px-1.5 py-0.5 border uppercase font-bold shrink-0 select-none ${stageBadgeCls}`}>
+                              {ev.stage?.slice(0, 8)}
+                            </span>
+
+                            {/* Level Icon */}
+                            <span className="shrink-0 pt-0.5 select-none">
+                              {ev.level === 'success' && <CheckCircle2 className="w-3.5 h-3.5 text-status-aligned" />}
+                              {ev.level === 'error'   && <AlertTriangle className="w-3.5 h-3.5 text-error" />}
+                              {ev.level === 'warn'    && <AlertTriangle className="w-3.5 h-3.5 text-status-weak" />}
+                              {ev.level === 'info'    && <Terminal className="w-3.5 h-3.5 text-white/30" />}
+                            </span>
+
+                            {/* Fine-grained Step */}
+                            {ev.step && (
+                              <span className="text-[10px] text-white/40 font-mono shrink-0 select-none">
+                                [{ev.step}]
+                              </span>
+                            )}
+
+                            {/* Message Body */}
+                            <span className={`flex-1 min-w-0 ${msgCls}`}>
+                              {ev.message}
+                            </span>
+
+                            {/* Detail Payload Toggle Badge */}
+                            {hasDetail && (
+                              <button
+                                type="button"
+                                onClick={() => toggleEventDetail(origIdx)}
+                                className={`text-[9px] px-1.5 py-0.5 border uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-colors shrink-0 ${
+                                  isExpanded
+                                    ? 'border-primary bg-primary/20 text-primary font-bold'
+                                    : 'border-white/15 bg-white/5 text-white/60 hover:text-white hover:border-white/30'
+                                }`}
+                                title="Click to view detailed structured payload"
+                              >
+                                <span>{'{ }'} DATA</span>
+                                {isExpanded ? <ChevronUp className="w-2.5 h-2.5" /> : <ChevronDown className="w-2.5 h-2.5" />}
+                              </button>
+                            )}
+
+                            {/* 1-Click Copy this log line on hover */}
+                            <button
+                              type="button"
+                              onClick={() => handleCopy(
+                                `${time} [${ev.stage}] [${(ev.level || 'info').toUpperCase()}] (${ev.step}) ${ev.message}${ev.detail ? ` | DETAIL: ${JSON.stringify(ev.detail)}` : ''}`,
+                                `line_${origIdx}`
+                              )}
+                              className="text-white/20 hover:text-primary transition-colors cursor-pointer p-0.5 shrink-0 opacity-0 group-hover:opacity-100"
+                              title="Copy this event log line"
+                            >
+                              {copyFeedback[`line_${origIdx}`] ? (
+                                <Check className="w-3 h-3 text-status-aligned" />
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
+                            </button>
+                          </div>
+
+                          {/* Expanded Detail Payload Drawer */}
+                          {hasDetail && isExpanded && (
+                            <div className="mt-1.5 ml-8 mr-2 p-2.5 bg-black/90 border border-white/15 rounded-sm space-y-1.5 text-left">
+                              <div className="flex items-center justify-between border-b border-white/10 pb-1 text-[10px]">
+                                <span className="text-white/50 uppercase tracking-wider flex items-center gap-1.5">
+                                  <Braces className="w-3 h-3 text-primary" />
+                                  <span>Event Payload · Step: <strong className="text-primary">{ev.step}</strong></span>
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopy(ev.detail, `detail_${origIdx}`)}
+                                  className="text-primary hover:underline uppercase text-[9px] flex items-center gap-1 cursor-pointer"
+                                >
+                                  {copyFeedback[`detail_${origIdx}`] ? (
+                                    <>
+                                      <Check className="w-2.5 h-2.5 text-status-aligned stroke-[3]" />
+                                      <span className="text-status-aligned font-bold">Copied Payload!</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy className="w-2.5 h-2.5" />
+                                      <span>Copy Payload JSON</span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                              <pre className="text-[10px] text-primary/90 overflow-x-auto max-h-48 p-1 font-mono leading-tight">
+                                {JSON.stringify(ev.detail, null, 2)}
+                              </pre>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* 5. Supporting Diagnostics Cards (Lifecycle + Error Log) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="border border-white/10 bg-black p-4 space-y-3">
-                  <div className="text-primary font-bold uppercase tracking-wider text-xs border-b border-white/10 pb-2 flex items-center gap-2">
-                    <Clock className="w-3.5 h-3.5 text-primary" />
-                    <span>Lifecycle State Transitions</span>
+                {/* Lifecycle State Transitions */}
+                <div className="border border-white/10 bg-black p-4 space-y-3 text-left">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                    <div className="text-primary font-bold uppercase tracking-wider text-xs flex items-center gap-2">
+                      <Clock className="w-3.5 h-3.5 text-primary" />
+                      <span>Lifecycle State Transitions</span>
+                    </div>
+                    {currentJob.events && currentJob.events.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(currentJob.events, 'lifecycleEvents')}
+                        className="text-white/40 hover:text-primary transition-colors cursor-pointer text-[10px] uppercase flex items-center gap-1"
+                        title="Copy state transitions JSON"
+                      >
+                        {copyFeedback['lifecycleEvents'] ? (
+                          <>
+                            <Check className="w-2.5 h-2.5 text-status-aligned" />
+                            <span className="text-status-aligned font-bold">Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-2.5 h-2.5" />
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
                   {currentJob.events && currentJob.events.length > 0 ? (
                     <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
@@ -1250,10 +1883,33 @@ export default function AdminPipelinePage() {
                   )}
                 </div>
 
-                <div className="border border-white/10 bg-black p-4 space-y-3">
-                  <div className="text-error font-bold uppercase tracking-wider text-xs border-b border-white/10 pb-2 flex items-center gap-2">
-                    <AlertTriangle className="w-3.5 h-3.5 text-error" />
-                    <span>Error Log</span>
+                {/* Error Log */}
+                <div className="border border-white/10 bg-black p-4 space-y-3 text-left">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                    <div className="text-error font-bold uppercase tracking-wider text-xs flex items-center gap-2">
+                      <AlertTriangle className="w-3.5 h-3.5 text-error" />
+                      <span>Error Log</span>
+                    </div>
+                    {currentJob.errors && currentJob.errors.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(currentJob.errors, 'errorLogs')}
+                        className="text-white/40 hover:text-error transition-colors cursor-pointer text-[10px] uppercase flex items-center gap-1"
+                        title="Copy error log JSON"
+                      >
+                        {copyFeedback['errorLogs'] ? (
+                          <>
+                            <Check className="w-2.5 h-2.5 text-status-aligned" />
+                            <span className="text-status-aligned font-bold">Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-2.5 h-2.5" />
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
                   {currentJob.errors && currentJob.errors.length > 0 ? (
                     <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
@@ -1275,10 +1931,30 @@ export default function AdminPipelinePage() {
                 </div>
               </div>
 
-              {/* Raw JSON */}
-              <details className="border border-white/10 bg-black p-4">
-                <summary className="text-xs font-mono uppercase tracking-wider text-white/70 hover:text-white cursor-pointer select-none">
-                  Inspect Raw Ingestion Job Document (JSON)
+              {/* 6. Raw Ingestion Job Document (JSON) with 1-Click Copy */}
+              <details className="border border-white/10 bg-black p-4 text-left">
+                <summary className="text-xs font-mono uppercase tracking-wider text-white/70 hover:text-white cursor-pointer select-none flex items-center justify-between">
+                  <span>Inspect Raw Ingestion Job Document (JSON)</span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleCopy(currentJob, 'rawDocJson');
+                    }}
+                    className="text-primary hover:underline text-[10px] font-bold flex items-center gap-1 cursor-pointer bg-transparent border-none p-0"
+                  >
+                    {copyFeedback['rawDocJson'] ? (
+                      <>
+                        <Check className="w-3 h-3 text-status-aligned stroke-[3]" />
+                        <span className="text-status-aligned font-bold">Copied Full JSON!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3" />
+                        <span>Copy Full Document JSON</span>
+                      </>
+                    )}
+                  </button>
                 </summary>
                 <div className="mt-3 p-3 bg-[#050505] border border-white/10 font-mono text-[10px] text-primary overflow-x-auto max-h-64">
                   <pre>{JSON.stringify(currentJob, null, 2)}</pre>

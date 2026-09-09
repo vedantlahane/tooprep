@@ -48,17 +48,31 @@ export async function createLlamaParseJob({ bytes, filename }, onProgress = null
  * Avoids a second paid parse call on job retry runs.
  */
 export async function getLlamaParseResult(providerJobId, onProgress = null) {
-  if (onProgress) onProgress({
-    step: 'llamaparse_poll',
-    message: `Waiting for LlamaParse job ${providerJobId} to complete (may take 1–3 min for complex exam papers)…`
-  });
+  const startTime = Date.now();
+  let pollTicker = null;
+  if (onProgress) {
+    pollTicker = setInterval(() => {
+      const elapsedSec = Math.round((Date.now() - startTime) / 1000);
+      onProgress({
+        step: 'llamaparse_heartbeat',
+        message: `LlamaParse OCR engine running (${elapsedSec}s elapsed)…`,
+        detail: { elapsed_seconds: elapsedSec, provider_job_id: providerJobId }
+      });
+    }, 6000);
+  }
 
-  const result = await client().parsing.waitForCompletion(
-    providerJobId,
-    { expand: ['text', 'markdown', 'items', 'usage'] },
-    { timeout: 15 * 60_000 } // 15 min max for long papers
-  );
+  let result;
+  try {
+    result = await client().parsing.waitForCompletion(
+      providerJobId,
+      { expand: ['text', 'markdown', 'items', 'usage'] },
+      { timeout: 15 * 60_000 } // 15 min max for long papers
+    );
+  } finally {
+    if (pollTicker) clearInterval(pollTicker);
+  }
 
+  const durationSec = Math.round((Date.now() - startTime) / 1000);
   const pages = (result.markdown?.pages || []).map(page => ({
     page_number: page.page_number,
     success: page.success,
@@ -68,12 +82,14 @@ export async function getLlamaParseResult(providerJobId, onProgress = null) {
 
   if (onProgress) onProgress({
     step: 'llamaparse_complete',
-    message: `LlamaParse complete: ${pages.filter(p => p.success).length}/${pages.length} pages parsed successfully.`,
+    message: `LlamaParse complete in ${durationSec}s: ${pages.filter(p => p.success).length}/${pages.length} pages parsed successfully.`,
     detail: {
       total_pages: pages.length,
       successful_pages: pages.filter(p => p.success).length,
+      duration_seconds: durationSec,
       usage: result.job?.usage
-    }
+    },
+    level: 'success'
   });
 
   return {

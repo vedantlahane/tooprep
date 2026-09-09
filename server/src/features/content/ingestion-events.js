@@ -39,11 +39,11 @@ class IngestionEventBus extends EventEmitter {
       timestamp: new Date().toISOString()
     };
 
-    // Maintain rolling buffer per job
+    // Maintain rolling buffer per job (retain up to 500 events)
     if (!this._buffer) this._buffer = new Map();
     const buf = this._buffer.get(jobId) || [];
     buf.push(event);
-    if (buf.length > 200) buf.shift();
+    if (buf.length > 500) buf.shift();
     this._buffer.set(jobId, buf);
 
     this.emit(`job:${jobId}`, event);
@@ -52,10 +52,10 @@ class IngestionEventBus extends EventEmitter {
   /**
    * Get recent event history for a job (for late-joining SSE clients).
    * @param {string} jobId
-   * @param {number} [maxEvents=50]
+   * @param {number} [maxEvents=200]
    * @returns {Array}
    */
-  getHistory(jobId, maxEvents = 50) {
+  getHistory(jobId, maxEvents = 200) {
     if (!this._buffer) return [];
     const buf = this._buffer.get(jobId) || [];
     return buf.slice(-maxEvents);

@@ -194,6 +194,17 @@ export async function processOneIngestionJob(workerId = `worker_${randomUUID()}`
       diagramMap = await extractPdfDiagrams(tempPdfPath);
       const diagCount = Object.keys(diagramMap).length;
 
+      // Emit detail for each extracted diagram
+      for (const [qNum, diagData] of Object.entries(diagramMap)) {
+        if (diagData.stem) {
+          emit(jobId, 'VALIDATING', 'diagram_uploaded',
+            `Diagram for Q.${qNum} uploaded to Supabase Storage CDN`,
+            { question_number: Number(qNum), diagram_url: diagData.stem, type: 'stem' },
+            'success'
+          );
+        }
+      }
+
       emit(jobId, 'VALIDATING', 'diagram_extract_done',
         `Diagram extraction complete: found ${diagCount} question(s) with diagrams.`,
         { questions_with_diagrams: diagCount, question_numbers: Object.keys(diagramMap).map(Number) },
@@ -229,7 +240,8 @@ export async function processOneIngestionJob(workerId = `worker_${randomUUID()}`
 
     emit(jobId, 'CLASSIFYING', 'extraction_done',
       `Extracted ${candidates.length} question candidates from exam paper.`,
-      { total_extracted: candidates.length, with_options: candidates.filter(c => c.has_options).length, with_diagrams: candidates.filter(c => c.has_diagram).length }
+      { total_extracted: candidates.length, with_options: candidates.filter(c => c.has_options).length, with_diagrams: candidates.filter(c => c.has_diagram).length },
+      'success'
     );
 
     // LLM-assisted re-classification for low-confidence questions
