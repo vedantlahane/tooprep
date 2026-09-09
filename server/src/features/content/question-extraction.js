@@ -419,8 +419,18 @@ export function extractQuestionCandidates(jobId, pages, allTopics = [], diagramM
     return 1;
   };
 
+  let currentSectionOffset = 0;
+  let prevQNum = 0;
+
   for (let i = 0; i < qMatches.length; i++) {
     const qNum = parseInt(qMatches[i][1], 10);
+    // Track multi-section papers where question numbering resets to 1 (e.g. Physics 1-30, Chem 1-30, Math 1-30)
+    if (qNum <= prevQNum && prevQNum >= 15) {
+      currentSectionOffset += prevQNum;
+    }
+    prevQNum = qNum;
+    const globalQNum = qNum + currentSectionOffset;
+
     const start = qMatches[i].index + qMatches[i][0].length;
     const end = i + 1 < qMatches.length ? qMatches[i + 1].index : fullQuestionsText.length;
     const rawText = fullQuestionsText.slice(start, end).trim();
@@ -431,7 +441,7 @@ export function extractQuestionCandidates(jobId, pages, allTopics = [], diagramM
     const answerKey = parsed.inlineAnswerKey || answerKeyMap[qNum] || solutionsMap[qNum]?.ansKey || 'A';
     const solutionText = parsed.inlineSolutionText || solutionsMap[qNum]?.text || null;
     const fullClassificationText = `${parsed.questionText || rawText} ${Object.values(parsed.options || {}).join(' ')} ${parsed.inlineChapter || ''}`;
-    const classification = classifyQuestion(qNum, fullClassificationText, allTopics);
+    const classification = classifyQuestion(globalQNum, fullClassificationText, allTopics);
     const suggestedChapter = parsed.inlineChapter || classification.chapter;
     const sourcePage = getPageNum(qMatches[i].index);
 
@@ -560,9 +570,11 @@ export function extractQuestionCandidates(jobId, pages, allTopics = [], diagramM
 
   // Step 5: Automatically link extracted diagrams and chemical structures
   if (diagramMap && typeof diagramMap === 'object' && Object.keys(diagramMap).length > 0) {
-    for (const c of candidates) {
+    for (let idx = 0; idx < candidates.length; idx++) {
+      const c = candidates[idx];
       const qNum = c.source_question_number;
-      const diag = diagramMap[qNum];
+      const globalQNum = idx + 1;
+      const diag = diagramMap[globalQNum] || diagramMap[qNum];
       if (!diag) continue;
 
       // 1. Inject Stem Diagram
