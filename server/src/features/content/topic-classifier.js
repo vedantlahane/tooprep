@@ -64,7 +64,9 @@ const KEYWORD_RULES = [
   { subject: 'Physics', chapter: 'Mechanical Properties of Solids and Fluids', topic: 'Elastic Moduli and Hooke\'s Law', keywords: ['cube of side 10 cm', 'shearing', 'shearing stress', 'faces of a cube', 'forces of 10^5', 'young\'s modulus', 'bulk modulus', 'modulus of rigidity'] },
 
   // Laws of Motion & Work Power Energy
-  { subject: 'Physics', chapter: 'Laws of Motion', topic: 'Friction', keywords: ['rough inclined plane', 'body of mass 2kg slides down', 'coefficient of kinetic friction', 'smooth 45', 'slide down', 'limiting friction'] },
+  { subject: 'Physics', chapter: 'Laws of Motion', topic: 'Friction', keywords: ['coefficient of friction', 'friction', 'rough inclined plane', 'body of mass 2kg slides down', 'coefficient of kinetic friction', 'coefficient of static friction', 'limiting friction', 'stop the motion', 'slides down', 'friction of horizontal surface', 'smooth surface'] },
+  { subject: 'Physics', chapter: 'Laws of Motion', topic: "Newton's Laws of Motion", keywords: ['newtons laws of motion', 'newton laws', 'laws of motion', 'inextensible string', 'frictionless pulley', 'pulley', 'masses m1', 'connected by an inextensible string', 'string over a pulley', 'tension in the string', 'acceleration of the system', 'free body diagram', 'fbd', 'action and reaction', 'normal reaction'] },
+  { subject: 'Physics', chapter: 'Laws of Motion', topic: 'Circular Motion Dynamics', keywords: ['centripetal force', 'centripetal acceleration', 'banking of roads', 'vertical circle', 'conical pendulum'] },
   { subject: 'Physics', chapter: 'Kinematics', topic: 'Motion in a Straight Line', keywords: ['location q on a straight highway', 'highway is moving with speed', 'reach a point p in a field', 'straight line'] },
   { subject: 'Physics', chapter: 'Kinematics', topic: 'Projectile and Relative Motion', keywords: ['projectile is thrown', 'horizontal range', 'angle of projection', 'relative velocity'] },
 
@@ -243,8 +245,44 @@ export function classifyQuestion(questionNumber, questionText, allTopics = []) {
     }
   }
 
-  // If no match found, do NOT blindly assign to the first topic of the subject (e.g. Kinematics).
-  // Return null topicId so admins or the AI agent can classify it accurately.
+  // Stage 4: Direct search across all curriculum topics in target subject
+  if (allTopics && allTopics.length > 0) {
+    const subjectTopics = allTopics.filter(t => (t.subject || '').toLowerCase() === targetSubject.toLowerCase());
+    let bestCandidate = null;
+    let maxScore = 0;
+
+    for (const t of subjectTopics) {
+      let score = 0;
+      const chapNorm = (t.chapter || '').toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
+      const topicNorm = (t.name || '').toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
+
+      if (chapNorm && textLower.includes(chapNorm)) score += 40;
+      if (topicNorm && textLower.includes(topicNorm)) score += 30;
+
+      // Check for partial keyword occurrences
+      const topicWords = topicNorm.split(' ').filter(w => w.length > 3);
+      for (const w of topicWords) {
+        if (textLower.includes(w)) score += 8;
+      }
+
+      if (score > maxScore) {
+        maxScore = score;
+        bestCandidate = t;
+      }
+    }
+
+    if (bestCandidate && maxScore >= 24) {
+      return {
+        subject: targetSubject,
+        chapter: bestCandidate.chapter,
+        topicName: bestCandidate.name,
+        topicId: bestCandidate.id,
+        confidence: maxScore >= 40 ? 'HIGH' : 'MEDIUM'
+      };
+    }
+  }
+
+  // If no match found, return null topicId so admins or the AI agent can classify it accurately.
   return {
     subject: targetSubject,
     chapter: null,
@@ -252,4 +290,34 @@ export function classifyQuestion(questionNumber, questionText, allTopics = []) {
     topicId: null,
     confidence: 'NONE'
   };
+}
+
+/**
+ * Infer difficulty level ('easy', 'medium', 'hard') based on exam provenance and problem complexity.
+ */
+export function inferDifficulty(questionText = '', examName = '') {
+  const text = (questionText || '').toLowerCase();
+  const exam = (examName || '').toLowerCase();
+
+  if (exam.includes('advanced') || text.includes('jee-advanced') || text.includes('jee advanced')) {
+    return 'hard';
+  }
+
+  const complexIndicators = [
+    '\\int', '\\oint', '\\frac{d^2', 'eigen', 'differential equation',
+    'three concentric', 'non-uniform magnetic field', 'variable mass'
+  ];
+  if (complexIndicators.some(ind => text.includes(ind))) {
+    return 'hard';
+  }
+
+  const easyIndicators = [
+    'dimensions of', 'unit of', 'ratio of', 'which of the following statement',
+    'identify the product', 'iupac name', 'formula for', 'definition of'
+  ];
+  if (easyIndicators.some(ind => text.includes(ind)) && text.length < 250) {
+    return 'easy';
+  }
+
+  return 'medium';
 }

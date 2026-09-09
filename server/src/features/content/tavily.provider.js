@@ -9,6 +9,8 @@
  */
 
 import { logger } from '../../platform/logger.js';
+import { supabaseAdmin } from '../../lib/supabase.js';
+import { classifyQuestion, inferDifficulty } from './topic-classifier.js';
 
 const TAVILY_API_URL = 'https://api.tavily.com/search';
 
@@ -198,6 +200,27 @@ export async function researchQuestionWithTavily({
     }
   }
 
+  // 4. Auto-classify curriculum topic and difficulty
+  let topicClassification = null;
+  try {
+    const { data: dbTopics } = await supabaseAdmin
+      .from('topics')
+      .select('id, name, chapter_id, chapters(name, subjects(name))');
+    if (dbTopics && dbTopics.length > 0) {
+      const allTopics = dbTopics.map(t => ({
+        id: t.id,
+        name: t.name,
+        chapter: t.chapters?.name,
+        subject: t.chapters?.subjects?.name
+      }));
+      topicClassification = classifyQuestion(0, `${cleanedText} ${answer || ''}`, allTopics);
+    }
+  } catch (tErr) {
+    logger.warn('tavily.classification.fallback', { error: tErr.message });
+  }
+
+  const inferredDiff = inferDifficulty(cleanedText, examInfo?.exam || '');
+
   return {
     cleaned_question_text: cleanedText,
     options: parsedOptions,
@@ -205,6 +228,11 @@ export async function researchQuestionWithTavily({
     solution_text: solutionDraft,
     exam_name: examInfo?.exam || null,
     exam_year: examInfo?.year || null,
+    suggested_topic_id: topicClassification?.topicId || null,
+    suggested_topic: topicClassification?.topicName || null,
+    suggested_chapter: topicClassification?.chapter || null,
+    subject: topicClassification?.subject || subject || null,
+    difficulty: inferredDiff,
     tavily_answer: answer,
     sources: sources.slice(0, 3),
     confidence: answer ? 'HIGH' : results.length > 0 ? 'MEDIUM' : 'LOW'

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { classifyQuestion } from './topic-classifier.js';
+import { classifyQuestion, inferDifficulty } from './topic-classifier.js';
 
 /**
  * Filter out exam cover-page instruction paragraphs and non-question boilerplate.
@@ -465,6 +465,8 @@ export function extractQuestionCandidates(jobId, pages, allTopics = [], diagramM
       has_options: parsed.hasOptions,
       has_solution: Boolean(solutionText),
       has_diagram: hasDiagram,
+      diagram_referenced: /\b(?:figure|circuit|diagram|titration plot|reactions are respectively)\b/i.test(rawText),
+      difficulty: inferDifficulty(parsed.questionText || rawText),
       classification_confidence: classification.confidence,
       extraction_method: 'STREAM_MATCH_WITH_SOLUTIONS_V4',
       status: 'REVIEW_REQUIRED'
@@ -527,6 +529,8 @@ export function extractQuestionCandidates(jobId, pages, allTopics = [], diagramM
           has_options: parsed.hasOptions,
           has_solution: Boolean(solutionText),
           has_diagram: hasDiagram,
+          diagram_referenced: /\b(?:figure|circuit|diagram|titration plot|reactions are respectively)\b/i.test(rawText),
+          difficulty: inferDifficulty(parsed.questionText || rawText),
           classification_confidence: classification.confidence,
           extraction_method: 'STRUCTURED_PAGE_FALLBACK_V4',
           status: 'REVIEW_REQUIRED'

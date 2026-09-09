@@ -46,8 +46,10 @@ import {
   ZoomOut,
   Tag,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  Edit3
 } from 'lucide-react';
+import QuestionEditModal from '@/features/questions/components/QuestionEditModal';
 import {
   loadPdfDocument,
   renderPdfPageToDataUrl,
@@ -859,6 +861,83 @@ function StudioPdfViewer({ jobId, pageNum, onNavigatePage, onDirectCrop, activeC
 }
 
 /**
+ * Automatically infer the best matching curriculum topic ID from syllabus hierarchy.
+ */
+function autoInferTopicId(candidate, groupedTopics) {
+  if (candidate.suggested_topic_id) return candidate.suggested_topic_id;
+  if (!groupedTopics || Object.keys(groupedTopics).length === 0) return '';
+
+  const subject = candidate.subject || 'Physics';
+  const topicsInSubject = groupedTopics[subject] || Object.values(groupedTopics).flat();
+  const textLower = (candidate.question_text || candidate.raw_text || '').toLowerCase();
+  const suggestedChapter = (candidate.suggested_chapter || '').toLowerCase();
+
+  let best = null;
+  let bestScore = 0;
+
+  for (const t of topicsInSubject) {
+    let score = 0;
+    const chapLower = (t.chapter || '').toLowerCase();
+    const nameLower = (t.name || '').toLowerCase();
+
+    // Direct chapter match from candidate extraction
+    if (suggestedChapter && (chapLower.includes(suggestedChapter) || suggestedChapter.includes(chapLower))) {
+      score += 40;
+    }
+    if (chapLower && textLower.includes(chapLower)) {
+      score += 30;
+    }
+    if (nameLower && textLower.includes(nameLower)) {
+      score += 35;
+    }
+
+    // High-priority physics / math / chem conceptual domain keywords
+    if (nameLower.includes('friction') && (textLower.includes('friction') || textLower.includes('coefficient'))) {
+      score += 55;
+    }
+    if (nameLower.includes('newton') && (textLower.includes('pulley') || textLower.includes('string') || textLower.includes('masses') || textLower.includes('newton') || textLower.includes('laws of motion'))) {
+      score += 50;
+    }
+    if (nameLower.includes('zener') && textLower.includes('zener')) {
+      score += 65;
+    }
+    if (nameLower.includes('logic gate') && (textLower.includes('nand') || textLower.includes('nor') || textLower.includes('truth table'))) {
+      score += 65;
+    }
+    if (nameLower.includes('de broglie') && textLower.includes('de broglie')) {
+      score += 65;
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      best = t;
+    }
+  }
+
+  if (best && bestScore >= 30) {
+    return best.id;
+  }
+  return '';
+}
+
+/**
+ * Automatically infer difficulty level ('easy', 'medium', 'hard')
+ */
+function autoInferDifficulty(candidate) {
+  if (candidate.difficulty && ['easy', 'medium', 'hard'].includes(candidate.difficulty.toLowerCase())) {
+    return candidate.difficulty.toLowerCase();
+  }
+  const text = (candidate.question_text || candidate.raw_text || '').toLowerCase();
+  if (text.includes('jee-advanced') || text.includes('jee advanced') || text.includes('level # 2') || text.includes('level # 3')) {
+    return 'hard';
+  }
+  if (text.includes('dimensions of') || text.includes('which of the following statement') || text.length < 180) {
+    return 'easy';
+  }
+  return 'medium';
+}
+
+/**
  * Main Question Candidate Verification Card Component
  */
 function CandidateCard({
@@ -935,8 +1014,17 @@ function CandidateCard({
   const [options, setOptions] = useState(initialParsed.options);
   const [solutionText, setSolutionText] = useState(initialParsed.solutionText);
   const [correctAnswer, setCorrectAnswer] = useState(initialParsed.correctAnswer);
-  const [difficulty, setDifficulty] = useState('medium');
-  const [topicId, setTopicId] = useState(candidate.suggested_topic_id || '');
+  const inferredTopicId = useMemo(() => {
+    return candidate.suggested_topic_id || autoInferTopicId(candidate, groupedTopics);
+  }, [candidate, groupedTopics]);
+
+  const inferredDifficulty = useMemo(() => {
+    return autoInferDifficulty(candidate);
+  }, [candidate]);
+
+  const [difficulty, setDifficulty] = useState(inferredDifficulty);
+  const [topicId, setTopicId] = useState(inferredTopicId);
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
   const [isExpanded, setIsExpanded] = useState(!isCompact);
   const [reason, setReason] = useState('');
@@ -966,11 +1054,57 @@ function CandidateCard({
   const isInstruction = useMemo(() => isInstructionSnippet(candidate.raw_text), [candidate.raw_text]);
   const primaryPage = candidate.source_pages?.[0] || 1;
 
+  const hasRenderedDiagram = useMemo(() => {
+    const inStem = (questionText || '').includes('![') || (questionText || '').includes('<img');
+    const inOpts = options.some(o => (o.text || '').includes('![') || (o.text || '').includes('<img'));
+    return inStem || inOpts;
+  }, [questionText, options]);
+
   useEffect(() => {
-    if (candidate.suggested_topic_id) {
-      setTopicId(candidate.suggested_topic_id);
+    if (inferredTopicId && !topicId) {
+      setTopicId(inferredTopicId);
     }
-  }, [candidate.suggested_topic_id]);
+  }, [inferredTopicId, topicId]);
+
+  useEffect(() => {
+    if (inferredDifficulty) {
+      setDifficulty(inferredDifficulty);
+    }
+  }, [inferredDifficulty]);
+
+  const candidateAsQuestion = useMemo(() => ({
+    id: candidate._id || candidate.candidate_key,
+    question_text: questionText,
+    options: options.reduce((acc, opt) => ({ ...acc, [opt.id]: opt.text }), {}),
+    correct_answer: correctAnswer,
+    solution_text: solutionText,
+    topic_id: topicId,
+    difficulty: difficulty,
+    source_type: 'PYQ',
+    exam_year: candidate.exam_year || 2024,
+    exam_name: candidate.exam_name || 'JEE Main'
+  }), [candidate, questionText, options, correctAnswer, solutionText, topicId, difficulty]);
+
+  const handleManualEditorSaved = (savedData) => {
+    if (!savedData) {
+      setEditModalOpen(false);
+      return;
+    }
+    if (savedData.question_text !== undefined) setQuestionText(savedData.question_text);
+    if (savedData.options) {
+      if (typeof savedData.options === 'object') {
+        setOptions(['A', 'B', 'C', 'D'].map(id => ({
+          id,
+          text: String(savedData.options[id] ?? savedData.options[id.toLowerCase()] ?? '')
+        })));
+      }
+    }
+    if (savedData.correct_answer) setCorrectAnswer(savedData.correct_answer);
+    if (savedData.solution_text !== undefined) setSolutionText(savedData.solution_text);
+    if (savedData.topic_id) setTopicId(savedData.topic_id);
+    if (savedData.difficulty) setDifficulty(savedData.difficulty);
+    setEditModalOpen(false);
+  };
 
   const handleApplyCroppedImage = (target, imageUrl) => {
     const cleanUrl = imageUrl.trim();
@@ -1019,6 +1153,12 @@ function CandidateCard({
       }
       if (result.solution_text) {
         setSolutionText(result.solution_text);
+      }
+      if (result.suggested_topic_id) {
+        setTopicId(result.suggested_topic_id);
+      }
+      if (result.difficulty) {
+        setDifficulty(result.difficulty);
       }
 
       const provStr = result.exam_name ? ` • ${result.exam_name} ${result.exam_year || ''}` : '';
@@ -1219,12 +1359,17 @@ function CandidateCard({
             </span>
           )}
 
-          {candidate.has_diagram && (
-            <span className="px-1.5 py-0.5 bg-status-weak/10 border border-status-weak/30 text-status-weak text-[11px] rounded-sm flex items-center gap-1 font-mono">
+          {hasRenderedDiagram ? (
+            <span className="px-1.5 py-0.5 bg-status-aligned/15 border border-status-aligned/40 text-status-aligned text-[11px] rounded-sm flex items-center gap-1 font-mono font-bold">
               <ImageIcon className="w-3 h-3" />
               <span>Diagram</span>
             </span>
-          )}
+          ) : (candidate.has_diagram || candidate.diagram_referenced) ? (
+            <span className="px-1.5 py-0.5 bg-amber-500/15 border border-amber-500/40 text-amber-300 text-[11px] rounded-sm flex items-center gap-1 font-mono font-semibold" title="Diagram referenced in problem text, but image not yet attached">
+              <AlertTriangle className="w-3 h-3 text-amber-400" />
+              <span>Diagram Missing</span>
+            </span>
+          ) : null}
 
           {candidate.status === 'PUBLISHED' && (
             <span className="px-2 py-0.5 bg-status-aligned/20 border border-status-aligned/40 text-status-aligned text-[11px] rounded-sm flex items-center gap-1 font-mono font-bold">
@@ -1263,6 +1408,16 @@ function CandidateCard({
               <span>Crop</span>
             </button>
           )}
+
+          <button
+            type="button"
+            onClick={() => setEditModalOpen(true)}
+            className="px-2 py-1 text-label-sm-mono uppercase tracking-widest border border-white/20 bg-white/5 hover:border-primary hover:text-white text-white/80 transition-colors rounded-sm flex items-center gap-1 text-[11px] font-bold cursor-pointer"
+            title="Open comprehensive manual question editor with math toolbar, side-by-side preview, and diagram manager"
+          >
+            <Edit3 className="w-3 h-3 text-primary" />
+            <span>Manual Editor</span>
+          </button>
 
           <button
             onClick={handleAutoCleanAndPolish}
@@ -1450,16 +1605,42 @@ function CandidateCard({
 
               {/* Solution / Explanation Text */}
               <div className="space-y-1">
-                <label className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest text-xs font-bold">
-                  Solution Derivation (Optional)
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-label-sm-mono text-on-surface-variant uppercase tracking-widest text-xs font-bold">
+                    Solution Derivation (LaTeX)
+                  </label>
+                  {!solutionText && (
+                    <button
+                      type="button"
+                      onClick={handleTavilyResearch}
+                      disabled={researching}
+                      className="text-[10px] font-mono text-amber-400 hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <Sparkles className="w-2.5 h-2.5" />
+                      <span>Fetch Solution with Tavily</span>
+                    </button>
+                  )}
+                </div>
                 <textarea
                   value={solutionText}
                   onChange={e => setSolutionText(e.target.value)}
-                  rows={2}
+                  rows={3}
                   className="w-full bg-surface-container border border-outline-variant p-2.5 text-on-surface rounded-sm font-mono text-xs outline-none focus:border-primary"
                   placeholder="Derivation / explanation steps (LaTeX)..."
                 />
+
+                {/* Live MathText Preview for Solution in Split Mode */}
+                {viewMode === 'split' && solutionText && (
+                  <div className="p-3 bg-surface-container/50 border border-outline-variant rounded-sm text-xs">
+                    <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest pb-1 border-b border-white/5 mb-1.5 flex items-center gap-1.5">
+                      <Sparkles className="w-3 h-3 text-primary" />
+                      <span>Live Solution Preview:</span>
+                    </div>
+                    <div className="text-white/90 leading-relaxed font-light">
+                      <MathText text={solutionText} />
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           ) : (
@@ -1485,6 +1666,32 @@ function CandidateCard({
                   </div>
                 ))}
               </div>
+
+              {/* Solution Derivation Preview */}
+              {solutionText ? (
+                <div className="mt-4 p-3.5 bg-white/[0.02] border border-primary/30 rounded-xs space-y-2">
+                  <div className="flex items-center gap-1.5 text-[11px] font-mono text-primary font-bold uppercase tracking-widest">
+                    <Sparkles className="w-3 h-3 text-primary" />
+                    <span>Step-by-Step LaTeX Derivation</span>
+                  </div>
+                  <div className="text-xs text-white/90 leading-relaxed font-light">
+                    <MathText text={solutionText} />
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-3 p-2.5 border border-dashed border-white/15 rounded-xs flex items-center justify-between text-xs font-mono text-white/40">
+                  <span>No solution attached yet.</span>
+                  <button
+                    type="button"
+                    onClick={handleTavilyResearch}
+                    disabled={researching}
+                    className="text-amber-400 hover:text-amber-300 flex items-center gap-1 text-[11px] uppercase tracking-wider cursor-pointer"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    <span>Research Solution</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -1572,6 +1779,17 @@ function CandidateCard({
             )}
           </div>
         </div>
+      )}
+
+      {/* Full Manual Question Editor Modal */}
+      {editModalOpen && (
+        <QuestionEditModal
+          isOpen={editModalOpen}
+          question={candidateAsQuestion}
+          initialTopicId={topicId}
+          onClose={() => setEditModalOpen(false)}
+          onSaved={handleManualEditorSaved}
+        />
       )}
     </article>
   );
