@@ -1,4 +1,6 @@
 import { contentService } from './content.service.js';
+import { ingestionEvents } from './ingestion-events.js';
+
 
 function sendError(res, req, error) {
   const statusCode = error.statusCode || 500;
@@ -165,5 +167,61 @@ export const contentController = {
       res.setHeader('Content-Disposition', `inline; filename="${req.params.jobId}.pdf"`);
       return res.send(buffer);
     } catch (error) { return sendError(res, req, error); }
+  },
+
+  /**
+   * SSE: Stream live pipeline progress events for a specific ingestion job.
+   * GET /admin/content/ingestion-jobs/:jobId/events
+   *
+   * - Sends any buffered events first (so late-connecting clients catch up)
+   * - Then subscribes to live events from ingestionEvents bus
+   * - Sends a keepalive comment every 15s to prevent proxy timeouts
+   * - Unsubscribes and closes on client disconnect
+   */
+  streamJobEvents(req, res) {
+    const { jobId } = req.params;
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no'); // Disable Nginx buffering
+    res.flushHeaders();
+
+    const sendEvent = (event) => {
+      try {
+        res.write(`data: ${JSON.stringify(event)}\n\n`);
+      } catch {}
+    };
+
+    // 1. Replay historical buffer for this job (last 50 events)
+    const history = ingestionEvents.getHistory(jobId, 50);
+    for (const ev of history) {
+      sendEvent(ev);
+    }
+
+    // 2. Send a connection-established sentinel event
+    sendEvent({
+      job_id: jobId,
+      stage: 'CONNECTED',
+      step: 'sse_connected',
+      message: `Connected to live event stream for job ${jobId}. ${history.length} historical event(s) replayed.`,
+      detail: { history_replayed: history.length },
+      level: 'info',
+      timestamp: new Date().toISOString()
+    });
+
+    // 3. Subscribe to live events
+    const unsubscribe = ingestionEvents.subscribe(jobId, sendEvent);
+
+    // 4. Keepalive ping every 15 seconds to prevent proxy timeouts
+    const keepalive = setInterval(() => {
+      try { res.write(': keepalive\n\n'); } catch { clearInterval(keepalive); }
+    }, 15_000);
+
+    // 5. Cleanup on disconnect
+    req.on('close', () => {
+      clearInterval(keepalive);
+      unsubscribe();
+    });
   }
 };

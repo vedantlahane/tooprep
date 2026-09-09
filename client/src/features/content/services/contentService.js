@@ -52,5 +52,34 @@ export const contentService = {
   transitionJob: (jobId, stage, reason) =>
     request('POST', `${base}/ingestion-jobs/${jobId}/transitions`, { stage, reason }),
   getSourcePdfUrl: (jobId) =>
-    `/api${base}/ingestion-jobs/${jobId}/pdf`
+    `/api${base}/ingestion-jobs/${jobId}/pdf`,
+
+  /**
+   * Subscribe to real-time pipeline progress events for a job using SSE.
+   * @param {string} jobId
+   * @param {(event: object) => void} onEvent - called with each parsed event object
+   * @param {(error: Event) => void} [onError] - optional error handler
+   * @returns {() => void} unsubscribe function — call it to close the connection
+   */
+  subscribeToJobEvents(jobId, onEvent, onError) {
+    // Use the API base path (same as other requests)
+    const url = `/api${base}/ingestion-jobs/${jobId}/events`;
+    const es = new EventSource(url, { withCredentials: true });
+
+    es.onmessage = (e) => {
+      try {
+        const event = JSON.parse(e.data);
+        onEvent(event);
+      } catch {
+        // Ignore malformed SSE frames
+      }
+    };
+
+    if (onError) {
+      es.onerror = onError;
+    }
+
+    return () => es.close();
+  }
 };
+

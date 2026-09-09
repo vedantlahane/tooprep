@@ -11,24 +11,59 @@ function getApiKey() {
 }
 
 function client() {
-  return new LlamaCloud({ apiKey: getApiKey(), maxRetries: 2, timeout: 60_000 });
+  return new LlamaCloud({ apiKey: getApiKey(), maxRetries: 2, timeout: 120_000 });
 }
 
-export async function createLlamaParseJob({ bytes, filename }) {
+/**
+ * Submit a PDF to LlamaParse for multimodal OCR parsing.
+ * Uses premium_speed tier + gpt-4o vision for best math/diagram extraction.
+ */
+export async function createLlamaParseJob({ bytes, filename }, onProgress = null) {
+  const tier = process.env.LLAMA_PARSE_TIER || 'premium_speed';
   const file = new File([bytes], filename, { type: 'application/pdf' });
-  return client().parsing.create({
-    tier: process.env.LLAMA_PARSE_TIER || 'cost_effective',
-    version: 'latest',
-    upload_file: file
+
+  if (onProgress) onProgress({
+    step: 'llamaparse_submit',
+    message: `Submitting "${filename}" to LlamaParse (${tier} tier) with GPT-4o vision…`
   });
+
+  const jobConfig = {
+    tier,
+    version: 'latest',
+    // Exam-paper-specific parsing hints for JEE format
+    parsing_instruction:
+      'This is a JEE (Joint Entrance Exam) Physics/Chemistry/Mathematics question paper. ' +
+      'Questions are numbered Q.1 through Q.90. Extract all mathematical equations as valid KaTeX LaTeX. ' +
+      'Preserve ALL options (A), (B), (C), (D). Each answer key is at the end in an ANSWERS section.',
+    extract_charts: true,
+    skip_diagonal_text: true,
+    continuous_mode: false,
+    upload_file: file
+  };
+
+  // Use GPT-4o multimodal if API key is available (best for chemistry diagrams)
+  if (process.env.OPENAI_API_KEY) {
+    jobConfig.vendor_multimodal_model_name = process.env.LLAMA_PARSE_MODEL || 'openai-gpt-4o';
+    jobConfig.vendor_multimodal_api_key = process.env.OPENAI_API_KEY;
+  }
+
+  return client().parsing.create(jobConfig);
 }
 
-/** Wait for an existing external job, avoiding a second paid parse on retry. */
-export async function getLlamaParseResult(providerJobId) {
+/**
+ * Wait for an existing external LlamaParse job to finish and return structured page data.
+ * Avoids a second paid parse call on job retry runs.
+ */
+export async function getLlamaParseResult(providerJobId, onProgress = null) {
+  if (onProgress) onProgress({
+    step: 'llamaparse_poll',
+    message: `Waiting for LlamaParse job ${providerJobId} to complete (may take 1–3 min for complex exam papers)…`
+  });
+
   const result = await client().parsing.waitForCompletion(
     providerJobId,
     { expand: ['text', 'markdown', 'items', 'usage'] },
-    { timeout: 10 * 60_000 }
+    { timeout: 15 * 60_000 } // 15 min max for long papers
   );
 
   const pages = (result.markdown?.pages || []).map(page => ({
@@ -37,6 +72,16 @@ export async function getLlamaParseResult(providerJobId) {
     markdown: page.success ? page.markdown : null,
     error: page.success ? null : page.error
   }));
+
+  if (onProgress) onProgress({
+    step: 'llamaparse_complete',
+    message: `LlamaParse complete: ${pages.filter(p => p.success).length}/${pages.length} pages parsed successfully.`,
+    detail: {
+      total_pages: pages.length,
+      successful_pages: pages.filter(p => p.success).length,
+      usage: result.job.usage
+    }
+  });
 
   return {
     provider: 'LLAMA_PARSE',

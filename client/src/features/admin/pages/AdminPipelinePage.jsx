@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { contentService } from '@/features/content/services/contentService';
@@ -184,6 +184,11 @@ export default function AdminPipelinePage() {
   const [pdfPageDataUrl, setPdfPageDataUrl] = useState('');
   const [renderingPdf, setRenderingPdf] = useState(false);
 
+  // ── Live SSE Activity Log ──────────────────────────────────────────────────
+  const [liveEvents, setLiveEvents] = useState([]); // array of SSE event objects
+  const [sseConnected, setSseConnected] = useState(false);
+  const liveLogRef = useRef(null);
+
   // 1. Fetch Ingestion Jobs
   const loadJobs = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoadingJobs(true);
@@ -264,6 +269,51 @@ export default function AdminPipelinePage() {
     }
   }, [selectedJobId, loadCandidates, setSearchParams]);
 
+  // ── SSE: Auto-subscribe to live pipeline events when job is active ──────────
+  useEffect(() => {
+    if (!selectedJobId) return;
+
+    // Clear old events when switching jobs
+    setLiveEvents([]);
+    setSseConnected(false);
+
+    const TERMINAL_STAGES = new Set(['AWAITING_REVIEW', 'COMPLETED', 'FAILED']);
+    const currentStage = (currentJob?.stage || '').toUpperCase();
+
+    // Only connect SSE while job is still processing (not terminal)
+    // Also connect for terminal stages so history shows
+    const unsubscribe = contentService.subscribeToJobEvents(
+      selectedJobId,
+      (event) => {
+        setLiveEvents(prev => {
+          const updated = [...prev, event];
+          return updated.slice(-200); // Keep last 200 events
+        });
+        if (event.step === 'sse_connected') setSseConnected(true);
+      },
+      () => { setSseConnected(false); }
+    );
+
+    return () => {
+      unsubscribe();
+      setSseConnected(false);
+    };
+  }, [selectedJobId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-scroll live log to bottom on new events
+  useEffect(() => {
+    if (liveLogRef.current && liveEvents.length > 0) {
+      liveLogRef.current.scrollTop = liveLogRef.current.scrollHeight;
+    }
+  }, [liveEvents]);
+
+  // Job Actions
+  const handleJobSelect = (jobId) => {
+    setSelectedJobId(jobId);
+    setPdfPageNum(1);
+    setPdfPageDataUrl('');
+  };
+
   // Selected Job Object
   const currentJob = useMemo(() => {
     return jobs.find(j => j.job_id === selectedJobId) || jobs[0] || null;
@@ -320,12 +370,7 @@ export default function AdminPipelinePage() {
     return candidates.filter(c => c.status === candidateFilter);
   }, [candidates, candidateFilter]);
 
-  // Job Actions
-  const handleJobSelect = (jobId) => {
-    setSelectedJobId(jobId);
-    setPdfPageNum(1);
-    setPdfPageDataUrl('');
-  };
+
 
   const handleJobRetry = async (jobId) => {
     setActionInProgress(prev => ({ ...prev, [jobId]: 'retrying' }));
@@ -1056,19 +1101,115 @@ export default function AdminPipelinePage() {
             </div>
           )}
 
-          {/* ─── TAB 2: SYSTEM EVENTS & AUDIT LOGS ─── */}
+          {/* ─── TAB 2: LIVE PIPELINE ACTIVITY LOG (SSE) ─── */}
           {activeCockpitTab === 'logs' && (
             <div className="space-y-4 animate-fade-in font-mono text-xs">
+
+              {/* Activity Log Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <Terminal className="w-4 h-4 text-primary" />
+                  <span className="text-white font-bold uppercase tracking-wider text-xs">Live Pipeline Activity Log</span>
+                  {sseConnected ? (
+                    <span className="flex items-center gap-1.5 px-2 py-0.5 bg-status-aligned/10 border border-status-aligned/30 text-status-aligned text-[10px] uppercase">
+                      <span className="w-1.5 h-1.5 rounded-full bg-status-aligned animate-ping" />
+                      <span>Live</span>
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1.5 px-2 py-0.5 bg-white/5 border border-white/10 text-white/40 text-[10px] uppercase">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white/30" />
+                      <span>Connecting…</span>
+                    </span>
+                  )}
+                  <span className="text-white/30 text-[10px]">{liveEvents.length} events</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setLiveEvents([])}
+                  className="text-[10px] text-white/30 hover:text-white/60 uppercase cursor-pointer"
+                >
+                  Clear
+                </button>
+              </div>
+
+              {/* Terminal-style Scrolling Log */}
+              <div
+                ref={liveLogRef}
+                className="bg-[#050810] border border-white/10 rounded-sm p-3 max-h-[420px] overflow-y-auto space-y-1 font-mono text-[11px] leading-relaxed"
+              >
+                {liveEvents.length === 0 ? (
+                  <div className="text-white/30 text-center py-8 space-y-2">
+                    <Activity className="w-6 h-6 mx-auto text-white/20" />
+                    <p>Waiting for pipeline activity…</p>
+                    <p className="text-[10px]">Events will stream here in real-time as the worker processes this job.</p>
+                  </div>
+                ) : (
+                  liveEvents.map((ev, i) => {
+                    const levelColors = {
+                      success: 'text-status-aligned',
+                      error:   'text-error',
+                      warn:    'text-status-weak',
+                      info:    'text-white/80'
+                    };
+                    const stageColors = {
+                      PARSING:         'bg-purple-900/40 text-purple-300 border-purple-700/40',
+                      STRUCTURING:     'bg-orange-900/40 text-orange-300 border-orange-700/40',
+                      VALIDATING:      'bg-blue-900/40 text-blue-300 border-blue-700/40',
+                      CLASSIFYING:     'bg-cyan-900/40 text-cyan-300 border-cyan-700/40',
+                      STORING:         'bg-teal-900/40 text-teal-300 border-teal-700/40',
+                      INDEXING:        'bg-indigo-900/40 text-indigo-300 border-indigo-700/40',
+                      AWAITING_REVIEW: 'bg-amber-900/40 text-amber-300 border-amber-700/40',
+                      CONNECTED:       'bg-primary/10 text-primary border-primary/30',
+                      WORKING:         'bg-white/5 text-white/60 border-white/10'
+                    };
+                    const stageBadgeCls = stageColors[ev.stage] || 'bg-white/5 text-white/50 border-white/10';
+                    const msgCls = levelColors[ev.level] || 'text-white/80';
+                    const time = new Date(ev.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+                    return (
+                      <div key={i} className="flex items-start gap-2 py-0.5 border-b border-white/[0.04] last:border-0">
+                        {/* Timestamp */}
+                        <span className="text-white/30 text-[10px] shrink-0 pt-px w-16">{time}</span>
+
+                        {/* Stage badge */}
+                        <span className={`text-[9px] px-1.5 py-0.5 border uppercase font-bold shrink-0 ${stageBadgeCls}`}>
+                          {ev.stage?.slice(0, 8)}
+                        </span>
+
+                        {/* Message */}
+                        <span className={`flex-1 ${msgCls}`}>
+                          {ev.level === 'success' && '✓ '}
+                          {ev.level === 'error'   && '✗ '}
+                          {ev.level === 'warn'    && '⚠ '}
+                          {ev.message}
+                        </span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Detail Drawer: last event with detail payload */}
+              {liveEvents.length > 0 && liveEvents[liveEvents.length - 1]?.detail && (
+                <details className="border border-white/10 bg-black p-3">
+                  <summary className="text-[10px] text-white/50 uppercase tracking-wider cursor-pointer hover:text-white/70">
+                    Last Event Detail Payload
+                  </summary>
+                  <pre className="mt-2 text-[10px] text-primary overflow-x-auto">
+                    {JSON.stringify(liveEvents[liveEvents.length - 1].detail, null, 2)}
+                  </pre>
+                </details>
+              )}
+
+              {/* Lifecycle Events (static from job record) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Event History */}
                 <div className="border border-white/10 bg-black p-4 space-y-3">
                   <div className="text-primary font-bold uppercase tracking-wider text-xs border-b border-white/10 pb-2 flex items-center gap-2">
                     <Clock className="w-3.5 h-3.5 text-primary" />
-                    <span>Lifecycle Event History</span>
+                    <span>Lifecycle State Transitions</span>
                   </div>
-
                   {currentJob.events && currentJob.events.length > 0 ? (
-                    <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                       {currentJob.events.map((ev, i) => (
                         <div key={i} className="p-2 border border-white/10 bg-white/[0.01] space-y-1">
                           <div className="flex items-center justify-between text-[10px]">
@@ -1084,44 +1225,36 @@ export default function AdminPipelinePage() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-white/40 italic">No events recorded yet.</p>
+                    <p className="text-white/40 italic">No state transitions recorded yet.</p>
                   )}
                 </div>
 
-                {/* Error & Diagnostic Telemetry */}
                 <div className="border border-white/10 bg-black p-4 space-y-3">
                   <div className="text-error font-bold uppercase tracking-wider text-xs border-b border-white/10 pb-2 flex items-center gap-2">
                     <AlertTriangle className="w-3.5 h-3.5 text-error" />
-                    <span>Error Log &amp; Exceptions</span>
+                    <span>Error Log</span>
                   </div>
-
                   {currentJob.errors && currentJob.errors.length > 0 ? (
-                    <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                       {currentJob.errors.map((errItem, i) => (
                         <div key={i} className="p-2.5 border border-error/30 bg-error/10 text-error space-y-1">
-                          <div className="flex items-center justify-between font-bold text-[11px]">
-                            <span>Stage: {errItem.stage || 'PROCESSING'}</span>
-                            <span className="text-[9px] text-error/80">{errItem.occurred_at || ''}</span>
-                          </div>
+                          <div className="font-bold text-[11px]">{errItem.code || 'ERROR'}</div>
                           <p className="text-[11px] leading-relaxed text-white/90">{errItem.message}</p>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="p-3 border border-status-aligned/30 bg-status-aligned/5 text-status-aligned text-xs space-y-1">
+                    <div className="p-3 border border-status-aligned/30 bg-status-aligned/5 text-status-aligned text-xs">
                       <div className="font-bold flex items-center gap-1.5">
-                        <CheckCircle2 className="w-4 h-4 text-status-aligned" />
+                        <CheckCircle2 className="w-4 h-4" />
                         <span>Zero Runtime Exceptions</span>
                       </div>
-                      <p className="text-white/60 text-[10px]">
-                        The job executed cleanly without fatal exceptions or timeout halts.
-                      </p>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Raw JSON Spec Drawer */}
+              {/* Raw JSON */}
               <details className="border border-white/10 bg-black p-4">
                 <summary className="text-xs font-mono uppercase tracking-wider text-white/70 hover:text-white cursor-pointer select-none">
                   Inspect Raw Ingestion Job Document (JSON)
@@ -1132,6 +1265,8 @@ export default function AdminPipelinePage() {
               </details>
             </div>
           )}
+
+
 
           {/* ─── TAB 3: SOURCE PDF VIEWER ─── */}
           {activeCockpitTab === 'pdf' && (

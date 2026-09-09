@@ -12,6 +12,11 @@ router.post('/images/upload', imageUpload.single('file'), contentController.uplo
 router.get('/ingestion-jobs/:jobId/pages/:pageNum/render', contentController.renderPdfPage);
 router.post('/ingestion-jobs/:jobId/pages/:pageNum/crop', contentController.cropPdfDiagram);
 
+// ── SSE: Live pipeline progress stream ──────────────────────────────────────
+// Client connects here and receives a real-time stream of pipeline events
+// for a specific ingestion job as it is being processed by content.worker.js.
+router.get('/ingestion-jobs/:jobId/events', contentController.streamJobEvents);
+
 router.post('/questions', contentController.createDraft);
 router.get('/questions/search', contentController.searchQuestions);
 router.get('/questions/:questionId', contentController.getDraft);
