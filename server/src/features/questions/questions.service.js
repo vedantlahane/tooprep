@@ -35,6 +35,8 @@ import { toStudentQuestion } from './question.dto.js';
 import { createQuestionId } from '../content/content.contracts.js';
 import { validateQuestionInput } from './question.validation.js';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export const questionsService = {
 
   /**
@@ -290,6 +292,50 @@ export const questionsService = {
       updatePayload.publication_status = updatePayload.verified ? 'PUBLISHED' : 'DRAFT';
     }
 
+    const isUuid = UUID_REGEX.test(id);
+    if (!isUuid) {
+      const db = await getMongoDb();
+      const candidateUpdates = {};
+      if (updatePayload.question_text !== undefined) candidateUpdates.question_text = updatePayload.question_text;
+      if (updatePayload.options !== undefined) candidateUpdates.options = updatePayload.options;
+      if (updatePayload.correct_answer !== undefined) candidateUpdates.correct_answer = updatePayload.correct_answer;
+      if (updatePayload.solution_text !== undefined) candidateUpdates.solution_text = updatePayload.solution_text;
+      if (updatePayload.topic_id !== undefined) candidateUpdates.suggested_topic_id = updatePayload.topic_id;
+      if (updatePayload.difficulty !== undefined) candidateUpdates.difficulty = updatePayload.difficulty;
+
+      let candidateResult = await db.collection('extracted_candidates').findOneAndUpdate(
+        { candidate_key: id },
+        { $set: { ...candidateUpdates, updated_at: new Date().toISOString() } },
+        { returnDocument: 'after' }
+      );
+
+      if (!candidateResult) {
+        try {
+          const { ObjectId } = await import('mongodb');
+          if (ObjectId.isValid(id)) {
+            candidateResult = await db.collection('extracted_candidates').findOneAndUpdate(
+              { _id: new ObjectId(id) },
+              { $set: { ...candidateUpdates, updated_at: new Date().toISOString() } },
+              { returnDocument: 'after' }
+            );
+          }
+        } catch {}
+      }
+
+      if (candidateResult) {
+        return {
+          id: candidateResult.candidate_key || String(candidateResult._id),
+          ...candidateResult,
+          ...updatePayload,
+          is_candidate: true
+        };
+      }
+
+      const notFound = new Error(`Question or candidate not found for ID: ${id}`);
+      notFound.statusCode = 404;
+      throw notFound;
+    }
+
     const { data, error } = await supabaseAdmin
       .from('questions')
       .update(updatePayload)
@@ -310,7 +356,7 @@ export const questionsService = {
    * Delete a question from the question bank (admin-only).
    * Cascades through attempts via DB foreign keys.
    *
-   * @param {string} id - Question UUID.
+   * @param {string} id - Question UUID or candidate key.
    * @returns {Promise<{ deleted: boolean, id: string }>}
    */
   async deleteQuestion(id) {
@@ -318,6 +364,21 @@ export const questionsService = {
       const err = new Error('Question ID is required');
       err.statusCode = 400;
       throw err;
+    }
+
+    const isUuid = UUID_REGEX.test(id);
+    if (!isUuid) {
+      const db = await getMongoDb();
+      let del = await db.collection('extracted_candidates').deleteOne({ candidate_key: id });
+      if (del.deletedCount === 0) {
+        try {
+          const { ObjectId } = await import('mongodb');
+          if (ObjectId.isValid(id)) {
+            del = await db.collection('extracted_candidates').deleteOne({ _id: new ObjectId(id) });
+          }
+        } catch {}
+      }
+      return { deleted: del.deletedCount > 0, id, is_candidate: true };
     }
 
     const { error } = await supabaseAdmin
