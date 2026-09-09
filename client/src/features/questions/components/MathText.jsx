@@ -1,7 +1,8 @@
-import { useMemo, useState, memo } from 'react';
+import { useMemo, useState, useEffect, memo } from 'react';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import 'katex/dist/contrib/mhchem';
+import MermaidRenderer from './MermaidRenderer';
 
 /**
  * Standard KaTeX macro definitions for chemistry, physics, and engineering notation.
@@ -318,6 +319,54 @@ function transformMarkdownLists(text) {
 }
 
 /**
+ * Splits raw question or solution text into markdown/math and fenced code/mermaid blocks.
+ */
+export function parseContentSegments(rawText) {
+  if (!rawText) return [];
+  const text = String(rawText);
+  const segments = [];
+  const codeBlockRegex = /```([a-zA-Z0-9_-]*)\r?\n([\s\S]*?)```/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = codeBlockRegex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      const prevContent = text.slice(lastIndex, match.index);
+      if (prevContent.length > 0) {
+        segments.push({ type: 'markdown_math', content: prevContent });
+      }
+    }
+
+    const lang = (match[1] || '').trim().toLowerCase();
+    const code = match[2].trim();
+
+    const isMermaid = lang === 'mermaid' ||
+      /^(?:graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|journey|gantt|pie|gitGraph)\b/i.test(code);
+
+    if (isMermaid) {
+      segments.push({ type: 'mermaid', code });
+    } else {
+      segments.push({ type: 'code', lang, code });
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < text.length) {
+    const tail = text.slice(lastIndex);
+    if (tail.length > 0) {
+      segments.push({ type: 'markdown_math', content: tail });
+    }
+  }
+
+  if (segments.length === 0 && text.length > 0) {
+    segments.push({ type: 'markdown_math', content: text });
+  }
+
+  return segments;
+}
+
+/**
  * Parses LaTeX equations ($...$, $$...$$, \(...\), \[...\]), light markdown (tables, lists, bold, italic),
  * and question images into safe, high-performance HTML rendered with KaTeX.
  */
@@ -326,12 +375,29 @@ export function renderLatex(text) {
 
   const imagePlaceholders = [];
   const mathPlaceholders = [];
+  const codePlaceholders = [];
   const imgPrefix = '@@@IMG_PH_';
   const mathPrefix = '@@@KATEX_PH_';
+  const codePrefix = '@@@CODE_PH_';
 
   let processed = String(text);
 
-  // 1. EXTRACT ALL IMAGES FIRST (Markdown and HTML) to protect URLs from LaTeX parser
+  // 0. EXTRACT FENCED CODE BLOCKS FIRST to protect them from math, backticks, and <br/> replacements
+  processed = processed.replace(/```([a-zA-Z0-9_-]*)\r?\n([\s\S]*?)```/g, (_, lang, code) => {
+    const id = `${codePrefix}${codePlaceholders.length}@@@`;
+    const cleanLang = (lang || '').trim().toLowerCase();
+    const cleanCode = code.trim();
+    const isMermaid = cleanLang === 'mermaid' || /^(?:graph|flowchart|sequenceDiagram)\b/i.test(cleanCode);
+
+    const html = isMermaid
+      ? `<div class="mermaid-diagram-container my-3 p-3 bg-black/60 border border-primary/40 rounded font-mono text-xs text-primary overflow-x-auto"><span class="text-[10px] text-white/50 uppercase block pb-1 border-b border-white/10 mb-2">Mermaid Diagram</span><pre class="whitespace-pre">${cleanCode}</pre></div>`
+      : `<pre class="my-2.5 p-3 bg-black/70 border border-outline-variant rounded font-mono text-xs text-primary overflow-x-auto select-text"><code class="language-${cleanLang}">${cleanCode}</code></pre>`;
+
+    codePlaceholders.push({ id, html });
+    return id;
+  });
+
+  // 1. EXTRACT ALL IMAGES (Markdown and HTML) to protect URLs from LaTeX parser
   processed = processed.replace(/!\[(.*?)\]\((.*?)\)/g, (_, alt, src) => {
     const id = `${imgPrefix}${imagePlaceholders.length}@@@`;
     imagePlaceholders.push({ id, html: renderImageTag(src, alt) });
@@ -363,8 +429,8 @@ export function renderLatex(text) {
   });
 
   // 4. Inline math $...$
-  // BUG 12 FIX: Use [^\n$]+ to prevent matching across newlines (which corrupts multi-paragraph text).
-  // BUG 13 FIX: Use (?!\$) negative lookahead/lookbehind to prevent re-matching $$...$$ placeholders.
+  // Use [^\n$]+ to prevent matching across newlines (which corrupts multi-paragraph text).
+  // Use (?!\$) negative lookahead/lookbehind to prevent re-matching $$...$$ placeholders.
   processed = processed.replace(/\$(?!\$)([^\n$]+?)\$(?!\$)/g, (_, math) => {
     const id = `${mathPrefix}${mathPlaceholders.length}@@@`;
     const html = renderMathRobust(math, false);
@@ -384,7 +450,7 @@ export function renderLatex(text) {
   const strippedOfLatex = processed.replace(/\\[a-zA-Z]+/g, '').replace(/@@@[A-Z0-9_]+@@@/g, '');
   const hasProseWords = /[a-zA-Z]{3,}\s+[a-zA-Z]{3,}/.test(strippedOfLatex);
 
-  if (!hasProseWords && mathPlaceholders.length === 0 && imagePlaceholders.length === 0) {
+  if (!hasProseWords && mathPlaceholders.length === 0 && imagePlaceholders.length === 0 && codePlaceholders.length === 0) {
     // If text contains NO natural language words and has math characters, try whole-string math
     if (/[\^_{}\\]|[-+=/0-9]/.test(processed.trim())) {
       const testMath = renderMathRobust(processed.trim(), false);
@@ -424,6 +490,11 @@ export function renderLatex(text) {
     processed = processed.replace(item.id, item.html);
   }
 
+  // 11. Restore Code block placeholders
+  for (const item of codePlaceholders) {
+    processed = processed.replace(item.id, item.html);
+  }
+
   return processed;
 }
 
@@ -452,13 +523,16 @@ export function getCachedLatexHtml(rawText) {
 function MathTextComponent({ text, className = '' }) {
   const [zoomImg, setZoomImg] = useState(null);
 
-  const html = useMemo(() => {
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       window.__tooprep_open_image_zoom = (src, alt) => {
         setZoomImg({ src, alt });
       };
     }
-    return getCachedLatexHtml(text);
+  }, []);
+
+  const segments = useMemo(() => {
+    return parseContentSegments(text);
   }, [text]);
 
   const handleContainerClick = (e) => {
@@ -469,12 +543,37 @@ function MathTextComponent({ text, className = '' }) {
   };
 
   return (
-    <>
-      <span
-        onClick={handleContainerClick}
-        className={`math-rendered-content leading-relaxed inline-block max-w-full overflow-x-auto align-baseline break-words ${className}`}
-        dangerouslySetInnerHTML={{ __html: html }}
-      />
+    <div onClick={handleContainerClick} className={`math-rendered-root max-w-full overflow-x-auto leading-relaxed ${className}`}>
+      {segments.map((seg, idx) => {
+        if (seg.type === 'mermaid') {
+          return (
+            <MermaidRenderer
+              key={idx}
+              code={seg.code}
+              title="Physics Schematic Diagram"
+            />
+          );
+        }
+
+        if (seg.type === 'code') {
+          return (
+            <pre
+              key={idx}
+              className="my-2.5 p-3 bg-black/70 border border-outline-variant rounded font-mono text-xs text-primary overflow-x-auto select-text"
+            >
+              <code>{seg.code}</code>
+            </pre>
+          );
+        }
+
+        return (
+          <span
+            key={idx}
+            className="math-rendered-content inline-block max-w-full overflow-x-auto align-baseline break-words"
+            dangerouslySetInnerHTML={{ __html: getCachedLatexHtml(seg.content) }}
+          />
+        );
+      })}
 
       {/* Diagram Zoom Modal */}
       {zoomImg && (
@@ -492,7 +591,7 @@ function MathTextComponent({ text, className = '' }) {
               </span>
               <button
                 onClick={() => setZoomImg(null)}
-                className="text-on-surface-variant hover:text-on-surface font-mono text-sm px-2 py-1"
+                className="text-on-surface-variant hover:text-on-surface font-mono text-sm px-2 py-1 cursor-pointer"
               >
                 ✕ Close
               </button>
@@ -510,9 +609,10 @@ function MathTextComponent({ text, className = '' }) {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
 
 const MathText = memo(MathTextComponent);
 export default MathText;
+

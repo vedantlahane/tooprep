@@ -869,7 +869,7 @@ function autoInferTopicId(candidate, groupedTopics) {
 
   const subject = candidate.subject || 'Physics';
   const topicsInSubject = groupedTopics[subject] || Object.values(groupedTopics).flat();
-  const textLower = (candidate.question_text || candidate.raw_text || '').toLowerCase();
+  const textLower = `${candidate.question_text || ''} ${candidate.raw_text || ''} ${candidate.solution_text || ''}`.toLowerCase();
   const suggestedChapter = (candidate.suggested_chapter || '').toLowerCase();
 
   let best = null;
@@ -882,30 +882,107 @@ function autoInferTopicId(candidate, groupedTopics) {
 
     // Direct chapter match from candidate extraction
     if (suggestedChapter && (chapLower.includes(suggestedChapter) || suggestedChapter.includes(chapLower))) {
-      score += 40;
+      score += 45;
     }
     if (chapLower && textLower.includes(chapLower)) {
       score += 30;
     }
     if (nameLower && textLower.includes(nameLower)) {
-      score += 35;
+      score += 40;
     }
 
-    // High-priority physics / math / chem conceptual domain keywords
-    if (nameLower.includes('friction') && (textLower.includes('friction') || textLower.includes('coefficient'))) {
-      score += 55;
+    // High-priority physics domain concept rules
+    if (nameLower.includes('lens') || nameLower.includes('refract') || nameLower.includes('ray optics') || nameLower.includes('optical') || chapLower.includes('optics')) {
+      if (/lens|convex|concave|refractive|prism|mirror|focal length|magnification|glass block|slab|optical setup/i.test(textLower)) {
+        score += 80;
+        if (nameLower.includes('lens') && /lens|convex|concave/i.test(textLower)) score += 60;
+        if (nameLower.includes('prism') && /prism|dispersion/i.test(textLower)) score += 60;
+        if (nameLower.includes('mirror') && /mirror/i.test(textLower)) score += 60;
+        if (nameLower.includes('refraction') && /refraction|snell|tir|critical angle/i.test(textLower)) score += 60;
+      }
     }
-    if (nameLower.includes('newton') && (textLower.includes('pulley') || textLower.includes('string') || textLower.includes('masses') || textLower.includes('newton') || textLower.includes('laws of motion'))) {
-      score += 50;
+    if (nameLower.includes('friction')) {
+      if (/friction|coefficient of friction|rough surface|stopping motion/i.test(textLower)) score += 85;
     }
-    if (nameLower.includes('zener') && textLower.includes('zener')) {
-      score += 65;
+    if (nameLower.includes('laws of motion') || nameLower.includes('newton')) {
+      if (/pulley|string|tension|masses|free body|equilibrium|block/i.test(textLower)) score += 70;
     }
-    if (nameLower.includes('logic gate') && (textLower.includes('nand') || textLower.includes('nor') || textLower.includes('truth table'))) {
-      score += 65;
+    if (nameLower.includes('nuclear') || nameLower.includes('radioactivity') || chapLower.includes('nuclei')) {
+      if (/radioactive|half-life|half life|activity|decay|curie|mci|becquerel|alpha decay|beta decay/i.test(textLower)) score += 70;
     }
-    if (nameLower.includes('de broglie') && textLower.includes('de broglie')) {
-      score += 65;
+    if (nameLower.includes('atom') || nameLower.includes('bohr') || nameLower.includes('photoelectric')) {
+      if (/photoelectric|work function|hydrogen spectrum|de broglie|bohr radius|stopping potential/i.test(textLower)) score += 65;
+    }
+    if (nameLower.includes('semiconductor') || nameLower.includes('diode') || nameLower.includes('electronic devices')) {
+      if (/zener|diode|p-n junction|breakdown|forward bias|reverse bias|logic gate|nand|nor/i.test(textLower)) score += 70;
+    }
+    if (nameLower.includes('current electricity') || nameLower.includes('electrical')) {
+      if (/resistor|resistance|ohm|kirchhoff|wheatstone|potentiometer|meter bridge|drift velocity|emf/i.test(textLower)) score += 60;
+    }
+    if (nameLower.includes('electrostat') || nameLower.includes('capacit') || nameLower.includes('charge')) {
+      if (/capacitor|capacitance|dielectric|electric field|potential|flux|gauss|coulomb/i.test(textLower)) score += 60;
+    }
+    if (nameLower.includes('magnetic') || nameLower.includes('magnetism')) {
+      if (/magnetic field|biot-savart|solenoid|lorentz|cyclotron|ampere's circuital/i.test(textLower)) score += 60;
+    }
+    if (nameLower.includes('electromagnetic induction') || nameLower.includes('alternating current')) {
+      if (/faraday|lenz|induced emf|self induction|mutual induction|ac circuit|impedance|lcr/i.test(textLower)) score += 65;
+    }
+    if (nameLower.includes('rotational') || nameLower.includes('rolling')) {
+      if (/moment of inertia|torque|angular momentum|rolling|angular velocity|radius of gyration/i.test(textLower)) score += 60;
+    }
+    if (nameLower.includes('work') || nameLower.includes('energy') || nameLower.includes('power')) {
+      if (/kinetic energy|potential energy|conservative force|work done|spring constant/i.test(textLower)) score += 55;
+    }
+    if (nameLower.includes('kinematics') || nameLower.includes('motion in a straight line') || nameLower.includes('motion in a plane')) {
+      if (/velocity|acceleration|projectile|speed|distance|displacement|trajectory/i.test(textLower)) score += 55;
+    }
+    if (nameLower.includes('gravitat')) {
+      if (/gravitational|escape velocity|orbital velocity|satellite|kepler/i.test(textLower)) score += 65;
+    }
+    if (nameLower.includes('thermodynamic') || nameLower.includes('kinetic theory')) {
+      if (/carnot|isothermal|adiabatic|isobaric|specific heat|entropy|ideal gas|rms speed/i.test(textLower)) score += 60;
+    }
+
+    // High-priority chemistry domain concept rules
+    if (nameLower.includes('organic') || nameLower.includes('hydrocarbon') || nameLower.includes('acid') || chapLower.includes('organic')) {
+      if (/acidic strength|ewg|inductive effect|resonance|carbocation|carbanion|hyperconjugation|electrophile|nucleophile/i.test(textLower)) score += 65;
+      if (/haloalkane|alcohol|phenol|ether|aldehyde|ketone|carboxylic|amine/i.test(textLower)) score += 60;
+    }
+    if (nameLower.includes('coordination') || nameLower.includes('d- and f-') || chapLower.includes('inorganic')) {
+      if (/ligand|complex|crystal field|cft|isomers|oxidation state|chelate/i.test(textLower)) score += 65;
+    }
+    if (nameLower.includes('chemical bonding') || nameLower.includes('molecular structure')) {
+      if (/hybridization|vsepr|dipole moment|bond order|molecular orbital|mot/i.test(textLower)) score += 65;
+    }
+    if (nameLower.includes('equilibrium') || nameLower.includes('thermodynamics')) {
+      if (/equilibrium constant|le chatelier|ph|solubility product|ksp|buffer/i.test(textLower)) score += 65;
+    }
+    if (nameLower.includes('electrochemistry') || nameLower.includes('redox')) {
+      if (/nernst|electrode potential|galvanic|faraday's laws|conductance/i.test(textLower)) score += 65;
+    }
+
+    // High-priority mathematics domain concept rules
+    if (nameLower.includes('derivative') || nameLower.includes('maxima') || nameLower.includes('application of derivatives')) {
+      if (/maximum volume|minimum|dv\/dh|dy\/dx|slant height|tangent|normal|rate of change/i.test(textLower)) score += 70;
+    }
+    if (nameLower.includes('integral') || nameLower.includes('area under')) {
+      if (/integral|integrating|definite integral|area bounded|dx|dy/i.test(textLower)) score += 65;
+    }
+    if (nameLower.includes('differential equation')) {
+      if (/differential equation|dy\/dx|integrating factor|order and degree/i.test(textLower)) score += 70;
+    }
+    if (nameLower.includes('matrix') || nameLower.includes('determinant')) {
+      if (/matrix|determinant|eigen|trace|adjoint|non-singular|cramer/i.test(textLower)) score += 70;
+    }
+    if (nameLower.includes('vector') || nameLower.includes('three dimensional') || nameLower.includes('3d')) {
+      if (/dot product|cross product|coplanar|direction cosines|line and plane/i.test(textLower)) score += 70;
+    }
+    if (nameLower.includes('circle') || nameLower.includes('parabola') || nameLower.includes('ellipse') || nameLower.includes('hyperbola') || chapLower.includes('conic')) {
+      if (/tangent|eccentricity|focus|directrix|latus rectum|circle equation/i.test(textLower)) score += 65;
+    }
+    if (nameLower.includes('probability') || nameLower.includes('permutation') || nameLower.includes('combination')) {
+      if (/probability|bayes|random variable|binomial distribution|permutations|combinations/i.test(textLower)) score += 70;
     }
 
     if (score > bestScore) {
@@ -917,6 +994,16 @@ function autoInferTopicId(candidate, groupedTopics) {
   if (best && bestScore >= 30) {
     return best.id;
   }
+
+  // Fallback: If chapter matched closely, pick first topic in that chapter
+  if (suggestedChapter) {
+    const fallbackTopic = topicsInSubject.find(t =>
+      (t.chapter || '').toLowerCase().includes(suggestedChapter) ||
+      suggestedChapter.includes((t.chapter || '').toLowerCase())
+    );
+    if (fallbackTopic) return fallbackTopic.id;
+  }
+
   return '';
 }
 
@@ -927,15 +1014,16 @@ function autoInferDifficulty(candidate) {
   if (candidate.difficulty && ['easy', 'medium', 'hard'].includes(candidate.difficulty.toLowerCase())) {
     return candidate.difficulty.toLowerCase();
   }
-  const text = (candidate.question_text || candidate.raw_text || '').toLowerCase();
-  if (text.includes('jee-advanced') || text.includes('jee advanced') || text.includes('level # 2') || text.includes('level # 3')) {
+  const text = `${candidate.question_text || ''} ${candidate.raw_text || ''} ${candidate.solution_text || ''}`.toLowerCase();
+  if (text.includes('jee-advanced') || text.includes('jee advanced') || text.includes('level # 2') || text.includes('level # 3') || text.includes('multiple correct') || text.length > 550) {
     return 'hard';
   }
-  if (text.includes('dimensions of') || text.includes('which of the following statement') || text.length < 180) {
+  if (text.includes('dimensions of') || text.includes('which of the following statement') || text.includes('unit of') || text.length < 140) {
     return 'easy';
   }
   return 'medium';
 }
+
 
 /**
  * Main Question Candidate Verification Card Component
@@ -1060,17 +1148,28 @@ function CandidateCard({
     return inStem || inOpts;
   }, [questionText, options]);
 
+  const hasMermaidDiagram = useMemo(() => {
+    const textToCheck = `${questionText || ''} ${solutionText || ''} ${candidate.solution_text || ''} ${candidate.raw_text || ''}`;
+    return textToCheck.includes('```mermaid') || /\bgraph\s+(?:LR|TD|TB|RL)\b/i.test(textToCheck);
+  }, [questionText, solutionText, candidate]);
+
+  const stemExplicitlyNeedsDiagram = useMemo(() => {
+    const stemOnly = `${questionText || ''} ${candidate.question_text || ''}`.toLowerCase();
+    return /\b(?:shown in (?:the )?(?:figure|diagram|circuit)|given (?:in the )?(?:figure|diagram|circuit|graph)|as per (?:the )?(?:figure|diagram)|in the given circuit|circuit shown|graph below|plot below|as shown in)\b/i.test(stemOnly);
+  }, [questionText, candidate.question_text]);
+
   useEffect(() => {
-    if (inferredTopicId && !topicId) {
+    if (inferredTopicId && (!topicId || topicId === '')) {
       setTopicId(inferredTopicId);
     }
   }, [inferredTopicId, topicId]);
 
   useEffect(() => {
-    if (inferredDifficulty) {
+    if (inferredDifficulty && (!difficulty || difficulty === 'medium')) {
       setDifficulty(inferredDifficulty);
     }
-  }, [inferredDifficulty]);
+  }, [inferredDifficulty, difficulty]);
+
 
   const candidateAsQuestion = useMemo(() => ({
     id: candidate._id || candidate.candidate_key,
@@ -1364,7 +1463,12 @@ function CandidateCard({
               <ImageIcon className="w-3 h-3" />
               <span>Diagram</span>
             </span>
-          ) : (candidate.has_diagram || candidate.diagram_referenced) ? (
+          ) : hasMermaidDiagram ? (
+            <span className="px-1.5 py-0.5 bg-sky-500/15 border border-sky-500/40 text-sky-300 text-[11px] rounded-sm flex items-center gap-1 font-mono font-bold" title="Vector schematic diagram rendered dynamically with Mermaid">
+              <Sparkles className="w-3 h-3 text-sky-400" />
+              <span>Mermaid Diagram</span>
+            </span>
+          ) : stemExplicitlyNeedsDiagram ? (
             <span className="px-1.5 py-0.5 bg-amber-500/15 border border-amber-500/40 text-amber-300 text-[11px] rounded-sm flex items-center gap-1 font-mono font-semibold" title="Diagram referenced in problem text, but image not yet attached">
               <AlertTriangle className="w-3 h-3 text-amber-400" />
               <span>Diagram Missing</span>
@@ -1817,6 +1921,7 @@ export default function ContentAdminPage() {
   const [bulkTopicModalOpen, setBulkTopicModalOpen] = useState(false);
   const [bulkTargetTopicId, setBulkTargetTopicId] = useState('');
   const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [autoMapping, setAutoMapping] = useState(false);
 
   // Responsive Sidebar Toggle
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -1996,6 +2101,56 @@ export default function ContentAdminPage() {
       alert('Bulk assign error: ' + err.message);
     } finally {
       setBulkProcessing(false);
+    }
+  };
+
+  const handleAutoMapAllCandidates = async () => {
+    if (!selectedJob || candidates.length === 0) return;
+    setAutoMapping(true);
+    try {
+      const topicBuckets = {};
+      let mappedCount = 0;
+
+      for (const c of candidates) {
+        const inferredTopicId = autoInferTopicId(c, groupedTopics);
+        if (inferredTopicId && inferredTopicId !== c.suggested_topic_id) {
+          if (!topicBuckets[inferredTopicId]) {
+            const topicObj = topics.find(t => t.id === inferredTopicId);
+            topicBuckets[inferredTopicId] = {
+              keys: [],
+              meta: topicObj ? {
+                topic: topicObj.name,
+                chapter: topicObj.chapter,
+                subject: topicObj.subject
+              } : {}
+            };
+          }
+          topicBuckets[inferredTopicId].keys.push(c.candidate_key);
+          mappedCount++;
+        }
+      }
+
+      const totalBuckets = Object.keys(topicBuckets).length;
+      if (totalBuckets === 0) {
+        alert('All questions in this paper already have curriculum syllabus topics assigned!');
+        return;
+      }
+
+      for (const [tId, data] of Object.entries(topicBuckets)) {
+        await contentService.bulkAssignTopic(
+          selectedJob.job_id,
+          data.keys,
+          tId,
+          data.meta
+        );
+      }
+
+      await chooseJob(selectedJob);
+      alert(`AI Auto-Map Complete: Successfully mapped ${mappedCount} questions across ${totalBuckets} syllabus topics!`);
+    } catch (err) {
+      alert('AI Auto-Map failed: ' + err.message);
+    } finally {
+      setAutoMapping(false);
     }
   };
 
@@ -2499,6 +2654,18 @@ export default function ContentAdminPage() {
             </select>
           ) : (
             <span className="text-white/40 italic">No papers ingested yet.</span>
+          )}
+
+          {selectedJob && (
+            <button
+              onClick={handleAutoMapAllCandidates}
+              disabled={autoMapping || candidates.length === 0}
+              className="px-2.5 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/40 hover:border-primary text-xs font-mono font-bold uppercase rounded-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 ml-1"
+              title="Auto-classify all unmapped questions in this paper into syllabus curriculum topics using AI concept rules"
+            >
+              <Sparkles className={`w-3.5 h-3.5 ${autoMapping ? 'animate-spin' : ''}`} />
+              <span>{autoMapping ? 'Auto-Mapping...' : 'AI Auto-Map Syllabus'}</span>
+            </button>
           )}
         </div>
 
