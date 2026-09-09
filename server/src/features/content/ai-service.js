@@ -264,7 +264,8 @@ export async function classifyQuestionCurriculum({ questionText, topicList, subj
 }
 
 /**
- * Perform deep STEM reasoning to solve, verify, and generate an immaculate JEE solution in KaTeX.
+ * Perform deep STEM reasoning to solve, verify, and generate an immaculate JEE solution in KaTeX,
+ * with detailed thinking process and conversational refinement support.
  */
 export async function solveAndDeriveQuestion({
   questionText,
@@ -272,21 +273,34 @@ export async function solveAndDeriveQuestion({
   currentAnswer = '',
   currentSolution = '',
   webContext = '',
-  subject = ''
+  subject = '',
+  userInstruction = '',
+  conversationHistory = []
 }) {
+  const isRefinement = Boolean(userInstruction && userInstruction.trim());
+
   const systemPrompt =
-    'You are a senior JEE Physics, Chemistry, and Mathematics master educator and examiner.\n' +
+    'You are a senior JEE Physics, Chemistry, and Mathematics master educator, examiner, and curriculum specialist.\n' +
     'Your task is to VERIFY, SOLVE, AND REPAIR this JEE question and produce an immaculate, publication-grade entry:\n' +
-    '1. QUESTION STEM: Standardize all math, variables, and units into valid KaTeX ($...$). Preserve any problem figure image markdown (e.g. ![Figure](...)).\n' +
-    '2. OPTIONS: Ensure all options A, B, C, D have standard KaTeX formatting with units ($45^\\circ\\text{C}$, etc.).\n' +
-    '3. VERIFICATION & SOLVING: Solve the problem independently from first principles. Verify which option key (A, B, C, or D) is mathematically correct. Ensure correct_answer matches the derived answer exactly.\n' +
-    '4. SOLUTION DERIVATION:\n' +
+    '1. THINKING PROCESS & REASONING:\n' +
+    '   - Provide a comprehensive, transparent "thinking_process" explaining your conceptual breakdown, the fundamental physics/chemistry/math principles, detailed step-by-step calculation check, and verification of all 4 options (why one is uniquely correct and why others are false).\n' +
+    (isRefinement
+      ? '   - The administrator has provided specific feedback or requested a correction. Explicitly evaluate this feedback in your thinking_process, identify what needed fixing, and describe how your calculations and answer have been revised.\n'
+      : '') +
+    '2. CONVERSATIONAL REPLY:\n' +
+    '   - In "reply_message", provide a concise, direct, and respectful summary to the administrator explaining your findings or the adjustments made.\n' +
+    '3. QUESTION STEM: Standardize all math, variables, and units into valid KaTeX ($...$). Preserve any problem figure image markdown (e.g. ![Figure](...)).\n' +
+    '4. OPTIONS: Ensure all options A, B, C, D have standard KaTeX formatting with units ($45^\\circ\\text{C}$, etc.).\n' +
+    '5. VERIFICATION & SOLVING: Solve the problem independently from first principles. Verify which option key (A, B, C, or D) is mathematically correct. Ensure correct_answer matches the derived answer exactly.\n' +
+    '6. SOLUTION DERIVATION:\n' +
     '   - Provide a complete, rigorous, step-by-step KaTeX derivation ($...$ inline, $$...$$ display block).\n' +
     '   - CRITICAL: DO NOT generate or preserve any Mermaid diagrams (```mermaid ... ```) for circuits, optics, or physics setups as they render poorly and distort the physics. Express equivalent circuits, ray optics, and physical mechanisms through clean mathematical reasoning and formulas.\n' +
-    '   - If the existing draft solution has wrong steps, inaccurate equations (like mixing up voltage V with temperature difference ΔT), or broken tables/mermaid, DISCARD the wrong parts and rewrite the derivation accurately.\n' +
-    '5. CURRICULUM & DIFFICULTY: Accurately classify Subject, Chapter, and Topic.\n\n' +
+    '   - If the existing draft solution has wrong steps or inaccurate equations, discard them and rewrite the derivation accurately.\n' +
+    '7. CURRICULUM & DIFFICULTY: Accurately classify Subject, Chapter, and Topic.\n\n' +
     'Respond with JSON only matching this schema:\n' +
     '{\n' +
+    '  "thinking_process": "<Detailed multi-step reasoning, derivation notes, option verification analysis, and feedback evaluation>",\n' +
+    '  "reply_message": "<Direct summary message to the administrator regarding the solution or changes made>",\n' +
     '  "cleaned_question_text": "<clean markdown stem with KaTeX and preserved ![Figure](...)>",\n' +
     '  "options": { "A": "<opt A>", "B": "<opt B>", "C": "<opt C>", "D": "<opt D>" },\n' +
     '  "correct_answer": "A" | "B" | "C" | "D",\n' +
@@ -304,10 +318,22 @@ export async function solveAndDeriveQuestion({
     userPrompt += `OPTIONS:\n${optEntries.map(([k, v]) => `(${k}) ${v}`).join('\n')}\n\n`;
   }
   if (currentAnswer) userPrompt += `PREVIOUS ANSWER KEY: (${currentAnswer})\n\n`;
-  if (currentSolution) userPrompt += `EXISTING DRAFT SOLUTION:\n${currentSolution}\n\n`;
+  if (currentSolution) userPrompt += `CURRENT DRAFT SOLUTION:\n${currentSolution}\n\n`;
   if (webContext) userPrompt += `WEB RESEARCH REFERENCE CONTEXT:\n${webContext}\n\n`;
 
-  userPrompt += 'Verify, solve, and repair the question, options, answer key, and solution.';
+  if (conversationHistory && conversationHistory.length > 0) {
+    userPrompt += 'PREVIOUS CONVERSATION HISTORY:\n';
+    conversationHistory.forEach(item => {
+      userPrompt += `[${item.role === 'user' ? 'Admin' : 'AI'}]: ${item.text || item.message}\n`;
+    });
+    userPrompt += '\n';
+  }
+
+  if (isRefinement) {
+    userPrompt += `ADMIN FEEDBACK / CORRECTION REQUEST:\n"${userInstruction.trim()}"\n\nPlease re-evaluate the question, address the admin's feedback, update the fields accordingly, and explain your thinking.`;
+  } else {
+    userPrompt += 'Verify, solve, and repair the question, options, answer key, and solution. Detail your thinking process.';
+  }
 
   const result = await callLlmWithFallback({
     systemPrompt,
@@ -329,17 +355,23 @@ export async function solveAndDeriveQuestion({
 export async function verifyAndFormatQuestion({
   questionText = '',
   options = {},
+  currentAnswer = '',
   solutionText = '',
   rawText = '',
   webContext = '',
-  subject = ''
+  subject = '',
+  userInstruction = '',
+  conversationHistory = []
 }) {
   return solveAndDeriveQuestion({
     questionText: questionText || rawText,
     options,
+    currentAnswer,
     currentSolution: solutionText,
     webContext,
-    subject
+    subject,
+    userInstruction,
+    conversationHistory
   });
 }
 
@@ -349,16 +381,22 @@ export async function verifyAndFormatQuestion({
 export async function formatAndCleanQuestion({
   questionText = '',
   options = {},
+  currentAnswer = '',
   solutionText = '',
   rawText = '',
   webContext = '',
-  subject = ''
+  subject = '',
+  userInstruction = '',
+  conversationHistory = []
 }) {
   return solveAndDeriveQuestion({
     questionText: questionText || rawText,
     options,
+    currentAnswer,
     currentSolution: solutionText,
     webContext,
-    subject
+    subject,
+    userInstruction,
+    conversationHistory
   });
 }

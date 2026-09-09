@@ -171,23 +171,37 @@ export const contentController = {
   },
   async aiFormatQuestion(req, res) {
     try {
-      const { question_text, options, solution_text, raw_text, subject } = req.body;
-      if (!question_text && !raw_text) {
-        throw Object.assign(new Error('question_text or raw_text is required'), { statusCode: 400 });
+      const {
+        question_text,
+        options,
+        current_answer,
+        solution_text,
+        raw_text,
+        subject,
+        user_instruction,
+        conversation_history,
+        skip_tavily
+      } = req.body;
+
+      if (!question_text && !raw_text && !user_instruction) {
+        throw Object.assign(new Error('question_text, raw_text, or user_instruction is required'), { statusCode: 400 });
       }
 
-      // 1. Fetch authentic JEE reference context from Tavily search
+      // 1. Fetch authentic JEE reference context from Tavily search (skip during quick chat follow-ups if requested)
       let webContext = '';
       let sources = [];
-      try {
-        const { fetchTavilyContext } = await import('./tavily.provider.js');
-        const tavilyData = await fetchTavilyContext(question_text || raw_text);
-        if (tavilyData) {
-          webContext = tavilyData.webContext || '';
-          sources = tavilyData.sources || [];
+      const shouldSearchTavily = !skip_tavily && !user_instruction;
+      if (shouldSearchTavily) {
+        try {
+          const { fetchTavilyContext } = await import('./tavily.provider.js');
+          const tavilyData = await fetchTavilyContext(question_text || raw_text);
+          if (tavilyData) {
+            webContext = tavilyData.webContext || '';
+            sources = tavilyData.sources || [];
+          }
+        } catch (tavErr) {
+          console.warn('[contentController] Tavily lookup in aiFormatQuestion skipped:', tavErr.message);
         }
-      } catch (tavErr) {
-        console.warn('[contentController] Tavily lookup in aiFormatQuestion skipped:', tavErr.message);
       }
 
       // 2. Perform deep STEM solving, verification, and KaTeX repair via Gemini 3.8 Flash
@@ -195,10 +209,13 @@ export const contentController = {
       const formatted = await verifyAndFormatQuestion({
         questionText: question_text,
         options,
+        currentAnswer: current_answer,
         solutionText: solution_text,
         rawText: raw_text,
         webContext,
-        subject
+        subject,
+        userInstruction: user_instruction,
+        conversationHistory: conversation_history
       });
 
       if (sources.length > 0) {

@@ -45,6 +45,9 @@ const MATH_SNIPPETS = [
 export default function QuestionEditModal({
   question = null, // null for Create mode, object for Edit mode
   isClone = false,
+  isCandidate = false,
+  rawText = '',
+  subject = '',
   initialTopicId = '',
   isOpen = false,
   onClose,
@@ -55,7 +58,7 @@ export default function QuestionEditModal({
 
   // Hierarchy state for topic picker
   const [hierarchy, setHierarchy] = useState([]);
-  const [selectedSubject, setSelectedSubject] = useState('');
+  const [selectedSubject, setSelectedSubject] = useState(subject || '');
   const [selectedChapter, setSelectedChapter] = useState('');
   const [topicId, setTopicId] = useState(initialTopicId || '');
 
@@ -73,6 +76,17 @@ export default function QuestionEditModal({
   const [sourceType, setSourceType] = useState('PYQ');
   const [examYear, setExamYear] = useState(new Date().getFullYear());
   const [verified, setVerified] = useState(true);
+
+  // AI Co-pilot & Thinking State
+  const [aiWorking, setAiWorking] = useState(false);
+  const [aiStatus, setAiStatus] = useState('');
+  const [aiThinking, setAiThinking] = useState('');
+  const [isThinkingOpen, setIsThinkingOpen] = useState(false);
+  const [aiSources, setAiSources] = useState([]);
+  const [aiModel, setAiModel] = useState('');
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatWorking, setChatWorking] = useState(false);
 
   // UI state
   const [viewMode, setViewMode] = useState('split'); // 'split' | 'edit' | 'preview'
@@ -232,6 +246,136 @@ export default function QuestionEditModal({
     }
   };
 
+  const handleCorrectWithAi = async () => {
+    setAiWorking(true);
+    setError('');
+    setAiStatus('Searching authentic JEE sources with Tavily & solving with Gemini...');
+    try {
+      const optsObj = (options || []).reduce((acc, o) => {
+        acc[o.id] = o.text;
+        return acc;
+      }, {});
+
+      const res = await contentService.aiFormatQuestion({
+        question_text: questionText,
+        options: optsObj,
+        current_answer: correctAnswer,
+        solution_text: solutionText,
+        raw_text: rawText || question?.raw_text,
+        subject: selectedSubject || question?.subject || 'Physics',
+        difficulty: difficulty
+      });
+
+      if (res) {
+        if (res.cleaned_question_text) setQuestionText(res.cleaned_question_text);
+        if (res.options && (res.options.A || res.options.B)) {
+          setOptions([
+            { id: 'A', text: res.options.A || '' },
+            { id: 'B', text: res.options.B || '' },
+            { id: 'C', text: res.options.C || '' },
+            { id: 'D', text: res.options.D || '' }
+          ]);
+        }
+        if (res.correct_answer) setCorrectAnswer(res.correct_answer);
+        if (res.solution_text) setSolutionText(res.solution_text);
+        if (res.suggested_topic_id) setTopicId(res.suggested_topic_id);
+        if (res.difficulty) setDifficulty(res.difficulty.toLowerCase());
+        if (res.thinking_process) {
+          setAiThinking(res.thinking_process);
+          setIsThinkingOpen(true);
+        }
+        if (res.sources) setAiSources(res.sources);
+        if (res.model) setAiModel(res.model);
+
+        const reply = res.reply_message || `Question verified & derived from first principles. Option ${res.correct_answer || 'A'} is confirmed correct.`;
+        setChatMessages(prev => [
+          ...prev,
+          { role: 'assistant', text: reply, timestamp: new Date() }
+        ]);
+        setAiStatus(`✓ Verified with ${res.model?.replace('gemini-', 'Gemini ') || 'Gemini 3.8 Flash'}`);
+        setTimeout(() => setAiStatus(''), 5000);
+      }
+    } catch (err) {
+      console.error('AI correction failed:', err);
+      setError('AI verification error: ' + (err.message || 'Please try again'));
+      setAiStatus('');
+    } finally {
+      setAiWorking(false);
+    }
+  };
+
+  const handleSendChatInstruction = async (e) => {
+    e?.preventDefault();
+    if (!chatInput.trim() || chatWorking || aiWorking) return;
+
+    const userPrompt = chatInput.trim();
+    setChatInput('');
+    setChatWorking(true);
+    setError('');
+
+    const newMessages = [
+      ...chatMessages,
+      { role: 'user', text: userPrompt, timestamp: new Date() }
+    ];
+    setChatMessages(newMessages);
+
+    try {
+      const optsObj = (options || []).reduce((acc, o) => {
+        acc[o.id] = o.text;
+        return acc;
+      }, {});
+
+      const res = await contentService.aiFormatQuestion({
+        question_text: questionText,
+        options: optsObj,
+        current_answer: correctAnswer,
+        solution_text: solutionText,
+        raw_text: rawText || question?.raw_text,
+        subject: selectedSubject || question?.subject || 'Physics',
+        difficulty: difficulty,
+        user_instruction: userPrompt,
+        conversation_history: newMessages.map(m => ({ role: m.role, text: m.text })),
+        skip_tavily: true
+      });
+
+      if (res) {
+        if (res.cleaned_question_text) setQuestionText(res.cleaned_question_text);
+        if (res.options && (res.options.A || res.options.B)) {
+          setOptions([
+            { id: 'A', text: res.options.A || '' },
+            { id: 'B', text: res.options.B || '' },
+            { id: 'C', text: res.options.C || '' },
+            { id: 'D', text: res.options.D || '' }
+          ]);
+        }
+        if (res.correct_answer) setCorrectAnswer(res.correct_answer);
+        if (res.solution_text) setSolutionText(res.solution_text);
+        if (res.suggested_topic_id) setTopicId(res.suggested_topic_id);
+        if (res.difficulty) setDifficulty(res.difficulty.toLowerCase());
+        if (res.thinking_process) {
+          setAiThinking(res.thinking_process);
+          setIsThinkingOpen(true);
+        }
+        if (res.model) setAiModel(res.model);
+
+        const reply = res.reply_message || 'I have re-evaluated the question and updated the fields based on your instruction.';
+        setChatMessages(prev => [
+          ...prev,
+          { role: 'assistant', text: reply, timestamp: new Date() }
+        ]);
+      }
+    } catch (err) {
+      console.error('Chat refinement error:', err);
+      setError('AI refinement error: ' + (err.message || 'Please try again'));
+      setChatMessages(prev => [
+        ...prev,
+        { role: 'assistant', text: `⚠️ Error during correction: ${err.message || 'Please try again'}`, timestamp: new Date() }
+      ]);
+    } finally {
+      setChatWorking(false);
+    }
+  };
+
   const handleSave = async (e) => {
     e?.preventDefault();
     if (!topicId) {
@@ -268,7 +412,9 @@ export default function QuestionEditModal({
 
     try {
       let saved;
-      if (isEditMode) {
+      if (isCandidate) {
+        saved = { ...payload, id: question?.id };
+      } else if (isEditMode) {
         saved = await questionsService.updateQuestion(question.id, payload);
       } else {
         saved = await questionsService.createQuestion(payload);
@@ -415,6 +561,174 @@ export default function QuestionEditModal({
                 {error}
               </div>
             )}
+
+            {/* AI Co-Pilot & Real-Time Refinement Station */}
+            <div className="bg-black/60 border-2 border-primary/40 rounded-sm p-4 space-y-3.5 relative overflow-hidden shadow-xl">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/50 flex items-center justify-center text-primary shrink-0">
+                    <Sparkles className="w-4 h-4 animate-pulse-soft" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+                        AI Exam Co-Pilot
+                      </span>
+                      <span className="px-1.5 py-0.5 bg-primary/20 text-primary border border-primary/40 text-[9px] font-mono font-bold rounded-xs">
+                        GEMINI 3.8 FLASH + TAVILY
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-white/60 font-sans mt-0.5">
+                      Solve from first principles, verify options, format KaTeX math, and converse with AI to fix any mistakes.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleCorrectWithAi}
+                  disabled={aiWorking || chatWorking}
+                  className="px-4 py-2 bg-gradient-to-r from-primary to-sky-500 hover:brightness-110 text-white font-mono font-bold text-xs uppercase tracking-wider rounded-xs flex items-center gap-2 shadow-lg disabled:opacity-50 cursor-pointer transition-all shrink-0"
+                >
+                  {aiWorking ? (
+                    <>
+                      <Sparkles className="w-3.5 h-3.5 animate-spin" />
+                      <span>Analyzing &amp; Solving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Correct with AI</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Live Status Toast */}
+              {aiStatus && (
+                <div className="p-2 bg-primary/10 border border-primary/30 text-primary font-mono text-xs flex items-center gap-2 animate-fade-in rounded-xs">
+                  <Sparkles className="w-3.5 h-3.5 shrink-0 animate-spin" />
+                  <span>{aiStatus}</span>
+                </div>
+              )}
+
+              {/* Expandable Thinking Process Panel */}
+              {aiThinking && (
+                <div className="border border-white/15 bg-black/80 rounded-xs overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setIsThinkingOpen(prev => !prev)}
+                    className="w-full px-3.5 py-2 bg-white/5 hover:bg-white/10 flex items-center justify-between text-xs font-mono text-white/90 cursor-pointer border-b border-white/10 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-amber-400 font-bold">🧠 AI Thinking &amp; Verification Process</span>
+                      {aiModel && (
+                        <span className="text-[10px] text-white/40">({aiModel})</span>
+                      )}
+                    </div>
+                    <span className="text-primary text-[11px] uppercase font-bold">
+                      {isThinkingOpen ? 'Collapse Thinking ▲' : 'View Full Thinking ▼'}
+                    </span>
+                  </button>
+
+                  {isThinkingOpen && (
+                    <div className="p-3.5 space-y-3 font-mono text-xs text-white/80 leading-relaxed bg-black/90 max-h-80 overflow-y-auto">
+                      <div className="whitespace-pre-wrap font-sans text-xs text-white/90 leading-relaxed">
+                        {aiThinking}
+                      </div>
+
+                      {/* Sources / Citations */}
+                      {aiSources && aiSources.length > 0 && (
+                        <div className="pt-2.5 border-t border-white/10 space-y-1">
+                          <span className="text-[10px] text-primary font-bold uppercase tracking-wider block">
+                            Verified Web References &amp; Official Papers:
+                          </span>
+                          <div className="flex flex-wrap gap-2">
+                            {aiSources.map((src, i) => (
+                              <a
+                                key={i}
+                                href={src.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-[10px] text-sky-400 hover:underline bg-white/5 border border-white/10 px-2 py-0.5 rounded-xs truncate max-w-xs block"
+                              >
+                                {src.title || src.url}
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Chat with AI / Refine Interface */}
+              <div className="border border-white/15 bg-black/60 rounded-xs p-3 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-white/75 font-bold flex items-center gap-1.5">
+                    <Edit3 className="w-3 h-3 text-primary" />
+                    <span>Chat with AI to Reiterate &amp; Correct Mistakes</span>
+                  </span>
+                  {chatMessages.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setChatMessages([])}
+                      className="text-[10px] font-mono text-white/40 hover:text-white underline cursor-pointer"
+                    >
+                      Clear Chat
+                    </button>
+                  )}
+                </div>
+
+                {/* Message History */}
+                {chatMessages.length > 0 && (
+                  <div className="space-y-2 max-h-48 overflow-y-auto p-2.5 bg-black/80 border border-white/10 rounded-xs font-mono text-xs">
+                    {chatMessages.map((msg, i) => (
+                      <div
+                        key={i}
+                        className={`p-2 rounded-xs ${
+                          msg.role === 'user'
+                            ? 'bg-primary/15 border border-primary/30 text-white ml-6 text-right'
+                            : 'bg-white/5 border border-white/10 text-white/90 mr-6 text-left'
+                        }`}
+                      >
+                        <div className="text-[9px] uppercase tracking-wider text-white/50 mb-0.5">
+                          {msg.role === 'user' ? 'Admin Instruction' : 'AI Response'}
+                        </div>
+                        <p className="font-sans text-xs leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Chat Instruction Input */}
+                <form onSubmit={handleSendChatInstruction} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={e => setChatInput(e.target.value)}
+                    placeholder="If AI made a mistake, tell it what to fix (e.g. 'Option B has wrong sign', 'Change answer to D', 'Recalculate with...')..."
+                    disabled={chatWorking || aiWorking}
+                    className="flex-1 bg-black border border-white/20 px-3 py-2 text-xs font-mono text-white placeholder:text-white/40 outline-none focus:border-primary rounded-xs"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!chatInput.trim() || chatWorking || aiWorking}
+                    className="px-4 py-2 bg-primary text-black font-mono font-bold text-xs uppercase tracking-wider hover:brightness-110 disabled:opacity-40 rounded-xs flex items-center gap-1.5 cursor-pointer shrink-0"
+                  >
+                    {chatWorking ? (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5 animate-spin" />
+                        <span>Refining...</span>
+                      </>
+                    ) : (
+                      <span>Send</span>
+                    )}
+                  </button>
+                </form>
+              </div>
+            </div>
 
             {/* Curriculum Assignment (Subject -> Chapter -> Topic) */}
             <div className="border border-white/10 bg-surface-container p-4 space-y-3">

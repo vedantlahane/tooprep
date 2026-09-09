@@ -1627,35 +1627,11 @@ function CandidateCard({
           <button
             type="button"
             onClick={() => setEditModalOpen(true)}
-            className="px-2 py-1 text-label-sm-mono uppercase tracking-widest border border-white/20 bg-white/5 hover:border-primary hover:text-white text-white/80 transition-colors rounded-sm flex items-center gap-1 text-[11px] font-bold cursor-pointer"
-            title="Open comprehensive manual question editor with math toolbar, side-by-side preview, and diagram manager"
+            className="px-2.5 py-1 text-label-sm-mono uppercase tracking-widest border border-primary/60 bg-primary/10 hover:bg-primary hover:text-white text-primary transition-colors rounded-sm flex items-center gap-1.5 text-[11px] font-bold cursor-pointer shadow-sm"
+            title="Open comprehensive Question Editor with AI Verification, Thinking Process, and Conversational Chat Refinement"
           >
-            <Edit3 className="w-3 h-3 text-primary" />
-            <span>Manual Editor</span>
-          </button>
-
-          <button
-            onClick={handleAutoCleanAndPolish}
-            disabled={formatting}
-            className="px-2 py-1 text-label-sm-mono uppercase tracking-widest border border-status-aligned/60 bg-status-aligned/10 hover:bg-status-aligned hover:text-black text-status-aligned transition-colors rounded-sm flex items-center gap-1 text-[11px] font-bold cursor-pointer disabled:opacity-50"
-            title="Gemini + Tavily AI Verify: solve from first principles, verify answer key, standardize KaTeX, remove broken diagrams, and map curriculum"
-          >
-            <Wand2 className={`w-3 h-3 ${formatting ? 'animate-spin' : ''}`} />
-            <span>{formatting ? 'Verifying...' : 'AI Format'}</span>
-          </button>
-
-          <button
-            onClick={handleTavilyResearch}
-            disabled={researching}
-            className="px-2 py-1 text-label-sm-mono uppercase tracking-widest border border-amber-500/60 bg-amber-500/10 hover:bg-amber-500 hover:text-black text-amber-300 transition-colors rounded-sm flex items-center gap-1 text-[11px] font-bold cursor-pointer disabled:opacity-50"
-            title="AI Web Research (Tavily): Search official JEE papers, verify options, fetch step-by-step LaTeX solution"
-          >
-            {researching ? (
-              <RefreshCw className="w-3 h-3 animate-spin" />
-            ) : (
-              <Sparkles className="w-3 h-3" />
-            )}
-            <span>{researching ? 'Researching...' : 'Tavily Research'}</span>
+            <Edit3 className="w-3.5 h-3.5" />
+            <span>Edit</span>
           </button>
 
           {isExpanded && (
@@ -2003,6 +1979,9 @@ function CandidateCard({
           isOpen={editModalOpen}
           question={candidateAsQuestion}
           initialTopicId={topicId}
+          isCandidate={true}
+          rawText={candidate.raw_text}
+          subject={candidate.subject}
           onClose={() => setEditModalOpen(false)}
           onSaved={handleManualEditorSaved}
         />
