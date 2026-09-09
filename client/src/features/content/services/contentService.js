@@ -46,5 +46,11 @@ export const contentService = {
     const form = new FormData();
     form.append('file', file);
     return request('POST', `${base}/ingestion-jobs/${jobId}/source-pdf`, form);
-  }
+  },
+  getJob: (jobId) =>
+    request('GET', `${base}/ingestion-jobs/${jobId}`),
+  transitionJob: (jobId, stage, reason) =>
+    request('POST', `${base}/ingestion-jobs/${jobId}/transitions`, { stage, reason }),
+  getSourcePdfUrl: (jobId) =>
+    `/api${base}/ingestion-jobs/${jobId}/pdf`
 };
