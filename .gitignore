@@ -48,3 +48,8 @@ server/public/uploads/
 *.jpg
 *.jpeg
 !client/public/icons/*
+
+# Python cache
+__pycache__/
+*.pyc
+

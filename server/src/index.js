@@ -42,6 +42,7 @@ import { fileURLToPath } from 'node:url';
 import { requireAuth } from './middleware/auth.js';
 import { requestContext } from './platform/request-context.js';
 import { logger } from './platform/logger.js';
+import { startEmbeddedWorker, stopEmbeddedWorker } from './platform/embedded-worker.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -220,7 +221,21 @@ app.use((err, req, res, next) => {
   });
 });
 
-/* Start the HTTP server */
-app.listen(PORT, () => {
+/* Start the HTTP server and background worker */
+const server = app.listen(PORT, () => {
   logger.info('server.started', { port: PORT });
+  startEmbeddedWorker();
 });
+
+const handleShutdown = (signal) => {
+  logger.info('server.shutting_down', { signal });
+  stopEmbeddedWorker();
+  server.close(() => {
+    logger.info('server.stopped');
+    process.exit(0);
+  });
+};
+
+process.on('SIGTERM', () => handleShutdown('SIGTERM'));
+process.on('SIGINT', () => handleShutdown('SIGINT'));
+

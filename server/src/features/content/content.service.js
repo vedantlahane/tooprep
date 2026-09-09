@@ -15,6 +15,7 @@ import { storeSourcePdf, downloadSourcePdf, storeQuestionImage } from './content
 import { assertContentTransition } from './content-lifecycle.js';
 import { markSupabaseSync, upsertPublishedQuestion } from './publication.repository.js';
 import { logger } from '../../platform/logger.js';
+import { triggerWorkerTick } from '../../platform/embedded-worker.js';
 
 const execFileAsync = promisify(execFile);
 const __filename = fileURLToPath(import.meta.url);
@@ -213,7 +214,9 @@ export const contentService = {
   async createIngestionJob(input, actorId) {
     const job = buildIngestionJob(input, actorId);
     try {
-      return await contentRepository.insertJob(job);
+      const inserted = await contentRepository.insertJob(job);
+      try { triggerWorkerTick(); } catch {}
+      return inserted;
     } catch (error) {
       if (error?.code === 11000) {
         if (input.source_sha256) {

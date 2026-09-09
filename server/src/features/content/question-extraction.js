@@ -223,11 +223,11 @@ export function extractOptions(raw) {
       // 4. Inline answer key (Ans. [1], Answer: A, **Ans.**)
       // 5. Inline solution (Sol., Solution:, **Sol.**)
       const cutoffRegexes = [
-        /\n\s*(?:#{1,4}\s*)?(?:\*\*)?Q\.?\s*\d{1,3}(?:\*\*)?\s*(?:\n|$)/i,
-        /\n\s*(?:(?:\(|\[)[A-Da-d1-4](?:\)|\])|##\s*\*\*[A-Z\s]+\*\*|\*\*(?:PHYSICS|CHEMISTRY|MATHEMATICS)\*\*)\s*\n/i,
-        /\n\s*(?:[>\*#\s]*)(?:Students may find similar|\[?JEE\s*(?:Main|Advance)|Chapter\s*:|Exercise\s*#)/i,
-        /\n\s*(?:[>\*#\s]*)(?:Ans(?:\.|wer)?[:\s]*[\(\[]?[1-4A-Da-d]|\*\*Ans\b)/i,
-        /\n\s*(?:[>\*#\s]*)(?:Sol(?:\.|ution)?[:\s]|\*\*Sol\b)/i
+        /(?:^|\n)\s*(?:#{1,4}\s*)?(?:\*\*)?Q\.?\s*\d{1,3}(?:\*\*)?\s*(?:\n|$)/i,
+        /(?:^|\n)\s*(?:(?:\(|\[)[A-Da-d1-4](?:\)|\])|##\s*\*\*[A-Z\s]+\*\*|\*\*(?:PHYSICS|CHEMISTRY|MATHEMATICS)\*\*)\s*\n/i,
+        /(?:^|\n)\s*(?:[>\*#\s]*)(?:Students may find similar|\[?JEE\s*(?:Main|Advance)|Chapter\s*:|Exercise\s*#)/i,
+        /(?:^|\n)\s*(?:[>\*#\s]*)(?:Ans(?:\.|wer)?[:\s]*[\(\[]?[1-4A-Da-d]|\*\*Ans\b)/i,
+        /(?:^|\n)\s*(?:[>\*#\s]*)(?:Sol(?:\.|ution)?[:\s]|\*\*Sol\b)/i
       ];
 
       let cutoff = -1;
@@ -565,6 +565,9 @@ export function extractQuestionCandidates(jobId, pages, allTopics = [], diagramM
           } else if (!currentText) {
             c.options[optKey] = `![Option ${optKey}](${optUrl})`;
           }
+        }
+        if (Object.keys(c.options).length >= 2) {
+          c.has_options = true;
         }
       }
     }

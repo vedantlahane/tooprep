@@ -20,7 +20,7 @@ function getConnectionString() {
 export async function getMongoDb() {
   if (!clientPromise) {
     const client = new MongoClient(getConnectionString(), {
-      serverSelectionTimeoutMS: 5_000
+      serverSelectionTimeoutMS: 15_000
     });
     clientPromise = client.connect();
   }

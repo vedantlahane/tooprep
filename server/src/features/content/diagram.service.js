@@ -56,7 +56,7 @@ export async function extractPdfDiagrams(pdfPath, options = {}) {
       resolvedPdf,
       '--output-dir', tempDir,
       '--dpi', String(options.dpi || 300),
-      '--min-size', String(options.minSize || 15)
+      '--min-size', String(options.minSize || 12)
     ], { maxBuffer: 10 * 1024 * 1024 });
 
     if (stderr && stderr.trim().length > 0) {
