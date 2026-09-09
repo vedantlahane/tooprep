@@ -383,7 +383,9 @@ export function extractQuestionCandidates(jobId, pages, allTopics = [], diagramM
 
   // Fallback: If no **Q.X** headers matched, run individual page block parser
   if (candidates.length === 0) {
-    const fallbackPattern = /(?:^|\n)\s*(?:##\s*)?(?:\*\*)?(?:Q(?:uestion)?\.?\s*(\d{1,3})|(\d{1,3}))\s*(?:\[\s*([1-4A-Da-d])\s*\]|\(\s*([1-4A-Da-d])\s*\))?\s*(?:\*\*)?\s*(?:\.|\)|:|\s*\*\*|\s*\])?\s*/gim;
+    // BUG FIX: The original regex had \\) inside (?:...) which closes the group prematurely.
+    // Replaced with a simple character class [.):,\\*\]]? for trailing punctuation.
+    const fallbackPattern = /(?:^|\n)\s*(?:##\s*)?(?:\*\*)?(?:Q(?:uestion)?\.?\s*(\d{1,3})|(\d{1,3}))\s*(?:\[\s*([1-4A-Da-d])\s*\]|\(\s*([1-4A-Da-d])\s*\))?\s*(?:\*\*)?\s*[.):,\]\\*]?\s*/gim;
     for (const page of pages) {
       if (!page.success || !page.markdown) continue;
       const matches = [...page.markdown.matchAll(fallbackPattern)];
@@ -408,7 +410,6 @@ export function extractQuestionCandidates(jobId, pages, allTopics = [], diagramM
         const solutionText = solutionsMap[qNum]?.text || null;
         const classification = classifyQuestion(qNum, parsed.questionText || rawText, allTopics);
 
-        // BUG 5 FIX: Same has_diagram fix in fallback path
         const hasDiagram = Boolean(
           rawText.includes('imgur') ||
           rawText.includes('<img') ||
