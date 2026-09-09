@@ -2013,9 +2013,9 @@ export default function AdminPipelinePage() {
               </div>
 
               {/* Rendered PDF Canvas */}
-              <div className="border border-white/10 bg-black min-h-[480px] flex items-center justify-center p-4 relative">
+              <div className="border border-white/10 bg-black min-h-[480px] max-h-[720px] overflow-auto flex flex-col items-center justify-start p-4 relative">
                 {renderingPdf ? (
-                  <div className="flex flex-col items-center gap-2 text-primary">
+                  <div className="my-auto flex flex-col items-center gap-2 text-primary">
                     <RefreshCw className="w-6 h-6 animate-spin" />
                     <span>Rendering page {pdfPageNum} at 150 DPI...</span>
                   </div>
@@ -2023,10 +2023,10 @@ export default function AdminPipelinePage() {
                   <img
                     src={pdfPageDataUrl}
                     alt={`Page ${pdfPageNum}`}
-                    className="max-h-[640px] max-w-full object-contain border border-white/20 shadow-2xl"
+                    className="max-w-full h-auto object-contain border border-white/20 shadow-2xl my-auto block"
                   />
                 ) : (
-                  <div className="text-center space-y-2 text-white/50">
+                  <div className="my-auto text-center space-y-2 text-white/50">
                     <p>Click below to render Page {pdfPageNum} of this document.</p>
                     <button
                       type="button"

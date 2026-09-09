@@ -145,12 +145,16 @@ function PdfCroppingStudioModal({ modal, onClose, onCrop, onNavigatePage }) {
   const [cropSuccess, setCropSuccess] = useState('');
   const [error, setError] = useState('');
   const imgRef = useRef(null);
+  const viewportRef = useRef(null);
 
   useEffect(() => {
     if (modal?.defaultTarget) setTarget(modal.defaultTarget);
     setCropSuccess('');
     setError('');
-  }, [modal?.defaultTarget, modal?.pageNum]);
+    if (viewportRef.current) {
+      viewportRef.current.scrollTop = 0;
+    }
+  }, [modal?.defaultTarget, modal?.pageNum, modal?.dataUrl]);
 
   const getRelativeCoords = (e) => {
     if (!imgRef.current) return null;
@@ -357,7 +361,8 @@ function PdfCroppingStudioModal({ modal, onClose, onCrop, onNavigatePage }) {
         )}
 
         <div
-          className="p-3 sm:p-6 overflow-auto flex-1 flex flex-col items-center justify-center bg-black/75 min-h-[360px] max-w-full relative select-none cursor-crosshair"
+          ref={viewportRef}
+          className="p-3 sm:p-6 overflow-auto flex-1 bg-black/75 min-h-[360px] max-w-full relative select-none cursor-crosshair"
           onMouseDown={handlePointerDown}
           onMouseMove={handlePointerMove}
           onMouseUp={handlePointerUp}
@@ -366,40 +371,46 @@ function PdfCroppingStudioModal({ modal, onClose, onCrop, onNavigatePage }) {
           onTouchEnd={handlePointerUp}
         >
           {modal.loading ? (
-            <div className="text-center space-y-2.5 font-mono text-primary animate-pulse-soft">
-              <Sparkles className="w-7 h-7 mx-auto animate-spin" />
-              <p className="text-xs">Rendering vector page {modal.pageNum} at high resolution...</p>
+            <div className="min-w-full min-h-full flex items-center justify-center text-center space-y-2.5 font-mono text-primary animate-pulse-soft py-12">
+              <div>
+                <Sparkles className="w-7 h-7 mx-auto animate-spin mb-2" />
+                <p className="text-xs">Rendering vector page {modal.pageNum} at high resolution...</p>
+              </div>
             </div>
           ) : modal.error ? (
-            <div className="text-error font-mono text-xs border border-error/30 bg-error/10 p-4 rounded text-center">
-              Error rendering page: {modal.error}
+            <div className="min-w-full min-h-full flex items-center justify-center py-12">
+              <div className="text-error font-mono text-xs border border-error/30 bg-error/10 p-4 rounded text-center">
+                Error rendering page: {modal.error}
+              </div>
             </div>
           ) : (
-            <div className="relative inline-block shadow-2xl bg-white rounded border border-outline-variant/80">
-              <img
-                ref={imgRef}
-                src={modal.dataUrl}
-                alt={`Page ${modal.pageNum}`}
-                draggable={false}
-                className="max-h-[64vh] max-w-full w-auto object-contain select-none pointer-events-none"
-              />
+            <div className="min-w-full min-h-full flex flex-col items-center justify-start py-2">
+              <div className="relative inline-block shadow-2xl bg-white rounded border border-outline-variant/80 my-auto">
+                <img
+                  ref={imgRef}
+                  src={modal.dataUrl}
+                  alt={`Page ${modal.pageNum}`}
+                  draggable={false}
+                  className="max-w-full h-auto object-contain block select-none pointer-events-none"
+                />
 
-              {selection && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    left: `${selection.x * 100}%`,
-                    top: `${selection.y * 100}%`,
-                    width: `${selection.w * 100}%`,
-                    height: `${selection.h * 100}%`,
-                  }}
-                  className="border-2 border-primary bg-primary/20 pointer-events-none shadow-[0_0_12px_rgba(0,191,255,0.4)]"
-                >
-                  <div className="absolute top-0 right-0 -translate-y-full bg-primary text-white text-[10px] font-mono px-1.5 py-0.5 rounded-xs tracking-wider uppercase font-bold">
-                    Target: {target.toUpperCase()}
+                {selection && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      left: `${selection.x * 100}%`,
+                      top: `${selection.y * 100}%`,
+                      width: `${selection.w * 100}%`,
+                      height: `${selection.h * 100}%`,
+                    }}
+                    className="border-2 border-primary bg-primary/20 pointer-events-none shadow-[0_0_12px_rgba(0,191,255,0.4)]"
+                  >
+                    <div className="absolute top-0 right-0 -translate-y-full bg-primary text-white text-[10px] font-mono px-1.5 py-0.5 rounded-xs tracking-wider uppercase font-bold">
+                      Target: {target.toUpperCase()}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -427,6 +438,14 @@ function StudioPdfViewer({ jobId, pageNum, onNavigatePage, onDirectCrop, activeC
   const [uploadingPdf, setUploadingPdf] = useState(false);
   const [uploadPdfSuccess, setUploadPdfSuccess] = useState(false);
   const imgRef = useRef(null);
+  const viewportRef = useRef(null);
+
+  // Auto scroll to top when page changes or data URL updates
+  useEffect(() => {
+    if (viewportRef.current) {
+      viewportRef.current.scrollTop = 0;
+    }
+  }, [pageNum, dataUrl]);
 
   // Load PDF page image
   useEffect(() => {
@@ -709,7 +728,8 @@ function StudioPdfViewer({ jobId, pageNum, onNavigatePage, onDirectCrop, activeC
 
       {/* Canvas Viewport */}
       <div
-        className="flex-1 overflow-auto p-4 flex items-center justify-center relative bg-black/80 cursor-crosshair min-h-[420px]"
+        ref={viewportRef}
+        className="flex-1 overflow-auto p-4 relative bg-black/80 cursor-crosshair min-h-[420px]"
         onMouseDown={handlePointerDown}
         onMouseMove={handlePointerMove}
         onMouseUp={handlePointerUp}
@@ -718,78 +738,88 @@ function StudioPdfViewer({ jobId, pageNum, onNavigatePage, onDirectCrop, activeC
         onTouchEnd={handlePointerUp}
       >
         {loading ? (
-          <div className="text-center space-y-2 text-primary font-mono text-xs animate-pulse-soft">
-            <Sparkles className="w-6 h-6 mx-auto animate-spin" />
-            <p>Rendering Page {pageNum} at high resolution...</p>
+          <div className="min-w-full min-h-full flex items-center justify-center text-center space-y-2 text-primary font-mono text-xs animate-pulse-soft py-12">
+            <div>
+              <Sparkles className="w-6 h-6 mx-auto animate-spin mb-2" />
+              <p>Rendering Page {pageNum} at high resolution...</p>
+            </div>
           </div>
         ) : dataUrl ? (
-          <div
-            style={{ transform: `scale(${zoom})`, transformOrigin: 'top center' }}
-            className="relative inline-block shadow-2xl bg-white border border-white/20 transition-transform duration-75"
-          >
-            <img
-              ref={imgRef}
-              src={dataUrl}
-              alt={`Page ${pageNum}`}
-              draggable={false}
-              className="max-w-full h-auto object-contain select-none pointer-events-none"
-            />
-
-            {/* Selection Bounding Box */}
-            {selection && (
-              <div
-                style={{
-                  position: 'absolute',
-                  left: `${selection.x * 100}%`,
-                  top: `${selection.y * 100}%`,
-                  width: `${selection.w * 100}%`,
-                  height: `${selection.h * 100}%`,
-                }}
-                className="border-2 border-primary bg-primary/20 pointer-events-none shadow-[0_0_12px_rgba(0,191,255,0.5)] z-20"
+          <div className="min-w-full min-h-full flex flex-col items-center justify-start py-2">
+            <div
+              style={{
+                transform: `scale(${zoom})`,
+                transformOrigin: 'top center',
+                marginBottom: zoom > 1 ? `${Math.round((zoom - 1) * 100)}%` : undefined
+              }}
+              className="relative inline-block shadow-2xl bg-white border border-white/20 transition-transform duration-75 my-auto"
+            >
+              <img
+                ref={imgRef}
+                src={dataUrl}
+                alt={`Page ${pageNum}`}
+                draggable={false}
+                className="max-w-full h-auto object-contain block select-none pointer-events-none"
               />
-            )}
+
+              {/* Selection Bounding Box */}
+              {selection && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: `${selection.x * 100}%`,
+                    top: `${selection.y * 100}%`,
+                    width: `${selection.w * 100}%`,
+                    height: `${selection.h * 100}%`,
+                  }}
+                  className="border-2 border-primary bg-primary/20 pointer-events-none shadow-[0_0_12px_rgba(0,191,255,0.5)] z-20"
+                />
+              )}
+            </div>
           </div>
         ) : (
-          <div className="p-8 max-w-md text-center space-y-4 font-mono text-xs bg-surface-dim border border-white/15 rounded-sm shadow-2xl">
-            <div className="w-12 h-12 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center mx-auto text-primary">
-              <FileText className="w-6 h-6" />
-            </div>
-            <div>
-              <h4 className="text-white font-bold text-sm">Source PDF Not Rendered on Server</h4>
-              <p className="text-white/60 text-[11px] mt-1 font-sans leading-relaxed">
-                Cloud host does not have PyMuPDF rasterizer or PDF file is local. You can select your local PDF file to render pages and crop directly in the browser!
-              </p>
-            </div>
+          <div className="min-w-full min-h-full flex items-center justify-center py-12">
+            <div className="p-8 max-w-md text-center space-y-4 font-mono text-xs bg-surface-dim border border-white/15 rounded-sm shadow-2xl">
+              <div className="w-12 h-12 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center mx-auto text-primary">
+                <FileText className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="text-white font-bold text-sm">Source PDF Not Rendered on Server</h4>
+                <p className="text-white/60 text-[11px] mt-1 font-sans leading-relaxed">
+                  Cloud host does not have PyMuPDF rasterizer or PDF file is local. You can select your local PDF file to render pages and crop directly in the browser!
+                </p>
+              </div>
 
-            {/* Local PDF File Picker */}
-            <div className="space-y-2 pt-1">
-              <label className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-black hover:brightness-110 font-bold uppercase rounded-sm cursor-pointer transition-all text-xs shadow-lg">
-                <UploadCloud className="w-4 h-4" />
-                <span>Select Local PDF File</span>
-                <input
-                  type="file"
-                  accept="application/pdf,.pdf"
-                  className="hidden"
-                  onChange={handleLocalPdfSelect}
-                />
-              </label>
+              {/* Local PDF File Picker */}
+              <div className="space-y-2 pt-1">
+                <label className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-black hover:brightness-110 font-bold uppercase rounded-sm cursor-pointer transition-all text-xs shadow-lg">
+                  <UploadCloud className="w-4 h-4" />
+                  <span>Select Local PDF File</span>
+                  <input
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    className="hidden"
+                    onChange={handleLocalPdfSelect}
+                  />
+                </label>
 
-              {localPdfName && (
-                <div className="text-[11px] text-status-aligned flex items-center justify-center gap-1.5 pt-1">
-                  <Check className="w-3.5 h-3.5" />
-                  <span>Loaded: {localPdfName}</span>
-                </div>
-              )}
+                {localPdfName && (
+                  <div className="text-[11px] text-status-aligned flex items-center justify-center gap-1.5 pt-1">
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Loaded: {localPdfName}</span>
+                  </div>
+                )}
 
-              {uploadPdfSuccess && (
-                <div className="text-[10px] text-status-aligned font-mono">
-                  ✓ Source PDF also uploaded to cloud storage!
-                </div>
-              )}
-            </div>
+                {uploadPdfSuccess && (
+                  <div className="text-[10px] text-status-aligned font-mono">
+                    ✓ Source PDF also uploaded to cloud storage!
+                  </div>
+                )}
+              </div>
 
-            <div className="pt-3 border-t border-white/10 text-[10px] text-white/40">
-              ⚡ Browser PDF.js rendering &bull; Instant drag-to-crop enabled
+              <div className="pt-3 border-t border-white/10 text-[10px] text-white/40">
+                ⚡ Browser PDF.js rendering &bull; Instant drag-to-crop enabled
+              </div>
             </div>
           </div>
         )}
