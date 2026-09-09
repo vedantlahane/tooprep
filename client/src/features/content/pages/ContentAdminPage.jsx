@@ -1154,6 +1154,7 @@ function CandidateCard({
   };
 
   const [researching, setResearching] = useState(false);
+  const [formatting, setFormatting] = useState(false);
   const [researchFeedback, setResearchFeedback] = useState('');
 
   const fileInputRef = useRef(null);
@@ -1292,8 +1293,9 @@ function CandidateCard({
     }
   };
 
-  // 1-Click AI Format & Clean
-  const handleAutoCleanAndPolish = () => {
+  // 1-Click AI Format & Clean (Instant local preview + Gemini 3.8 Flash deep polish)
+  const handleAutoCleanAndPolish = async () => {
+    // 1. Instant local polish for immediate zero-latency feedback
     const polished = polishCandidateText(questionText || candidate.raw_text, solutionText);
     setQuestionText(polished.questionText);
     if (polished.hasOptions) {
@@ -1308,7 +1310,6 @@ function CandidateCard({
       setSolutionText(cleanSolutionText(solutionText));
     }
 
-    // Also auto-re-infer curriculum topic to fix any previous misclassifications
     const candidateContext = {
       ...candidate,
       question_text: polished.questionText,
@@ -1318,6 +1319,48 @@ function CandidateCard({
     const inferredTopicId = autoInferTopicId(candidateContext, groupedTopics, true);
     if (inferredTopicId && inferredTopicId !== topicId) {
       setTopicId(inferredTopicId);
+    }
+
+    // 2. Deep AI Formatting with Gemini 3.8 Flash
+    setFormatting(true);
+    setResearchFeedback('🤖 Formatting with Gemini 3.8 Flash...');
+    try {
+      const optsObj = (options || []).reduce((acc, o) => {
+        acc[o.id] = o.text;
+        return acc;
+      }, {});
+
+      const aiRes = await contentService.aiFormatQuestion({
+        question_text: polished.questionText,
+        options: optsObj,
+        solution_text: polished.solutionText || solutionText,
+        raw_text: candidate.raw_text,
+        subject: candidate.subject
+      });
+
+      if (aiRes) {
+        if (aiRes.cleaned_question_text) setQuestionText(aiRes.cleaned_question_text);
+        if (aiRes.options && (aiRes.options.A || aiRes.options.B)) {
+          setOptions([
+            { id: 'A', text: aiRes.options.A || '' },
+            { id: 'B', text: aiRes.options.B || '' },
+            { id: 'C', text: aiRes.options.C || '' },
+            { id: 'D', text: aiRes.options.D || '' }
+          ]);
+        }
+        if (aiRes.correct_answer) setCorrectAnswer(aiRes.correct_answer);
+        if (aiRes.solution_text) setSolutionText(cleanSolutionText(aiRes.solution_text));
+        if (aiRes.suggested_topic_id) setTopicId(aiRes.suggested_topic_id);
+        if (aiRes.difficulty) setDifficulty(aiRes.difficulty);
+        setResearchFeedback(`✨ Formatted with ${aiRes.model?.replace('gemini-', 'Gemini ') || 'Gemini 3.8 Flash'}`);
+        setTimeout(() => setResearchFeedback(''), 6000);
+      }
+    } catch (err) {
+      console.warn('AI format remote failed, using local polish:', err.message);
+      setResearchFeedback('✨ Formatted with Local Engine');
+      setTimeout(() => setResearchFeedback(''), 4000);
+    } finally {
+      setFormatting(false);
     }
   };
 
@@ -1562,11 +1605,12 @@ function CandidateCard({
 
           <button
             onClick={handleAutoCleanAndPolish}
-            className="px-2 py-1 text-label-sm-mono uppercase tracking-widest border border-status-aligned/60 bg-status-aligned/10 hover:bg-status-aligned hover:text-black text-status-aligned transition-colors rounded-sm flex items-center gap-1 text-[11px] font-bold cursor-pointer"
-            title="AI Auto-Format: standardize math, split choices, infer answer key"
+            disabled={formatting}
+            className="px-2 py-1 text-label-sm-mono uppercase tracking-widest border border-status-aligned/60 bg-status-aligned/10 hover:bg-status-aligned hover:text-black text-status-aligned transition-colors rounded-sm flex items-center gap-1 text-[11px] font-bold cursor-pointer disabled:opacity-50"
+            title="Gemini 3.8 Flash AI Format: standardize KaTeX math, split choices, clean solution tables, infer curriculum topic"
           >
-            <Wand2 className="w-3 h-3" />
-            <span>AI Format</span>
+            <Wand2 className={`w-3 h-3 ${formatting ? 'animate-spin' : ''}`} />
+            <span>{formatting ? 'Formatting...' : 'AI Format'}</span>
           </button>
 
           <button

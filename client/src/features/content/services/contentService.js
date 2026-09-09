@@ -56,6 +56,8 @@ export const contentService = {
     request('DELETE', `${base}/ingestion-jobs/${jobId}${deleteQuestions ? '?delete_questions=true' : ''}`),
   aiResearchQuestion: (data) =>
     request('POST', `${base}/ai-research-question`, data),
+  aiFormatQuestion: (data) =>
+    request('POST', `${base}/ai-format-question`, data),
   uploadSourcePdf: (jobId, file) => {
     const form = new FormData();
     form.append('file', file);

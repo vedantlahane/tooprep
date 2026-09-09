@@ -169,6 +169,52 @@ export const contentController = {
       return res.json(result);
     } catch (error) { return sendError(res, req, error); }
   },
+  async aiFormatQuestion(req, res) {
+    try {
+      const { question_text, options, solution_text, raw_text, subject } = req.body;
+      if (!question_text && !raw_text) {
+        throw Object.assign(new Error('question_text or raw_text is required'), { statusCode: 400 });
+      }
+      const { formatAndCleanQuestion } = await import('./ai-service.js');
+      const formatted = await formatAndCleanQuestion({
+        questionText: question_text,
+        options,
+        solutionText: solution_text,
+        rawText: raw_text,
+        subject
+      });
+
+      if (formatted?.suggested_topic) {
+        try {
+          const { supabaseAdmin } = await import('../../lib/supabase.js');
+          const { data: dbTopics } = await supabaseAdmin
+            .from('topics')
+            .select('id, name, chapter_id, chapters(name, subjects(name))');
+          if (dbTopics && dbTopics.length > 0) {
+            const allTopics = dbTopics.map(t => ({
+              id: t.id,
+              name: t.name,
+              chapter: t.chapters?.name,
+              subject: t.chapters?.subjects?.name
+            }));
+            const matched = allTopics.find(t =>
+              t.name.toLowerCase().includes(formatted.suggested_topic.toLowerCase()) ||
+              formatted.suggested_topic.toLowerCase().includes(t.name.toLowerCase())
+            );
+            if (matched) {
+              formatted.suggested_topic_id = matched.id;
+              formatted.suggested_topic = matched.name;
+              formatted.suggested_chapter = matched.chapter;
+            }
+          }
+        } catch {
+          // ignore topic lookup failure
+        }
+      }
+
+      return res.json(formatted);
+    } catch (error) { return sendError(res, req, error); }
+  },
   async uploadSourcePdf(req, res) {
     try {
       const result = await contentService.uploadSourcePdf(req.params.jobId, req.file, req.user.id);

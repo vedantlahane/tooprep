@@ -11,6 +11,7 @@
 import { logger } from '../../platform/logger.js';
 import { supabaseAdmin } from '../../lib/supabase.js';
 import { classifyQuestion, inferDifficulty } from './topic-classifier.js';
+import { solveAndDeriveQuestion } from './ai-service.js';
 
 const TAVILY_API_URL = 'https://api.tavily.com/search';
 
@@ -228,6 +229,40 @@ export async function researchQuestionWithTavily({
     }
   }
 
+  // 3.5. Synthesize publication-grade STEM solution and verification via Gemini 3.8 Flash
+  let aiDerived = null;
+  try {
+    const webContext = [
+      answer ? `Tavily Direct Answer: ${answer}` : '',
+      results.slice(0, 3).map((r, i) => `Source ${i + 1} (${r.title}):\n${r.content}`).join('\n\n')
+    ].filter(Boolean).join('\n\n');
+
+    aiDerived = await solveAndDeriveQuestion({
+      questionText: cleanedText,
+      options: parsedOptions,
+      currentAnswer: suggestedAnswerKey || currentAnswer,
+      currentSolution: solutionDraft,
+      webContext,
+      subject
+    });
+
+    if (aiDerived) {
+      if (aiDerived.cleaned_question_text) cleanedText = aiDerived.cleaned_question_text;
+      if (aiDerived.options && (aiDerived.options.A || aiDerived.options.B)) {
+        parsedOptions = {
+          A: aiDerived.options.A || parsedOptions.A || '',
+          B: aiDerived.options.B || parsedOptions.B || '',
+          C: aiDerived.options.C || parsedOptions.C || '',
+          D: aiDerived.options.D || parsedOptions.D || ''
+        };
+      }
+      if (aiDerived.correct_answer) suggestedAnswerKey = aiDerived.correct_answer;
+      if (aiDerived.solution_text) solutionDraft = cleanOcrArtifacts(aiDerived.solution_text);
+    }
+  } catch (aiErr) {
+    logger.warn({ error: aiErr.message }, '[tavily.provider] AI derivation fallback to standard synthesis');
+  }
+
   // 4. Auto-classify curriculum topic and difficulty
   let topicClassification = null;
   try {
@@ -241,13 +276,33 @@ export async function researchQuestionWithTavily({
         chapter: t.chapters?.name,
         subject: t.chapters?.subjects?.name
       }));
-      topicClassification = classifyQuestion(0, `${cleanedText} ${answer || ''}`, allTopics);
+
+      // If Gemini identified a suggested topic, match it against database topics first
+      if (aiDerived?.suggested_topic) {
+        const directMatch = allTopics.find(t =>
+          t.name.toLowerCase().includes(aiDerived.suggested_topic.toLowerCase()) ||
+          aiDerived.suggested_topic.toLowerCase().includes(t.name.toLowerCase())
+        );
+        if (directMatch) {
+          topicClassification = {
+            subject: directMatch.subject,
+            chapter: directMatch.chapter,
+            topicName: directMatch.name,
+            topicId: directMatch.id,
+            confidence: 'HIGH'
+          };
+        }
+      }
+
+      if (!topicClassification) {
+        topicClassification = classifyQuestion(0, `${cleanedText} ${answer || ''}`, allTopics);
+      }
     }
   } catch (tErr) {
     logger.warn('tavily.classification.fallback', { error: tErr.message });
   }
 
-  const inferredDiff = inferDifficulty(cleanedText, examInfo?.exam || '');
+  const inferredDiff = aiDerived?.difficulty || inferDifficulty(cleanedText, examInfo?.exam || '');
 
   return {
     cleaned_question_text: cleanedText,
@@ -263,6 +318,7 @@ export async function researchQuestionWithTavily({
     difficulty: inferredDiff,
     tavily_answer: answer,
     sources: sources.slice(0, 3),
-    confidence: answer ? 'HIGH' : results.length > 0 ? 'MEDIUM' : 'LOW'
+    confidence: aiDerived ? 'HIGH' : (answer ? 'HIGH' : results.length > 0 ? 'MEDIUM' : 'LOW'),
+    ai_model: aiDerived?.model || 'rule-engine'
   };
 }
