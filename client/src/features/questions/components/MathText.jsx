@@ -474,11 +474,20 @@ export function renderLatex(text) {
   processed = transformMarkdownLists(processed);
 
   // 8. Markdown typography & formatting on prose outside math
+  // Headings
+  processed = processed.replace(/^###\s+([^\n]+)/gm, '<h4 class="text-xs font-mono font-bold uppercase tracking-wider text-primary my-2">$1</h4>');
+  processed = processed.replace(/^##\s+([^\n]+)/gm, '<h3 class="text-sm font-mono font-bold uppercase tracking-wider text-primary my-2.5">$1</h3>');
+  processed = processed.replace(/^#\s+([^\n]+)/gm, '<h2 class="text-base font-mono font-bold uppercase tracking-wider text-primary my-3">$1</h2>');
+
   processed = processed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
   processed = processed.replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<em>$1</em>');
   processed = processed.replace(/~~(.*?)~~/g, '<del class="opacity-60">$1</del>');
   processed = processed.replace(/`([^`]+)`/g, '<code class="px-1.5 py-0.5 rounded bg-surface-container font-mono text-xs text-primary">$1</code>');
   processed = processed.replace(/\n\n+/g, '<br /><br />').replace(/\n/g, '<br />');
+
+  // Clean up superfluous <br /> tags around block elements
+  processed = processed.replace(/<br \/>\s*(<(?:ul|ol|table|div|h[1-6]|hr|blockquote))/gi, '$1');
+  processed = processed.replace(/(<\/(?:ul|ol|table|div|h[1-6]|hr|blockquote)>)\s*<br \/>/gi, '$1');
 
   // 9. Restore KaTeX math placeholders
   for (const item of mathPlaceholders) {

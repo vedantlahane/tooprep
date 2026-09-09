@@ -632,9 +632,9 @@ export default function QuestionEditModal({
                   </button>
 
                   {isThinkingOpen && (
-                    <div className="p-3.5 space-y-3 font-mono text-xs text-white/80 leading-relaxed bg-black/90 max-h-80 overflow-y-auto">
-                      <div className="whitespace-pre-wrap font-sans text-xs text-white/90 leading-relaxed">
-                        {aiThinking}
+                    <div className="p-3.5 space-y-3 font-mono text-xs text-white/80 leading-relaxed bg-black/90 max-h-96 overflow-y-auto">
+                      <div className="font-sans text-xs text-white/90 leading-relaxed space-y-2">
+                        <MathText text={aiThinking} />
                       </div>
 
                       {/* Sources / Citations */}
@@ -696,7 +696,9 @@ export default function QuestionEditModal({
                         <div className="text-[9px] uppercase tracking-wider text-white/50 mb-0.5">
                           {msg.role === 'user' ? 'Admin Instruction' : 'AI Response'}
                         </div>
-                        <p className="font-sans text-xs leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                        <div className="font-sans text-xs leading-relaxed">
+                          <MathText text={msg.text} />
+                        </div>
                       </div>
                     ))}
                   </div>
