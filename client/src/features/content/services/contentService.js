@@ -1,4 +1,16 @@
 import { request } from '@/shared/lib/apiClient';
+import { supabase } from '@/shared/lib/supabase';
+
+// Same base URL resolution as apiClient — critical for production where
+// VITE_API_URL is set to https://tooprep.onrender.com (absolute URL).
+// EventSource must use absolute URL; relative /api/* would hit Vercel's
+// SPA rewrite and return index.html instead of text/event-stream.
+const API_BASE = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : '/api';
+
+
+
 
 const base = '/admin/content';
 
@@ -56,29 +68,40 @@ export const contentService = {
 
   /**
    * Subscribe to real-time pipeline progress events for a job using SSE.
+   *
+   * EventSource cannot set custom Authorization headers, so we pass the
+   * Supabase JWT as a ?token= query parameter. The server accepts this on
+   * GET requests only (see auth.js requireAuth middleware).
+   *
    * @param {string} jobId
-   * @param {(event: object) => void} onEvent - called with each parsed event object
-   * @param {(error: Event) => void} [onError] - optional error handler
-   * @returns {() => void} unsubscribe function — call it to close the connection
+   * @param {(event: object) => void} onEvent
+   * @param {(error: Event) => void} [onError]
+   * @returns {() => void} unsubscribe function
    */
-  subscribeToJobEvents(jobId, onEvent, onError) {
-    // Use the API base path (same as other requests)
-    const url = `/api${base}/ingestion-jobs/${jobId}/events`;
-    const es = new EventSource(url, { withCredentials: true });
+  async subscribeToJobEvents(jobId, onEvent, onError) {
+    // Get current auth token from Supabase (same source as apiClient)
+    let token = '';
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      token = session?.access_token || '';
+    } catch {
+      // proceed without token — server returns 401 and SSE won't connect
+    }
+
+    const url = `${API_BASE}${base}/ingestion-jobs/${jobId}/events${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+    const es = new EventSource(url);
 
     es.onmessage = (e) => {
       try {
-        const event = JSON.parse(e.data);
-        onEvent(event);
+        onEvent(JSON.parse(e.data));
       } catch {
-        // Ignore malformed SSE frames
+        // ignore malformed frames
       }
     };
 
-    if (onError) {
-      es.onerror = onError;
-    }
+    if (onError) es.onerror = onError;
 
+    // Return sync unsubscribe (EventSource.close is sync)
     return () => es.close();
   }
 };

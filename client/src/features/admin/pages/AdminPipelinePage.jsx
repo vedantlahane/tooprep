@@ -277,25 +277,29 @@ export default function AdminPipelinePage() {
     setLiveEvents([]);
     setSseConnected(false);
 
-    const TERMINAL_STAGES = new Set(['AWAITING_REVIEW', 'COMPLETED', 'FAILED']);
-    const currentStage = (currentJob?.stage || '').toUpperCase();
+    let unsubscribe = null;
+    let cancelled = false;
 
-    // Only connect SSE while job is still processing (not terminal)
-    // Also connect for terminal stages so history shows
-    const unsubscribe = contentService.subscribeToJobEvents(
+    contentService.subscribeToJobEvents(
       selectedJobId,
       (event) => {
-        setLiveEvents(prev => {
-          const updated = [...prev, event];
-          return updated.slice(-200); // Keep last 200 events
-        });
+        if (cancelled) return;
+        setLiveEvents(prev => [...prev, event].slice(-200));
         if (event.step === 'sse_connected') setSseConnected(true);
       },
-      () => { setSseConnected(false); }
-    );
+      () => { if (!cancelled) setSseConnected(false); }
+    ).then(unsub => {
+      if (cancelled) {
+        // Component already unmounted or job changed — close immediately
+        unsub();
+      } else {
+        unsubscribe = unsub;
+      }
+    });
 
     return () => {
-      unsubscribe();
+      cancelled = true;
+      if (unsubscribe) unsubscribe();
       setSseConnected(false);
     };
   }, [selectedJobId]); // eslint-disable-line react-hooks/exhaustive-deps

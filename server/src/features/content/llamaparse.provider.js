@@ -16,38 +16,31 @@ function client() {
 
 /**
  * Submit a PDF to LlamaParse for multimodal OCR parsing.
- * Uses premium_speed tier + gpt-4o vision for best math/diagram extraction.
+ *
+ * Valid tiers (as of LlamaParse API v2.4):
+ *   fast | cost_effective | agentic | agentic_plus
+ *
+ * NOTE: parsing_instruction, extract_charts, skip_diagonal_text,
+ * continuous_mode, and vendor_multimodal_* are NOT supported by the
+ * @llamaindex/llama-cloud Node SDK and will cause a 400 validation error.
+ * Only tier, version, and upload_file are safe to pass via this SDK.
  */
 export async function createLlamaParseJob({ bytes, filename }, onProgress = null) {
-  const tier = process.env.LLAMA_PARSE_TIER || 'premium_speed';
+  // Valid tiers: fast | cost_effective | agentic | agentic_plus
+  // agentic uses an LLM agent for better parsing of complex math/diagram papers
+  const tier = process.env.LLAMA_PARSE_TIER || 'agentic';
   const file = new File([bytes], filename, { type: 'application/pdf' });
 
   if (onProgress) onProgress({
     step: 'llamaparse_submit',
-    message: `Submitting "${filename}" to LlamaParse (${tier} tier) with GPT-4o vision…`
+    message: `Submitting "${filename}" to LlamaParse (${tier} tier)…`
   });
 
-  const jobConfig = {
+  return client().parsing.create({
     tier,
     version: 'latest',
-    // Exam-paper-specific parsing hints for JEE format
-    parsing_instruction:
-      'This is a JEE (Joint Entrance Exam) Physics/Chemistry/Mathematics question paper. ' +
-      'Questions are numbered Q.1 through Q.90. Extract all mathematical equations as valid KaTeX LaTeX. ' +
-      'Preserve ALL options (A), (B), (C), (D). Each answer key is at the end in an ANSWERS section.',
-    extract_charts: true,
-    skip_diagonal_text: true,
-    continuous_mode: false,
     upload_file: file
-  };
-
-  // Use GPT-4o multimodal if API key is available (best for chemistry diagrams)
-  if (process.env.OPENAI_API_KEY) {
-    jobConfig.vendor_multimodal_model_name = process.env.LLAMA_PARSE_MODEL || 'openai-gpt-4o';
-    jobConfig.vendor_multimodal_api_key = process.env.OPENAI_API_KEY;
-  }
-
-  return client().parsing.create(jobConfig);
+  });
 }
 
 /**
@@ -79,18 +72,18 @@ export async function getLlamaParseResult(providerJobId, onProgress = null) {
     detail: {
       total_pages: pages.length,
       successful_pages: pages.filter(p => p.success).length,
-      usage: result.job.usage
+      usage: result.job?.usage
     }
   });
 
   return {
     provider: 'LLAMA_PARSE',
     provider_job_id: providerJobId,
-    provider_status: result.job.status,
-    markdown: result.markdown_full || pages.filter(page => page.markdown).map(page => page.markdown).join('\n\n'),
+    provider_status: result.job?.status,
+    markdown: result.markdown_full || pages.filter(p => p.markdown).map(p => p.markdown).join('\n\n'),
     text: result.text_full || null,
     pages,
-    usage: result.job.usage || null,
+    usage: result.job?.usage || null,
     parsed_at: new Date()
   };
 }

@@ -66,45 +66,41 @@ export async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
 
   /*
-   * Reject early if the Authorization header is missing or does not follow
-   * the "Bearer <token>" convention. This avoids an unnecessary round-trip
-   * to Supabase Auth for obviously malformed requests.
+   * Accept token from:
+   *   1. Authorization: Bearer <token>  header (standard REST requests)
+   *   2. ?token=<token>                 query param (EventSource/SSE — cannot set headers)
+   *
+   * The query-param fallback is intentionally limited to GET requests only,
+   * since it is only needed for the SSE event stream endpoint.
    */
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  let token;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.split(' ')[1];
+  } else if (req.method === 'GET' && req.query?.token) {
+    token = req.query.token;
+  }
+
+  if (!token) {
     return res.status(401).json({ error: 'Missing or invalid Authorization header' });
   }
 
-  const token = authHeader.split(' ')[1]; // Extract the JWT after "Bearer "
-
   try {
-    /*
-     * Verify the token with Supabase Auth (server-side validation).
-     * supabaseAdmin is used here because getUser() needs the service-role
-     * key to verify tokens — it is an admin-level auth operation, not a
-     * data query, so RLS is irrelevant.
-     */
     const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
 
     if (error || !user) {
       return res.status(401).json({ error: 'Invalid or expired token' });
     }
 
-    /*
-     * Enrich the request with the authenticated user's identity and a
-     * Supabase client scoped to their RLS policies. Downstream controllers
-     * and services use req.supabase for all database operations, ensuring
-     * queries automatically respect row-level security rules.
-     */
     req.user = { id: user.id, email: user.email };
     req.accessToken = token;
     req.supabase = createUserClient(token);
     next();
   } catch (err) {
-    /* Catch unexpected errors (network failures, Supabase outages, etc.) */
     console.error('Auth middleware error:', err);
     return res.status(401).json({ error: 'Authentication failed' });
   }
 }
+
 
 /**
  * Authorization middleware — restricts access to admin users only.
