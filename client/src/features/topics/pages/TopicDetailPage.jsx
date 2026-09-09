@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { topicsService } from '../services/topicsService';
+import { clientCache } from '@/shared/lib/clientCache';
 import { confidenceService } from '@/features/confidence/services/confidenceService';
 import { questionsService } from '@/features/questions/services/questionsService';
 import QuickDrillModal from '@/features/practice/components/QuickDrillModal';
@@ -51,15 +52,16 @@ export default function TopicDetailPage() {
   const navigate = useNavigate();
   const { profile } = useAuth();
 
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const cachedTopicData = clientCache.get(`/topics/${id}`);
+  const [data, setData] = useState(() => cachedTopicData || null);
+  const [loading, setLoading] = useState(() => !cachedTopicData);
   const [error, setError] = useState('');
 
   // Active view tab for calibrated state: 'trajectory' | 'bank' | 'chapter'
   const [calibratedTab, setCalibratedTab] = useState('trajectory');
 
   // Interactive confidence state
-  const [selectedConfidence, setSelectedConfidence] = useState(5);
+  const [selectedConfidence, setSelectedConfidence] = useState(() => cachedTopicData?.topic?.confidence || 5);
   const [confidenceSaving, setConfidenceSaving] = useState(false);
   const [confidenceSavedNotice, setConfidenceSavedNotice] = useState(false);
 
@@ -77,6 +79,18 @@ export default function TopicDetailPage() {
   useEffect(() => {
     loadTopic();
     loadTopicQuestions();
+
+    // Subscribe to live WebSocket / SWR updates for this topic
+    const unsubscribe = clientCache.subscribe(`/topics/${id}`, (fresh) => {
+      if (fresh && fresh.topic) {
+        setData(fresh);
+        if (fresh.topic.confidence) {
+          setSelectedConfidence(fresh.topic.confidence);
+        }
+      }
+    });
+
+    return () => unsubscribe();
   }, [id]);
 
   const loadTopic = async () => {
@@ -111,15 +125,35 @@ export default function TopicDetailPage() {
   };
 
   const handleSelectConfidence = async (ratingVal) => {
+    // 1. Instant 0ms Optimistic UI updates
     setSelectedConfidence(ratingVal);
+    setConfidenceSavedNotice(true);
+    setTimeout(() => setConfidenceSavedNotice(false), 3000);
+
+    if (data && data.topic) {
+      const currentAcc = data.topic.evaluation_accuracy;
+      const newGap = currentAcc !== null ? Math.round(currentAcc - (ratingVal * 10)) : null;
+      const updatedTopic = {
+        ...data.topic,
+        confidence: ratingVal,
+        gap: newGap
+      };
+      const updatedData = { ...data, topic: updatedTopic };
+      setData(updatedData);
+      clientCache.set(`/topics/${id}`, updatedData);
+    }
+
+    // 2. Persist to server in background
     setConfidenceSaving(true);
     try {
       await confidenceService.setConfidence(id, ratingVal, 'INITIAL');
-      setConfidenceSavedNotice(true);
-      setTimeout(() => setConfidenceSavedNotice(false), 3000);
-      await loadTopic();
+      // Silently refresh in background
+      topicsService.getTopicDetail(id).then(res => {
+        if (res) setData(res);
+      }).catch(() => {});
     } catch (err) {
       setError(err.message);
+      loadTopic();
     } finally {
       setConfidenceSaving(false);
     }

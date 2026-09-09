@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { dashboardService } from '../services/dashboardService';
+import { clientCache } from '@/shared/lib/clientCache';
 import { confidenceService } from '@/features/confidence/services/confidenceService';
 import ConfidenceSlider from '@/features/confidence/components/ConfidenceSlider';
 import Icon, {
@@ -65,6 +66,15 @@ export default function DashboardPage() {
 
   useEffect(() => {
     loadDashboard(false);
+
+    // Subscribe to live WebSocket & background SWR cache updates
+    const unsubscribe = clientCache.subscribe('/dashboard', (freshData) => {
+      if (Array.isArray(freshData)) {
+        setData(freshData);
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const loadDashboard = async (force = false) => {
@@ -252,61 +262,76 @@ export default function DashboardPage() {
     return 'PRELIMINARY';
   };
 
-  // Quick In-Cell Confidence Calibration
+  // Quick In-Cell Confidence Calibration (0ms Optimistic UI)
   const handleQuickCalibrate = async (topicId, score) => {
+    // 1. Optimistically update local state immediately (0ms instant feedback)
+    let updatedObj = null;
+    setData(prev => prev.map(t => {
+      if (t.topic_id === topicId) {
+        const newGap = t.evaluation_accuracy !== null ? Math.round(t.evaluation_accuracy - (score * 10)) : null;
+        const newStatus = classifyStatus(t.evaluation_accuracy, newGap, t.eval_attempts || 0);
+        updatedObj = { ...t, confidence: score, gap: newGap, status: newStatus };
+        return updatedObj;
+      }
+      return t;
+    }));
+
+    // 2. Optimistically update clientCache immediately
+    if (updatedObj) {
+      dashboardService.updateTopicInCache(topicId, {
+        confidence: score,
+        gap: updatedObj.gap,
+        status: updatedObj.status
+      });
+    }
+
+    // 3. Persist to server in background
     setSavingConf(true);
     try {
       await confidenceService.setConfidence(topicId, score, 'INITIAL');
-      let updatedObj = null;
-      setData(prev => prev.map(t => {
-        if (t.topic_id === topicId) {
-          const newGap = t.evaluation_accuracy !== null ? Math.round(t.evaluation_accuracy - (score * 10)) : null;
-          const newStatus = classifyStatus(t.evaluation_accuracy, newGap, t.eval_attempts || 0);
-          updatedObj = { ...t, confidence: score, gap: newGap, status: newStatus };
-          return updatedObj;
-        }
-        return t;
-      }));
-      if (updatedObj) {
-        dashboardService.updateTopicInCache(topicId, {
-          confidence: score,
-          gap: updatedObj.gap,
-          status: updatedObj.status
-        });
-      }
     } catch (e) {
-      console.error(e);
+      console.error('Failed to sync confidence to server, reverting:', e);
+      loadDashboard(true);
     } finally {
       setSavingConf(false);
     }
   };
 
-  // Full Modal Confidence Calibration
+  // Full Modal Confidence Calibration (0ms Optimistic UI)
   const handleSaveModalConfidence = async () => {
     if (!calibrateModal) return;
+    const { topicId } = calibrateModal;
+    const score = calibrateVal;
+
+    // 1. Optimistically update state immediately
+    let updatedObj = null;
+    setData(prev => prev.map(t => {
+      if (t.topic_id === topicId) {
+        const newGap = t.evaluation_accuracy !== null ? Math.round(t.evaluation_accuracy - (score * 10)) : null;
+        const newStatus = classifyStatus(t.evaluation_accuracy, newGap, t.eval_attempts || 0);
+        updatedObj = { ...t, confidence: score, gap: newGap, status: newStatus };
+        return updatedObj;
+      }
+      return t;
+    }));
+
+    // 2. Update cache
+    if (updatedObj) {
+      dashboardService.updateTopicInCache(topicId, {
+        confidence: score,
+        gap: updatedObj.gap,
+        status: updatedObj.status
+      });
+    }
+    setCalibrateModal(null);
+
+    // 3. Persist in background
     setCalibrating(true);
     try {
-      await confidenceService.setConfidence(calibrateModal.topicId, calibrateVal, 'INITIAL');
-      let updatedObj = null;
-      setData(prev => prev.map(t => {
-        if (t.topic_id === calibrateModal.topicId) {
-          const newGap = t.evaluation_accuracy !== null ? Math.round(t.evaluation_accuracy - (calibrateVal * 10)) : null;
-          const newStatus = classifyStatus(t.evaluation_accuracy, newGap, t.eval_attempts || 0);
-          updatedObj = { ...t, confidence: calibrateVal, gap: newGap, status: newStatus };
-          return updatedObj;
-        }
-        return t;
-      }));
-      if (updatedObj) {
-        dashboardService.updateTopicInCache(calibrateModal.topicId, {
-          confidence: calibrateVal,
-          gap: updatedObj.gap,
-          status: updatedObj.status
-        });
-      }
-      setCalibrateModal(null);
+      await confidenceService.setConfidence(topicId, score, 'INITIAL');
     } catch (e) {
-      console.error(e);
+      console.error('Failed to sync modal confidence, reverting:', e);
+      loadDashboard(true);
     } finally {
       setCalibrating(false);
     }

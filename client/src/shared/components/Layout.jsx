@@ -27,6 +27,10 @@ import Icon, {
   X
 } from './Icon';
 import PWAInstallBanner from './PWAInstallBanner';
+import LiveStatusBadge from './LiveStatusBadge';
+import { dashboardService } from '@/features/dashboard/services/dashboardService';
+import { topicsService } from '@/features/topics/services/topicsService';
+import { questionsService } from '@/features/questions/services/questionsService';
 
 const PIVOT_ITEMS = [
   { path: '/', label: 'map', icon: LayoutGrid },
@@ -82,6 +86,34 @@ export default function Layout({ children }) {
     localStorage.setItem('tooprep_accent', found.id);
   };
 
+  const handlePrefetch = (path) => {
+    try {
+      // 1. Data prefetch via SWR cache
+      if (path === '/') {
+        dashboardService.prefetchDashboard();
+        topicsService.getTopics();
+      } else if (path === '/questions') {
+        topicsService.getTopics();
+        questionsService.browseQuestions({});
+      } else if (path === '/practice' || path === '/evaluate') {
+        topicsService.getTopics();
+      } else if (path === '/plan' || path === '/insights' || path === '/trends') {
+        dashboardService.prefetchDashboard();
+      }
+
+      // 2. Component chunk prefetch via Vite dynamic imports
+      if (path === '/plan') import('@/features/dashboard/pages/StudyPlanPage');
+      else if (path === '/questions') import('@/features/questions/pages/QuestionsPage');
+      else if (path === '/practice') import('@/features/practice/pages/PracticePage');
+      else if (path === '/evaluate') import('@/features/evaluations/pages/EvaluationPage');
+      else if (path === '/insights') import('@/features/insights/pages/InsightsPage');
+      else if (path === '/trends') import('@/features/dashboard/pages/PerformanceTrendPage');
+      else if (path === '/profile') import('@/features/profile/pages/ProfilePage');
+      else if (path === '/timeline') import('@/features/dashboard/pages/TimelineProgressPage');
+      else if (path === '/subjects') import('@/features/dashboard/pages/SubjectMasteryPage');
+    } catch (_) {}
+  };
+
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -120,6 +152,7 @@ export default function Layout({ children }) {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3 text-white/60">
+          <LiveStatusBadge />
           <span className="font-mono text-[11px] hidden sm:inline">{timeStr}</span>
 
           {/* Accent Color Palette Quick Switcher */}
@@ -348,6 +381,8 @@ export default function Layout({ children }) {
               <Link
                 key={item.path}
                 to={item.path}
+                onMouseEnter={() => handlePrefetch(item.path)}
+                onTouchStart={() => handlePrefetch(item.path)}
                 className={`group relative pb-2.5 transition-all duration-200 flex items-center gap-2 ${
                   isActive
                     ? 'text-white'

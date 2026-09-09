@@ -53,56 +53,66 @@ import { supabaseAdmin } from '../../lib/supabase.js';
 /* Pure utility for gap computation — no side effects, shared with topics.service */
 import { computeGapAndStatus } from './dashboard.utils.js';
 
+let cachedTopics = null;
+let cachedTopicsTime = 0;
+const TOPICS_CACHE_TTL = 15 * 60 * 1000; // 15 mins
+
+async function getCachedTopics() {
+  const now = Date.now();
+  if (cachedTopics && (now - cachedTopicsTime < TOPICS_CACHE_TTL)) {
+    return cachedTopics;
+  }
+  const { data: topics, error: tErr } = await supabaseAdmin
+    .from('topics')
+    .select('id, name, chapter_id, chapters(id, name, subject_id, subjects(id, name))')
+    .order('name');
+
+  if (tErr) throw new Error(tErr.message);
+  cachedTopics = topics;
+  cachedTopicsTime = now;
+  return topics;
+}
+
 export const dashboardService = {
   /**
    * Build the full Knowledge Map dashboard for a user.
-   *
-   * @description Executes an 8-step sequential pipeline that queries Supabase
-   *   for topics, confidence ratings, evaluations, eval attempts, practice
-   *   sessions, and practice attempts, then merges everything into a flat
-   *   array of annotated topic rows sorted by action priority.
+   * Optimized 2-phase parallel pipeline with in-memory curriculum caching.
    *
    * @param {string} userId - The authenticated user's UUID
-   * @returns {Promise<Array<Object>>} Array of topic rows, each containing:
-   *   - topic_id, topic_name, chapter_name, subject_name, subject_id
-   *   - confidence (1–10 or null)
-   *   - evaluation_accuracy, gap, status (from computeGapAndStatus)
-   *   - avg_time_seconds, pyq_accuracy, difficulty_breakdown
-   *   - questions_attempted (practice + eval combined)
-   *   - last_practiced_at (most recent of practice session or evaluation)
-   * @throws {Error} If the initial topics query fails (other query failures
-   *   are handled gracefully with empty/null fallbacks)
+   * @returns {Promise<Array<Object>>} Array of topic rows
    */
   async getDashboardData(userId) {
-    /* ════════════════════════════════════════════════════════════════════
-     * STEP 1: Fetch all topics with hierarchy metadata
-     * ════════════════════════════════════════════════════════════════════
-     * Query joins through the foreign keys: topics → chapters → subjects
-     * to get the full navigation breadcrumb for each topic.
-     * This is the only query that throws on error, since the entire
-     * dashboard is meaningless without the topic list. */
-    // 1. Get all topics with hierarchy
-    const { data: topics, error: tErr } = await supabaseAdmin
-      .from('topics')
-      .select('id, name, chapter_id, chapters(id, name, subject_id, subjects(id, name))')
-      .order('name');
+    // ── Phase 1: Parallel fetch of curriculum, confidences, completed evals, practice sessions, questions ──
+    const [
+      topics,
+      { data: allConfidences },
+      { data: allEvals },
+      { data: practiceSessions },
+      { data: qList }
+    ] = await Promise.all([
+      getCachedTopics(),
+      supabaseAdmin
+        .from('confidence_assessments')
+        .select('topic_id, confidence, recorded_at')
+        .eq('user_id', userId)
+        .order('recorded_at', { ascending: false }),
+      supabaseAdmin
+        .from('evaluations')
+        .select('id, topic_id, started_at')
+        .eq('user_id', userId)
+        .not('ended_at', 'is', null)
+        .order('started_at', { ascending: false }),
+      supabaseAdmin
+        .from('practice_sessions')
+        .select('id, topic_id, started_at')
+        .eq('user_id', userId)
+        .order('started_at', { ascending: false }),
+      supabaseAdmin
+        .from('questions')
+        .select('topic_id, verified')
+    ]);
 
-    if (tErr) throw new Error(tErr.message);
-
-    /* ════════════════════════════════════════════════════════════════════
-     * STEP 2: Fetch latest confidence per topic
-     * ════════════════════════════════════════════════════════════════════
-     * Confidence assessments are ordered newest-first. We iterate once
-     * and keep only the first (most recent) entry per topic_id — this
-     * is more efficient than a GROUP BY + MAX subquery in Supabase's
-     * PostgREST API, which doesn't support window functions. */
-    // 2. Get latest confidence per topic for this user
-    const { data: allConfidences } = await supabaseAdmin
-      .from('confidence_assessments')
-      .select('topic_id, confidence, recorded_at')
-      .eq('user_id', userId)
-      .order('recorded_at', { ascending: false });
-
+    // 1. Latest confidence per topic
     const confidenceMap = {};
     if (allConfidences) {
       for (const c of allConfidences) {
@@ -112,24 +122,7 @@ export const dashboardService = {
       }
     }
 
-    /* ════════════════════════════════════════════════════════════════════
-     * STEP 3: Fetch completed evaluations, extract latest per topic
-     * ════════════════════════════════════════════════════════════════════
-     * Only completed evaluations (ended_at IS NOT NULL) are considered —
-     * in-progress evaluations would give incomplete accuracy data.
-     * Ordered newest-first so the first-seen per topic_id is the latest. */
-    // 3. Get all completed evaluations for this user
-    const { data: allEvals } = await supabaseAdmin
-      .from('evaluations')
-      .select('id, topic_id, started_at')
-      .eq('user_id', userId)
-      .not('ended_at', 'is', null)
-      .order('started_at', { ascending: false });
-
-    /* Build a map of topic_id → latest evaluation ID.
-     * The gap is always computed against the most recent evaluation only,
-     * giving students credit for improvement over time. */
-    // Build latest eval ID per topic
+    // 2. Latest evaluation per topic
     const latestEvalIdByTopic = {};
     if (allEvals) {
       for (const e of allEvals) {
@@ -139,53 +132,7 @@ export const dashboardService = {
       }
     }
 
-    /* ════════════════════════════════════════════════════════════════════
-     * STEP 4: Fetch evaluation attempts for the latest evaluations
-     * ════════════════════════════════════════════════════════════════════
-     * These attempts are the raw data fed into computeGapAndStatus().
-     * Joins to the `questions` table to get source_type and difficulty
-     * metadata needed for PYQ accuracy and difficulty breakdown.
-     *
-     * Uses `.in()` to batch-fetch all attempts in a single query rather
-     * than N+1 queries per topic. Results are grouped into a map keyed
-     * by evaluation_id. */
-    // 4. Get all evaluation attempts for latest evals
-    const latestEvalIds = Object.values(latestEvalIdByTopic);
-    let evalAttemptsMap = {};
-    if (latestEvalIds.length > 0) {
-      const { data: evalAttempts } = await supabaseAdmin
-        .from('evaluation_attempts')
-        .select('evaluation_id, correct, time_spent_seconds, questions(source_type, difficulty)')
-        .in('evaluation_id', latestEvalIds);
-
-      if (evalAttempts) {
-        for (const a of evalAttempts) {
-          if (!evalAttemptsMap[a.evaluation_id]) {
-            evalAttemptsMap[a.evaluation_id] = [];
-          }
-          evalAttemptsMap[a.evaluation_id].push(a);
-        }
-      }
-    }
-
-    /* ════════════════════════════════════════════════════════════════════
-     * STEP 5: Fetch practice sessions — last practiced dates & session IDs
-     * ════════════════════════════════════════════════════════════════════
-     * Practice sessions contribute to:
-     *   1. `last_practiced_at` — showing when the student last engaged
-     *   2. `questions_attempted` — combined count of practice + eval attempts
-     *
-     * Two maps are built:
-     *   lastPracticedMap  — topic_id → most recent started_at
-     *   sessionIdsByTopic — topic_id → [session_id, ...] (for attempt counting) */
-    // 5. Get practice session counts per topic
-    const { data: practiceSessions } = await supabaseAdmin
-      .from('practice_sessions')
-      .select('id, topic_id, started_at')
-      .eq('user_id', userId)
-      .order('started_at', { ascending: false });
-
-    // Last practiced per topic
+    // 3. Practice sessions mapping
     const lastPracticedMap = {};
     const sessionIdsByTopic = {};
     if (practiceSessions) {
@@ -200,88 +147,83 @@ export const dashboardService = {
       }
     }
 
-    /* ════════════════════════════════════════════════════════════════════
-     * STEP 6: Fetch practice attempt counts per session
-     * ════════════════════════════════════════════════════════════════════
-     * We only need the count, not the attempt data itself. However,
-     * Supabase's PostgREST `.select('id', { count: 'exact' })` with
-     * `.in()` returns a single aggregate count, not per-session counts.
-     * So we fetch the session IDs and count client-side. */
-    // 6. Get all practice attempt counts per session
+    // 4. Questions count mapping
+    const availableQuestionsByTopic = {};
+    const verifiedQuestionsByTopic = {};
+    if (qList) {
+      for (const q of qList) {
+        if (q.topic_id) {
+          availableQuestionsByTopic[q.topic_id] = (availableQuestionsByTopic[q.topic_id] || 0) + 1;
+          if (q.verified) {
+            verifiedQuestionsByTopic[q.topic_id] = (verifiedQuestionsByTopic[q.topic_id] || 0) + 1;
+          }
+        }
+      }
+    }
+
+    const latestEvalIds = Object.values(latestEvalIdByTopic);
     const allSessionIds = practiceSessions?.map(s => s.id) || [];
-    let practiceAttemptCountBySession = {};
-    if (allSessionIds.length > 0) {
-      const { data: practiceAttempts } = await supabaseAdmin
-        .from('practice_attempts')
-        .select('practice_session_id')
-        .in('practice_session_id', allSessionIds);
+    const allEvalIds = allEvals?.map(e => e.id) || [];
 
-      if (practiceAttempts) {
-        for (const pa of practiceAttempts) {
-          practiceAttemptCountBySession[pa.practice_session_id] =
-            (practiceAttemptCountBySession[pa.practice_session_id] || 0) + 1;
+    // ── Phase 2: Parallel fetch of eval attempts, practice attempts, all eval attempt counts ──
+    const [
+      { data: evalAttempts },
+      { data: practiceAttempts },
+      { data: allEvalAttempts }
+    ] = await Promise.all([
+      latestEvalIds.length > 0
+        ? supabaseAdmin
+            .from('evaluation_attempts')
+            .select('evaluation_id, correct, time_spent_seconds, questions(source_type, difficulty)')
+            .in('evaluation_id', latestEvalIds)
+        : Promise.resolve({ data: [] }),
+      allSessionIds.length > 0
+        ? supabaseAdmin
+            .from('practice_attempts')
+            .select('practice_session_id')
+            .in('practice_session_id', allSessionIds)
+        : Promise.resolve({ data: [] }),
+      allEvalIds.length > 0
+        ? supabaseAdmin
+            .from('evaluation_attempts')
+            .select('evaluation_id')
+            .in('evaluation_id', allEvalIds)
+        : Promise.resolve({ data: [] })
+    ]);
+
+    // Build evalAttemptsMap for gap computation
+    const evalAttemptsMap = {};
+    if (evalAttempts) {
+      for (const a of evalAttempts) {
+        if (!evalAttemptsMap[a.evaluation_id]) {
+          evalAttemptsMap[a.evaluation_id] = [];
         }
+        evalAttemptsMap[a.evaluation_id].push(a);
       }
     }
 
-    /* ════════════════════════════════════════════════════════════════════
-     * STEP 7: Count evaluation attempts per topic (across ALL evaluations)
-     * ════════════════════════════════════════════════════════════════════
-     * Unlike Step 4 (which only fetches attempts for the *latest* eval
-     * per topic for gap calculation), this step counts attempts across
-     * ALL completed evaluations — used for the `questions_attempted`
-     * aggregate stat on the dashboard.
-     *
-     * Requires a reverse lookup map (evalToTopic) to attribute each
-     * attempt back to its topic, since evaluation_attempts only
-     * reference evaluation_id, not topic_id directly. */
-    // 7. Count eval attempts per topic
-    let evalAttemptCountByTopic = {};
-    if (allEvals && allEvals.length > 0) {
-      const allEvalIds = allEvals.map(e => e.id);
-      const { data: allEvalAttempts } = await supabaseAdmin
-        .from('evaluation_attempts')
-        .select('evaluation_id')
-        .in('evaluation_id', allEvalIds);
-
-      if (allEvalAttempts) {
-        const evalToTopic = {};
-        for (const e of allEvals) {
-          evalToTopic[e.id] = e.topic_id;
-        }
-        for (const a of allEvalAttempts) {
-          const topicId = evalToTopic[a.evaluation_id];
-          if (topicId) {
-            evalAttemptCountByTopic[topicId] = (evalAttemptCountByTopic[topicId] || 0) + 1;
-          }
-        }
+    // Build practice attempt counts
+    const practiceAttemptCountBySession = {};
+    if (practiceAttempts) {
+      for (const pa of practiceAttempts) {
+        practiceAttemptCountBySession[pa.practice_session_id] =
+          (practiceAttemptCountBySession[pa.practice_session_id] || 0) + 1;
       }
     }
 
-    /* ════════════════════════════════════════════════════════════════════
-     * STEP 7b: Count questions available in question bank per topic
-     * ════════════════════════════════════════════════════════════════════
-     * Counts how many questions exist in the repository for each topic,
-     * allowing the Knowledge Map / XLS Sheet to display available bank depth. */
-    let availableQuestionsByTopic = {};
-    let verifiedQuestionsByTopic = {};
-    try {
-      const { data: qList } = await supabaseAdmin
-        .from('questions')
-        .select('topic_id, verified');
-
-      if (qList) {
-        for (const q of qList) {
-          if (q.topic_id) {
-            availableQuestionsByTopic[q.topic_id] = (availableQuestionsByTopic[q.topic_id] || 0) + 1;
-            if (q.verified) {
-              verifiedQuestionsByTopic[q.topic_id] = (verifiedQuestionsByTopic[q.topic_id] || 0) + 1;
-            }
-          }
+    // Count all eval attempts per topic
+    const evalAttemptCountByTopic = {};
+    if (allEvalAttempts && allEvals) {
+      const evalToTopic = {};
+      for (const e of allEvals) {
+        evalToTopic[e.id] = e.topic_id;
+      }
+      for (const a of allEvalAttempts) {
+        const topicId = evalToTopic[a.evaluation_id];
+        if (topicId) {
+          evalAttemptCountByTopic[topicId] = (evalAttemptCountByTopic[topicId] || 0) + 1;
         }
       }
-    } catch (qErr) {
-      console.warn('Could not count available questions per topic:', qErr.message);
     }
 
     /* ════════════════════════════════════════════════════════════════════

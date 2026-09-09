@@ -1,33 +1,50 @@
+import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/features/auth/context/AuthContext';
 import ProtectedRoute from '@/features/auth/components/ProtectedRoute';
 import AdminRoute from '@/features/auth/components/AdminRoute';
 import Layout from '@/shared/components/Layout';
+import AdminLayout from '@/shared/components/AdminLayout';
+
+// Core entry routes (eager for instant 0ms first render)
 import AuthPage from '@/features/auth/pages/AuthPage';
 import LandingPage from '@/features/landing/pages/LandingPage';
-import OnboardingPage from '@/features/auth/pages/OnboardingPage';
-import DashboardPage from '@/features/dashboard/pages/DashboardPage';
-import StudyPlanPage from '@/features/dashboard/pages/StudyPlanPage';
-import TimelineProgressPage from '@/features/dashboard/pages/TimelineProgressPage';
-import SubjectMasteryPage from '@/features/dashboard/pages/SubjectMasteryPage';
-import PerformanceTrendPage from '@/features/dashboard/pages/PerformanceTrendPage';
-import TopicDetailPage from '@/features/topics/pages/TopicDetailPage';
-import PracticePage from '@/features/practice/pages/PracticePage';
-import EvaluationPage from '@/features/evaluations/pages/EvaluationPage';
-import ResultsPage from '@/features/evaluations/pages/ResultsPage';
-import InsightsPage from '@/features/insights/pages/InsightsPage';
-import ProfilePage from '@/features/profile/pages/ProfilePage';
-import SessionHistoryPage from '@/features/profile/pages/SessionHistoryPage';
-import ContentAdminPage from '@/features/content/pages/ContentAdminPage';
-import QuestionsPage from '@/features/questions/pages/QuestionsPage';
-import AdminQuestionsPage from '@/features/questions/pages/AdminQuestionsPage';
-import AdminOverviewPage from '@/features/admin/pages/AdminOverviewPage';
-import AdminPipelinePage from '@/features/admin/pages/AdminPipelinePage';
-import AdminStudentsPage from '@/features/admin/pages/AdminStudentsPage';
-import AdminCurriculumPage from '@/features/admin/pages/AdminCurriculumPage';
-import AdminDuplicatesPage from '@/features/admin/pages/AdminDuplicatesPage';
-import ContentSyncPage from '@/features/content/pages/ContentSyncPage';
-import AdminLayout from '@/shared/components/AdminLayout';
+
+// Code-split lazy routes (loaded on-demand / proactively on hover)
+const DashboardPage = lazy(() => import('@/features/dashboard/pages/DashboardPage'));
+const StudyPlanPage = lazy(() => import('@/features/dashboard/pages/StudyPlanPage'));
+const TimelineProgressPage = lazy(() => import('@/features/dashboard/pages/TimelineProgressPage'));
+const SubjectMasteryPage = lazy(() => import('@/features/dashboard/pages/SubjectMasteryPage'));
+const PerformanceTrendPage = lazy(() => import('@/features/dashboard/pages/PerformanceTrendPage'));
+const TopicDetailPage = lazy(() => import('@/features/topics/pages/TopicDetailPage'));
+const PracticePage = lazy(() => import('@/features/practice/pages/PracticePage'));
+const EvaluationPage = lazy(() => import('@/features/evaluations/pages/EvaluationPage'));
+const ResultsPage = lazy(() => import('@/features/evaluations/pages/ResultsPage'));
+const InsightsPage = lazy(() => import('@/features/insights/pages/InsightsPage'));
+const ProfilePage = lazy(() => import('@/features/profile/pages/ProfilePage'));
+const SessionHistoryPage = lazy(() => import('@/features/profile/pages/SessionHistoryPage'));
+const QuestionsPage = lazy(() => import('@/features/questions/pages/QuestionsPage'));
+
+// Admin code-split lazy routes (heavy Cytoscape, PDF.js, and admin pipelines isolated)
+const AdminOverviewPage = lazy(() => import('@/features/admin/pages/AdminOverviewPage'));
+const AdminPipelinePage = lazy(() => import('@/features/admin/pages/AdminPipelinePage'));
+const AdminStudentsPage = lazy(() => import('@/features/admin/pages/AdminStudentsPage'));
+const AdminQuestionsPage = lazy(() => import('@/features/questions/pages/AdminQuestionsPage'));
+const AdminCurriculumPage = lazy(() => import('@/features/admin/pages/AdminCurriculumPage'));
+const AdminDuplicatesPage = lazy(() => import('@/features/admin/pages/AdminDuplicatesPage'));
+const ContentAdminPage = lazy(() => import('@/features/content/pages/ContentAdminPage'));
+const ContentSyncPage = lazy(() => import('@/features/content/pages/ContentSyncPage'));
+
+function RouteLoadingFallback() {
+  return (
+    <div className="flex-1 min-h-[50vh] flex flex-col items-center justify-center gap-3 animate-fade-in">
+      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+      <div className="text-xs font-mono text-primary uppercase tracking-widest">
+        Loading View...
+      </div>
+    </div>
+  );
+}
 
 
 function RootRoute() {
@@ -59,7 +76,8 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Routes>
+        <Suspense fallback={<RouteLoadingFallback />}>
+          <Routes>
           <Route path="/" element={<RootRoute />} />
           <Route path="/about" element={<LandingPage defaultTab="overview" />} />
           <Route path="/install" element={<LandingPage defaultTab="install" />} />
@@ -251,7 +269,8 @@ function App() {
           />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </BrowserRouter>
+      </Suspense>
+    </BrowserRouter>
     </AuthProvider>
   );
 }

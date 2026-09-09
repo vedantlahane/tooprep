@@ -76,29 +76,40 @@ export const topicsService = {
    * @throws {Error} If the subjects hierarchy query fails
    */
   async getTopicsHierarchy(userId) {
-    /* ── Step 1: Fetch the full curriculum tree ──
-     * Uses Supabase's nested select syntax to join subjects → chapters → topics
-     * in a single query, returning the full hierarchy as nested JSON. */
-    // Get full hierarchy
-    const { data: subjects, error: sErr } = await supabaseAdmin
-      .from('subjects')
-      .select('id, name, chapters(id, name, topics(id, name))')
-      .order('name');
+    // ── Phase 1: Parallel fetch of curriculum, confidences, evaluations, practice, questions ──
+    const [
+      subjectsRaw,
+      { data: confidences },
+      { data: evaluations },
+      { data: practiceSessions },
+      { data: qList }
+    ] = await Promise.all([
+      getCurriculumTree(),
+      supabaseAdmin
+        .from('confidence_assessments')
+        .select('topic_id, confidence, recorded_at')
+        .eq('user_id', userId)
+        .order('recorded_at', { ascending: false }),
+      supabaseAdmin
+        .from('evaluations')
+        .select('id, topic_id, started_at, ended_at')
+        .eq('user_id', userId)
+        .not('ended_at', 'is', null)
+        .order('started_at', { ascending: false }),
+      supabaseAdmin
+        .from('practice_sessions')
+        .select('topic_id, started_at')
+        .eq('user_id', userId)
+        .order('started_at', { ascending: false }),
+      supabaseAdmin
+        .from('questions')
+        .select('topic_id')
+    ]);
 
-    if (sErr) throw new Error(sErr.message);
+    // Deep clone subjects so user-specific annotations don't pollute the cached tree
+    const subjects = JSON.parse(JSON.stringify(subjectsRaw));
 
-    /* ── Step 2: Fetch latest confidence per topic ──
-     * Same descending-order + first-seen pattern as dashboard.service.js Step 2.
-     * Here we store the full confidence object (including recorded_at) because
-     * getTopicDetail needs the confidence value from the map entry. */
-    // Get user's latest confidence per topic
-    const { data: confidences } = await supabaseAdmin
-      .from('confidence_assessments')
-      .select('topic_id, confidence, recorded_at')
-      .eq('user_id', userId)
-      .order('recorded_at', { ascending: false });
-
-    // Build map of latest confidence per topic
+    // Map latest confidence per topic
     const confidenceMap = {};
     if (confidences) {
       for (const c of confidences) {
@@ -108,18 +119,7 @@ export const topicsService = {
       }
     }
 
-    /* ── Step 3: Fetch completed evaluations, extract latest per topic ──
-     * Only completed evaluations (ended_at IS NOT NULL) are used for gap
-     * computation, since in-progress evaluations have incomplete data. */
-    // Get user's evaluations
-    const { data: evaluations } = await supabaseAdmin
-      .from('evaluations')
-      .select('id, topic_id, started_at, ended_at')
-      .eq('user_id', userId)
-      .not('ended_at', 'is', null)
-      .order('started_at', { ascending: false });
-
-    // Get evaluation attempts for latest eval per topic
+    // Map latest evaluation per topic
     const latestEvalByTopic = {};
     if (evaluations) {
       for (const e of evaluations) {
@@ -129,15 +129,7 @@ export const topicsService = {
       }
     }
 
-    /* ── Step 4: Fetch last-practiced dates from practice sessions ──
-     * Descending order ensures the first entry per topic_id is the most recent. */
-    // Get practice session last practiced dates
-    const { data: practiceSessions } = await supabaseAdmin
-      .from('practice_sessions')
-      .select('topic_id, started_at')
-      .eq('user_id', userId)
-      .order('started_at', { ascending: false });
-
+    // Map last practiced per topic
     const lastPracticedMap = {};
     if (practiceSessions) {
       for (const ps of practiceSessions) {
@@ -147,39 +139,36 @@ export const topicsService = {
       }
     }
 
-    /* ── Step 4b: Fetch available question count per topic ── */
-    let availableQuestionsMap = {};
-    try {
-      const { data: qList } = await supabaseAdmin
-        .from('questions')
-        .select('topic_id');
-
-      if (qList) {
-        for (const q of qList) {
-          if (q.topic_id) {
-            availableQuestionsMap[q.topic_id] = (availableQuestionsMap[q.topic_id] || 0) + 1;
-          }
+    // Available questions count per topic
+    const availableQuestionsMap = {};
+    if (qList) {
+      for (const q of qList) {
+        if (q.topic_id) {
+          availableQuestionsMap[q.topic_id] = (availableQuestionsMap[q.topic_id] || 0) + 1;
         }
       }
-    } catch (qErr) {
-      console.warn('Could not fetch questions count for hierarchy:', qErr.message);
     }
 
-    /* ── Step 5: Annotate the hierarchy tree ──
-     * Triple-nested loop walks subject → chapter → topic and mutates each
-     * topic node in-place with user-specific data.
-     *
-     * For topics WITH a latest evaluation: fetches evaluation_attempts and
-     * runs computeGapAndStatus() to derive accuracy, gap, and status.
-     *
-     * For topics WITHOUT evaluation data: sets all eval-derived fields to
-     * null with status='INSUFFICIENT_DATA'.
-     *
-     * NOTE: This is an N+1 query pattern — each topic with eval data triggers
-     * an individual query for its evaluation_attempts. This is acceptable here
-     * because the hierarchy endpoint is called infrequently and the total
-     * number of topics with eval data per user is typically small. */
-    // Annotate hierarchy
+    // ── Phase 2: Batch fetch ALL evaluation attempts in ONE query (ELIMINATES N+1 LOOP) ──
+    const latestEvalIds = Object.values(latestEvalByTopic).map(e => e.id);
+    const evalAttemptsMap = {};
+    if (latestEvalIds.length > 0) {
+      const { data: allEvalAttempts } = await supabaseAdmin
+        .from('evaluation_attempts')
+        .select('evaluation_id, correct, time_spent_seconds, questions(source_type)')
+        .in('evaluation_id', latestEvalIds);
+
+      if (allEvalAttempts) {
+        for (const a of allEvalAttempts) {
+          if (!evalAttemptsMap[a.evaluation_id]) {
+            evalAttemptsMap[a.evaluation_id] = [];
+          }
+          evalAttemptsMap[a.evaluation_id].push(a);
+        }
+      }
+    }
+
+    // ── Phase 3: Synchronously annotate hierarchy tree in memory (0ms) ──
     for (const subject of subjects) {
       for (const chapter of subject.chapters || []) {
         for (const topic of chapter.topics || []) {
@@ -192,11 +181,7 @@ export const topicsService = {
           topic.question_count = availableQuestionsMap[topic.id] || 0;
 
           if (latestEval) {
-            const { data: evalAttempts } = await supabaseAdmin
-              .from('evaluation_attempts')
-              .select('correct, time_spent_seconds, questions(source_type)')
-              .eq('evaluation_id', latestEval.id);
-
+            const evalAttempts = evalAttemptsMap[latestEval.id] || [];
             const gapData = computeGapAndStatus(conf?.confidence, evalAttempts);
             Object.assign(topic, gapData);
           } else {
@@ -215,59 +200,86 @@ export const topicsService = {
 
   /**
    * Get detailed data for a single topic, including full history.
-   *
-   * @description Returns a comprehensive view of a single topic for the
-   *   topic detail page. Unlike getTopicsHierarchy (which annotates all topics
-   *   with summary data), this method provides:
-   *   - The topic's metadata with chapter/subject names
-   *   - Full chronological confidence history (for trend charts)
-   *   - All completed evaluations with per-eval accuracy (for progress tracking)
-   *   - Combined practice + eval attempt count
-   *   - Computed gap/status from the most recent evaluation
+   * High performance: parallelized queries and batched attempt aggregation.
    *
    * @param {string} userId - The authenticated user's UUID
-   * @param {string} topicId - The topic's UUID
-   * @returns {Promise<Object|null>} Topic detail object, or null if topic
-   *   doesn't exist. Shape:
-   *   ```
-   *   {
-   *     topic: {
-   *       ...topicFields,
-   *       chapters: { name, subjects: { name } },
-   *       confidence, questions_attempted, last_practiced_at,
-   *       evaluation_accuracy, gap, status, avg_time_seconds,
-   *       pyq_accuracy, difficulty_breakdown
-   *     },
-   *     confidence_history: [
-   *       { id, user_id, topic_id, confidence, recorded_at }
-   *     ],
-   *     evaluation_history: [
-   *       { id, started_at, ended_at, duration_seconds,
-   *         total_questions, correct_count, accuracy }
-   *     ]
-   *   }
-   *   ```
+   * @param {string} topicId - The topic UUID
+   * @returns {Promise<Object|null>} Detailed topic object or null
    */
   async getTopicDetail(userId, topicId) {
-    /* ── Fetch topic metadata ──
-     * Uses .single() to enforce exactly one result. Returns null if
-     * the topic ID doesn't exist (handled as 404 by the controller). */
-    // Get topic info
-    const { data: topic, error: tErr } = await supabaseAdmin
-      .from('topics')
-      .select('*, chapters(id, name, subjects(id, name))')
-      .eq('id', topicId)
-      .single();
+    // ── Phase 1: Parallel fetch of topic info, confidence history, evaluations, practice sessions, questions count ──
+    const [
+      { data: topic, error: tErr },
+      { data: confidenceHistory },
+      { data: evaluations },
+      { data: practiceSessions },
+      { count: availableCount }
+    ] = await Promise.all([
+      supabaseAdmin
+        .from('topics')
+        .select('*, chapters(id, name, subjects(id, name))')
+        .eq('id', topicId)
+        .single(),
+      supabaseAdmin
+        .from('confidence_assessments')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('topic_id', topicId)
+        .order('recorded_at', { ascending: true }),
+      supabaseAdmin
+        .from('evaluations')
+        .select('id, started_at, ended_at, duration_seconds')
+        .eq('user_id', userId)
+        .eq('topic_id', topicId)
+        .not('ended_at', 'is', null)
+        .order('started_at', { ascending: false }),
+      supabaseAdmin
+        .from('practice_sessions')
+        .select('id, started_at')
+        .eq('user_id', userId)
+        .eq('topic_id', topicId)
+        .order('started_at', { ascending: false }),
+      supabaseAdmin
+        .from('questions')
+        .select('*', { count: 'exact', head: true })
+        .eq('topic_id', topicId)
+    ]);
 
     if (tErr || !topic) return null;
 
-    // Fetch sibling topics in the same chapter to enable seamless navigation
-    const { data: siblingTopics } = await supabaseAdmin
-      .from('topics')
-      .select('id, name')
-      .eq('chapter_id', topic.chapter_id)
-      .order('name');
+    const latestConfidence = confidenceHistory && confidenceHistory.length > 0
+      ? confidenceHistory[confidenceHistory.length - 1]
+      : null;
 
+    const evalIds = evaluations?.map(e => e.id) || [];
+    const practiceSessionIds = practiceSessions?.map(s => s.id) || [];
+
+    // ── Phase 2: Parallel fetch of siblings, all evaluation attempts, and practice attempts count ──
+    const [
+      { data: siblingTopics },
+      { data: allEvalAttempts },
+      practiceCountRes
+    ] = await Promise.all([
+      supabaseAdmin
+        .from('topics')
+        .select('id, name')
+        .eq('chapter_id', topic.chapter_id)
+        .order('name'),
+      evalIds.length > 0
+        ? supabaseAdmin
+            .from('evaluation_attempts')
+            .select('evaluation_id, correct, time_spent_seconds, questions(difficulty, source_type)')
+            .in('evaluation_id', evalIds)
+        : Promise.resolve({ data: [] }),
+      practiceSessionIds.length > 0
+        ? supabaseAdmin
+            .from('practice_attempts')
+            .select('id', { count: 'exact', head: true })
+            .in('practice_session_id', practiceSessionIds)
+        : Promise.resolve({ count: 0 })
+    ]);
+
+    // Compute sibling navigation
     let prevTopic = null;
     let nextTopic = null;
     if (siblingTopics && siblingTopics.length > 0) {
@@ -276,53 +288,25 @@ export const topicsService = {
       if (idx !== -1 && idx < siblingTopics.length - 1) nextTopic = siblingTopics[idx + 1];
     }
 
-    /* ── Fetch full confidence history (chronological) ──
-     * Ordered ascending for chart rendering — oldest to newest.
-     * The latest confidence is extracted from the last array element. */
-    // Confidence history
-    const { data: confidenceHistory } = await supabaseAdmin
-      .from('confidence_assessments')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('topic_id', topicId)
-      .order('recorded_at', { ascending: true });
+    // Group eval attempts by evaluation_id in memory
+    const attemptsByEval = {};
+    if (allEvalAttempts) {
+      for (const att of allEvalAttempts) {
+        if (!attemptsByEval[att.evaluation_id]) {
+          attemptsByEval[att.evaluation_id] = [];
+        }
+        attemptsByEval[att.evaluation_id].push(att);
+      }
+    }
 
-    const latestConfidence = confidenceHistory && confidenceHistory.length > 0
-      ? confidenceHistory[confidenceHistory.length - 1]
-      : null;
-
-    /* ── Fetch all completed evaluations for this topic ──
-     * Ordered newest-first so the first iteration captures the latest
-     * eval's attempts for gap computation (latestEvalData). */
-    // All evaluations for this topic
-    const { data: evaluations } = await supabaseAdmin
-      .from('evaluations')
-      .select('id, started_at, ended_at, duration_seconds')
-      .eq('user_id', userId)
-      .eq('topic_id', topicId)
-      .not('ended_at', 'is', null)
-      .order('started_at', { ascending: false });
-
-    /* ── Build evaluation history with per-eval accuracy ──
-     * For each completed evaluation:
-     *   1. Fetch its individual attempts (N+1 queries — acceptable for detail view)
-     *   2. Compute accuracy as correct/total
-     *   3. Capture the latest eval's raw attempts for gap computation
-     *
-     * latestEvalData is set only once (on the first iteration, which is
-     * the newest eval due to descending order). */
+    // Assemble evaluation history
     const evalHistory = [];
     let latestEvalData = null;
-
     if (evaluations) {
       for (const ev of evaluations) {
-        const { data: attempts } = await supabaseAdmin
-          .from('evaluation_attempts')
-          .select('correct, time_spent_seconds, questions(difficulty, source_type)')
-          .eq('evaluation_id', ev.id);
-
-        const total = attempts?.length || 0;
-        const correct = attempts?.filter(a => a.correct).length || 0;
+        const attempts = attemptsByEval[ev.id] || [];
+        const total = attempts.length;
+        const correct = attempts.filter(a => a.correct).length;
         const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
 
         evalHistory.push({
@@ -332,61 +316,16 @@ export const topicsService = {
           accuracy
         });
 
-        if (!latestEvalData && attempts) {
+        if (!latestEvalData && attempts.length > 0) {
           latestEvalData = attempts;
         }
       }
     }
 
-    /* ── Count total practice attempts ──
-     * Two-step query: first get all practice session IDs for this user+topic,
-     * then count all attempts across those sessions.
-     * Uses { count: 'exact', head: true } for an efficient COUNT-only query
-     * (no row data transferred). */
-    // Count total practice + evaluation attempts
-    const { count: practiceCount } = await supabaseAdmin
-      .from('practice_attempts')
-      .select('id', { count: 'exact', head: true })
-      .in('practice_session_id',
-        (await supabaseAdmin
-          .from('practice_sessions')
-          .select('id')
-          .eq('user_id', userId)
-          .eq('topic_id', topicId)
-        ).data?.map(s => s.id) || []
-      );
-
-    /* ── Count total evaluation attempts ──
-     * Counts across ALL completed evaluations for this topic (not just the latest),
-     * contributing to the aggregate questions_attempted stat. */
-    const { count: evalAttemptCount } = await supabaseAdmin
-      .from('evaluation_attempts')
-      .select('id', { count: 'exact', head: true })
-      .in('evaluation_id',
-        evaluations?.map(e => e.id) || []
-      );
-
-    /* ── Compute gap/status from the latest evaluation ──
-     * Uses the same computeGapAndStatus() utility as the dashboard service,
-     * ensuring consistent gap classification across all views. */
     const gapData = computeGapAndStatus(latestConfidence?.confidence, latestEvalData);
-
-    /* ── Fetch last practice session date ──
-     * Separate query with limit(1) for the most recent practice session start.
-     * Used for the last_practiced_at field in the response. */
-    const { data: lastPractice } = await supabaseAdmin
-      .from('practice_sessions')
-      .select('started_at')
-      .eq('user_id', userId)
-      .eq('topic_id', topicId)
-      .order('started_at', { ascending: false })
-      .limit(1);
-
-    /* ── Fetch available questions count for this topic ── */
-    const { count: availableCount } = await supabaseAdmin
-      .from('questions')
-      .select('*', { count: 'exact', head: true })
-      .eq('topic_id', topicId);
+    const lastPracticedAt = practiceSessions?.[0]?.started_at || null;
+    const practiceCount = practiceCountRes?.count || 0;
+    const evalAttemptCount = allEvalAttempts?.length || 0;
 
     /* ── Assemble and return the response ──
      * Merges topic metadata, computed gap data, aggregate counts,
@@ -398,7 +337,7 @@ export const topicsService = {
         question_count: availableCount || 0,
         questions_available: availableCount || 0,
         questions_attempted: (practiceCount || 0) + (evalAttemptCount || 0),
-        last_practiced_at: lastPractice?.[0]?.started_at || null,
+        last_practiced_at: lastPracticedAt,
         ...gapData
       },
       confidence_history: confidenceHistory || [],

@@ -1,83 +1,51 @@
 import { request } from '@/shared/lib/apiClient';
-
-let cachedDashboard = null;
-let lastFetchTime = 0;
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes cache
+import { clientCache } from '@/shared/lib/clientCache';
 
 export const dashboardService = {
   /**
-   * Fetches dashboard data. Returns cached data if available and not expired (< 5 mins),
-   * unless force is true.
-   * @param {boolean} force - Force a network fetch even if cache is fresh
+   * Fetches dashboard data via SWR cache engine.
+   * Returns cached data immediately if available, revalidates in background if stale.
+   * @param {boolean} force - Force a network fetch
    */
   getDashboard: async (force = false) => {
-    const now = Date.now();
-    if (!force && cachedDashboard && (now - lastFetchTime < CACHE_TTL_MS)) {
-      return cachedDashboard;
-    }
-
-    if (!force && !cachedDashboard) {
-      try {
-        const stored = sessionStorage.getItem('tooprep_dashboard_cache');
-        const storedTime = sessionStorage.getItem('tooprep_dashboard_cache_time');
-        if (stored && storedTime && (now - Number(storedTime) < CACHE_TTL_MS)) {
-          cachedDashboard = JSON.parse(stored);
-          lastFetchTime = Number(storedTime);
-          return cachedDashboard;
-        }
-      } catch (_) {}
-    }
-
-    const data = await request('GET', '/dashboard');
-    cachedDashboard = data;
-    lastFetchTime = Date.now();
-    try {
-      sessionStorage.setItem('tooprep_dashboard_cache', JSON.stringify(data));
-      sessionStorage.setItem('tooprep_dashboard_cache_time', String(lastFetchTime));
-    } catch (_) {}
-    return data;
+    return clientCache.fetch('/dashboard', () => request('GET', '/dashboard'), {
+      ttl: 5 * 60 * 1000, // 5 minutes fresh
+      force
+    });
   },
 
   /**
-   * Synchronous peek at current cached data.
-   * Used to initialize component state immediately without loading spinner flicker.
+   * Synchronous peek at current cached data for 0ms initial render without flicker.
    */
   getCachedDashboard: () => {
-    if (cachedDashboard) return cachedDashboard;
-    try {
-      const stored = sessionStorage.getItem('tooprep_dashboard_cache');
-      if (stored) {
-        cachedDashboard = JSON.parse(stored);
-        return cachedDashboard;
-      }
-    } catch (_) {}
-    return null;
+    const item = clientCache.get('/dashboard');
+    return item ? item.data : null;
   },
 
   /**
-   * Updates a single topic in the cache (e.g. after confidence calibration).
+   * Optimistically updates a single topic row in the reactive cache.
    */
   updateTopicInCache: (topicId, updates) => {
-    if (cachedDashboard && Array.isArray(cachedDashboard)) {
-      cachedDashboard = cachedDashboard.map(t =>
+    clientCache.mutate('/dashboard', (current) => {
+      if (!Array.isArray(current)) return current;
+      return current.map(t =>
         t.topic_id === topicId ? { ...t, ...updates } : t
       );
-      try {
-        sessionStorage.setItem('tooprep_dashboard_cache', JSON.stringify(cachedDashboard));
-      } catch (_) {}
-    }
+    });
   },
 
   /**
-   * Clears in-memory and sessionStorage cache.
+   * Invalidates dashboard cache across memory and session storage.
    */
   invalidateCache: () => {
-    cachedDashboard = null;
-    lastFetchTime = 0;
-    try {
-      sessionStorage.removeItem('tooprep_dashboard_cache');
-      sessionStorage.removeItem('tooprep_dashboard_cache_time');
-    } catch (_) {}
+    clientCache.invalidate('/dashboard');
+  },
+
+  /**
+   * Proactive prefetch without blocking execution.
+   */
+  prefetchDashboard: () => {
+    clientCache.prefetch('/dashboard', () => request('GET', '/dashboard'));
   },
 
   getBiggestGap: () => request('GET', '/dashboard/insights/biggest-gap'),

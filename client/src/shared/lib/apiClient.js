@@ -2,14 +2,35 @@ import { supabase } from './supabase';
 
 const API_BASE = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api';
 
+let cachedToken = null;
+let tokenExpiresAt = 0;
+
+// Synchronize token in memory for 0ms header generation
+if (typeof window !== 'undefined') {
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    cachedToken = session?.access_token || null;
+    tokenExpiresAt = (session?.expires_at || 0) * 1000;
+  }).catch(() => {});
+
+  supabase.auth.onAuthStateChange((_event, session) => {
+    cachedToken = session?.access_token || null;
+    tokenExpiresAt = (session?.expires_at || 0) * 1000;
+  });
+}
+
 async function getAuthHeaders(includeContentType = true) {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.access_token) {
+  // Refresh only if token is missing or within 60s of expiring
+  if (!cachedToken || Date.now() >= tokenExpiresAt - 60000) {
+    const { data: { session } } = await supabase.auth.getSession();
+    cachedToken = session?.access_token || null;
+    tokenExpiresAt = (session?.expires_at || 0) * 1000;
+  }
+  if (!cachedToken) {
     throw new Error('Not authenticated');
   }
   return includeContentType
-    ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` }
-    : { 'Authorization': `Bearer ${session.access_token}` };
+    ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cachedToken}` }
+    : { 'Authorization': `Bearer ${cachedToken}` };
 }
 
 export async function request(method, path, body = null, retries = 5) {
