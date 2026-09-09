@@ -14,6 +14,7 @@ except ImportError:
     try:
         import fitz as pymupdf
     except ImportError:
+        sys.stderr.write("pymupdf is not installed in Python environment\n")
         print(json.dumps({"error": "pymupdf is not installed in Python environment"}))
         sys.exit(1)
 

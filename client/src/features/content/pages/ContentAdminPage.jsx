@@ -6,6 +6,7 @@ import MathText from '@/features/questions/components/MathText';
 import {
   extractOptionsFromText,
   detectAnswerKey,
+  detectSolutionText,
   isInstructionSnippet,
   autoFormatAndCleanMath,
   polishCandidateText
@@ -448,25 +449,42 @@ function StudioPdfViewer({ jobId, pageNum, onNavigatePage, onDirectCrop, activeC
       return () => { active = false; };
     }
 
+    // Helper to attempt client-side streaming fallback when server renderer is unavailable
+    const tryClientStreamingFallback = async (serverErrMsg) => {
+      try {
+        const buffer = await contentService.downloadSourcePdfBuffer(jobId);
+        const doc = await loadPdfDocument(buffer, `${jobId}_streamed`);
+        if (!active) return;
+        setLocalPdfDoc(doc);
+        const pageRes = await renderPdfPageToDataUrl(doc, pageNum, 1.5);
+        if (!active) return;
+        setDataUrl(pageRes.dataUrl);
+        setPdfMeta({ width: pageRes.width, height: pageRes.height });
+        setError('');
+      } catch (fallbackErr) {
+        if (!active) return;
+        setError(serverErrMsg || fallbackErr.message || 'PDF rendering failed on both server and client');
+        setDataUrl(null);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
     // Attempt cloud server-side rendering
     contentService.renderPdfPage(jobId, pageNum, 150)
       .then(res => {
         if (!active) return;
         if (res.success === false) {
-          setError(res.error || 'Server rendering unavailable on this host');
-          setDataUrl(null);
+          tryClientStreamingFallback(res.error);
         } else {
           setDataUrl(res.data_url);
           setPdfMeta({ width: res.width || 595.3, height: res.height || 841.9 });
+          setLoading(false);
         }
       })
       .catch(err => {
         if (!active) return;
-        setError(err.message || 'Server rendering unavailable on this host');
-        setDataUrl(null);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
+        tryClientStreamingFallback(err.message);
       });
 
     return () => { active = false; };
@@ -866,16 +884,38 @@ function CandidateCard({
         { id: 'C', text: candidate.options.C || candidate.options.c || '' },
         { id: 'D', text: candidate.options.D || candidate.options.d || '' }
       ];
+
+      // Defensive check: if Option D contains inline Ans. or Sol. or coaching notes, clean it!
+      const optDText = opts[3].text || '';
+      const cutoffIdx = optDText.search(/\n\s*(?:(?:>\s*)?(?:\*\*)?(?:Students may find|\[JEE)|(?:\*\*)?Ans(?:\.|wer)?[:\s]*[\(\[]?[1-4A-Da-d]|(?:\*\*)?Sol(?:\.|ution)?[:\s])/i);
+      if (cutoffIdx !== -1) {
+        const tail = optDText.slice(cutoffIdx);
+        opts[3].text = optDText.slice(0, cutoffIdx).trim();
+        if (!candidate.correct_answer || candidate.correct_answer === 'A') {
+          const detected = detectAnswerKey(tail);
+          if (detected) ans = detected;
+        }
+        if (!candidate.solution_text) {
+          const detectedSol = detectSolutionText(tail);
+          if (detectedSol) sol = detectedSol;
+        }
+      }
     } else {
       const extracted = extractOptionsFromText(candidate.raw_text);
       if (extracted.hasOptions) {
         qText = extracted.questionText;
         opts = extracted.options;
+        if (extracted.inlineAnswerKey && (!candidate.correct_answer || candidate.correct_answer === 'A')) {
+          ans = extracted.inlineAnswerKey;
+        }
+        if (extracted.inlineSolutionText && !candidate.solution_text) {
+          sol = extracted.inlineSolutionText;
+        }
       }
     }
 
     const detectedAns = detectAnswerKey(candidate.raw_text);
-    if (!candidate.correct_answer && detectedAns) ans = detectedAns;
+    if ((!candidate.correct_answer || candidate.correct_answer === 'A') && detectedAns) ans = detectedAns;
 
     return { questionText: qText, options: opts, correctAnswer: ans, solutionText: sol };
   }, [candidate]);
@@ -1738,23 +1778,33 @@ export default function ContentAdminPage() {
     });
     try {
       const res = await contentService.renderPdfPage(selectedJob.job_id, page, 150);
-      if (res && res.success === false) {
+      if (res && res.success !== false && res.data_url) {
         setCropperModal(prev => ({
           ...prev,
           loading: false,
-          error: res.error || 'Failed to render PDF page'
+          dataUrl: res.data_url,
+          width: res.width || 595.3,
+          height: res.height || 841.9
         }));
         return;
       }
-      setCropperModal(prev => ({
-        ...prev,
-        loading: false,
-        dataUrl: res.data_url,
-        width: res.width || 595.3,
-        height: res.height || 841.9
-      }));
+      throw new Error(res?.error || 'Server rendering unavailable');
     } catch (err) {
-      setCropperModal(prev => ({ ...prev, loading: false, error: err.message }));
+      try {
+        const buffer = await contentService.downloadSourcePdfBuffer(selectedJob.job_id);
+        const doc = await loadPdfDocument(buffer, `${selectedJob.job_id}_streamed`);
+        const pageRes = await renderPdfPageToDataUrl(doc, page, 1.5);
+        setCropperModal(prev => ({
+          ...prev,
+          loading: false,
+          dataUrl: pageRes.dataUrl,
+          width: pageRes.width || 595.3,
+          height: pageRes.height || 841.9,
+          error: null
+        }));
+      } catch (fallbackErr) {
+        setCropperModal(prev => ({ ...prev, loading: false, error: fallbackErr.message || err.message }));
+      }
     }
   };
 
@@ -1770,33 +1820,64 @@ export default function ContentAdminPage() {
     }));
     try {
       const res = await contentService.renderPdfPage(selectedJob.job_id, newPage, 150);
-      if (res && res.success === false) {
+      if (res && res.success !== false && res.data_url) {
         setCropperModal(prev => ({
           ...prev,
           loading: false,
-          error: res.error || 'Failed to render PDF page'
+          dataUrl: res.data_url,
+          width: res.width || 595.3,
+          height: res.height || 841.9
         }));
         return;
       }
-      setCropperModal(prev => ({
-        ...prev,
-        loading: false,
-        dataUrl: res.data_url,
-        width: res.width || 595.3,
-        height: res.height || 841.9
-      }));
+      throw new Error(res?.error || 'Server rendering unavailable');
     } catch (err) {
-      setCropperModal(prev => ({ ...prev, loading: false, error: err.message }));
+      try {
+        const buffer = await contentService.downloadSourcePdfBuffer(selectedJob.job_id);
+        const doc = await loadPdfDocument(buffer, `${selectedJob.job_id}_streamed`);
+        const pageRes = await renderPdfPageToDataUrl(doc, newPage, 1.5);
+        setCropperModal(prev => ({
+          ...prev,
+          loading: false,
+          dataUrl: pageRes.dataUrl,
+          width: pageRes.width || 595.3,
+          height: pageRes.height || 841.9,
+          error: null
+        }));
+      } catch (fallbackErr) {
+        setCropperModal(prev => ({ ...prev, loading: false, error: fallbackErr.message || err.message }));
+      }
     }
   };
 
   const handleExecuteModalCrop = async (rect, target) => {
     if (!cropperModal || !selectedJob) return;
-    const res = await contentService.cropPdfDiagram(selectedJob.job_id, cropperModal.pageNum, rect, 300);
-    if (cropperModal.onApply && res.url) {
-      cropperModal.onApply(target, res.url);
+    try {
+      const res = await contentService.cropPdfDiagram(selectedJob.job_id, cropperModal.pageNum, rect, 300);
+      if (res && res.url) {
+        if (cropperModal.onApply) {
+          cropperModal.onApply(target, res.url);
+        }
+        return res;
+      }
+    } catch (cropErr) {
+      console.warn('Server crop failed, attempting client crop fallback:', cropErr);
     }
-    return res;
+    // Fallback: client-side crop from current page dataUrl
+    if (cropperModal.dataUrl) {
+      try {
+        const croppedDataUrl = await cropImageByRelativeCoords(cropperModal.dataUrl, rect);
+        const uploadRes = await contentService.uploadImage(croppedDataUrl, `crop_${Date.now()}.png`);
+        if (uploadRes && uploadRes.url) {
+          if (cropperModal.onApply) {
+            cropperModal.onApply(target, uploadRes.url);
+          }
+          return uploadRes;
+        }
+      } catch (clientCropErr) {
+        console.error('Client crop failed:', clientCropErr);
+      }
+    }
   };
 
   const handleStudioDirectCrop = async (rect, target, customUrl = null) => {

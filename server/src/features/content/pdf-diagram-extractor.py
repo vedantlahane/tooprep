@@ -11,7 +11,16 @@ import json
 import argparse
 import math
 import re
-import pymupdf
+
+try:
+    import pymupdf
+except ImportError:
+    try:
+        import fitz as pymupdf
+    except ImportError:
+        sys.stderr.write("pymupdf is not installed in Python environment\n")
+        print(json.dumps({"success": False, "error": "pymupdf is not installed in Python environment"}))
+        sys.exit(1)
 
 
 def is_noise_rect(r, page_w, page_h, is_two_col=True):

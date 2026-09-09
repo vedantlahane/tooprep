@@ -32,15 +32,56 @@ function cleanRunningHeaders(text) {
 }
 
 /**
+ * Normalizes fragmented OCR mathematical tokens across lines and stitches broken symbols.
+ * e.g. "λ\n n" -> "\lambda_{n}", "n\n th" -> "n^{\text{th}}", "(\nA\n,\nB\n)" -> "(A, B)"
+ */
+export function cleanOcrMathArtifacts(text) {
+  if (!text) return '';
+  let s = String(text);
+
+  // 1. Un-break Greek symbols or LaTeX tokens broken across newlines before subscripts
+  s = s.replace(/(?:\\(lambda|Lambda|alpha|beta|gamma|delta|epsilon|theta|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi|omega)|([λΛαβγδεθμτω]))\s*\n+\s*([a-zA-Z0-9]+)\b/g, (match, latexName, unicodeSym, sub) => {
+    let base = latexName ? `\\${latexName}` : unicodeSym;
+    if (base === 'λ') base = '\\lambda';
+    else if (base === 'Λ') base = '\\Lambda';
+    else if (base === 'α') base = '\\alpha';
+    else if (base === 'β') base = '\\beta';
+    else if (base === 'γ') base = '\\gamma';
+    else if (base === 'θ') base = '\\theta';
+    else if (base === 'μ') base = '\\mu';
+    else if (base === 'ω') base = '\\omega';
+    return `${base}_{${sub}}`;
+  });
+
+  // 2. Un-break ordinals: "n\n th" -> "n^{\text{th}}" or "n\nth"
+  s = s.replace(/\b([a-zA-Z0-9]+)\s*\n+\s*(?:th|st|nd|rd)\b/gi, '$1^{\\text{th}}');
+
+  // 3. Un-break powers after symbols: e.g. "\lambda_n\n 2" -> "\lambda_n^2"
+  s = s.replace(/([a-zA-Z0-9_\{\}\\\^]+)\s*\n+\s*([2-9])\b/g, (match, base, pow) => {
+    if (base.endsWith('^')) return `${base}{${pow}}`;
+    return `${base}^${pow}`;
+  });
+
+  // 4. Remove duplicate symbol artifact echoes from OCR (e.g. "λ_n , λ_g λ_n , λ_g")
+  s = s.replace(/([λΛa-zA-Z]_[a-zA-Z0-9]+(?:\s*,\s*[λΛa-zA-Z]_[a-zA-Z0-9]+)+)\s+\1/g, '$1');
+
+  // 5. Clean multi-line constant lists: "(\nA\n,\nB\n)" -> "(A, B)"
+  s = s.replace(/\(\s*\n+\s*([A-Za-z])\s*\n*,\s*\n*([A-Za-z])\s*\n*\)/g, '($1, $2)');
+
+  return s;
+}
+
+/**
  * Sanitizes question text and options by:
  * - Normalizing OCR/LaTeX glued commands (^\circC -> ^\circ \text{C}, \muC -> \mu\text{C})
  * - Translating leaked HTML tags inside math (<u> -> \underline, <b> -> \mathbf)
  * - Stripping fake imgur links and pseudo-paths
  * - Stripping multi-column leakages and section headers
+ * - Stitching broken OCR subscripts and math symbols
  */
 export function sanitizeQuestionText(text) {
   if (!text) return '';
-  let cleaned = String(text);
+  let cleaned = cleanOcrMathArtifacts(String(text));
 
   // 1. Strip fake imgur links: <img src="https://i.imgur.com/..." ...> or ![...](https://i.imgur.com/...)
   cleaned = cleaned.replace(/<img\s+[^>]*src=["']https?:\/\/(?:i\.)?imgur\.com\/[^"']*["'][^>]*>/gi, '');
@@ -175,14 +216,59 @@ export function extractOptions(raw) {
       const optC = src.slice(w[2].contentStart, w[3].matchStart).trim();
       let optD = src.slice(w[3].contentStart).trim();
 
-      // Cut option D at the start of the next question (Q.N pattern) or next section header
-      const nextQCutoff = optD.search(/\n\s*(?:#{1,4}\s*)?(?:\*\*)?Q\.?\s*\d{1,3}(?:\*\*)?\s*(?:\n|$)/i);
-      const nextSectionCutoff = optD.search(/\n\s*(?:(?:\(|\[)[A-Da-d1-4](?:\)|\])|##\s*\*\*[A-Z\s]+\*\*|\*\*(?:PHYSICS|CHEMISTRY|MATHEMATICS)\*\*)\s*\n/);
+      // Cut option D at:
+      // 1. Start of next question (Q.N)
+      // 2. Next section header
+      // 3. Coaching footnotes (> Students may find similar question..., [JEE Main, Chapter...])
+      // 4. Inline answer key (Ans. [1], Answer: A, **Ans.**)
+      // 5. Inline solution (Sol., Solution:, **Sol.**)
+      const cutoffRegexes = [
+        /\n\s*(?:#{1,4}\s*)?(?:\*\*)?Q\.?\s*\d{1,3}(?:\*\*)?\s*(?:\n|$)/i,
+        /\n\s*(?:(?:\(|\[)[A-Da-d1-4](?:\)|\])|##\s*\*\*[A-Z\s]+\*\*|\*\*(?:PHYSICS|CHEMISTRY|MATHEMATICS)\*\*)\s*\n/i,
+        /\n\s*(?:[>\*#\s]*)(?:Students may find similar|\[?JEE\s*(?:Main|Advance)|Chapter\s*:|Exercise\s*#)/i,
+        /\n\s*(?:[>\*#\s]*)(?:Ans(?:\.|wer)?[:\s]*[\(\[]?[1-4A-Da-d]|\*\*Ans\b)/i,
+        /\n\s*(?:[>\*#\s]*)(?:Sol(?:\.|ution)?[:\s]|\*\*Sol\b)/i
+      ];
 
       let cutoff = -1;
-      if (nextQCutoff !== -1) cutoff = nextQCutoff;
-      if (nextSectionCutoff !== -1 && (cutoff === -1 || nextSectionCutoff < cutoff)) cutoff = nextSectionCutoff;
-      if (cutoff !== -1) optD = optD.slice(0, cutoff).trim();
+      for (const re of cutoffRegexes) {
+        const pos = optD.search(re);
+        if (pos !== -1 && (cutoff === -1 || pos < cutoff)) {
+          cutoff = pos;
+        }
+      }
+
+      let inlineAnswerKey = null;
+      let inlineSolutionText = null;
+      let inlineChapter = null;
+
+      if (cutoff !== -1) {
+        const tail = optD.slice(cutoff);
+        optD = optD.slice(0, cutoff).trim();
+
+        // Extract inline answer key from tail: e.g. Ans. [1] or **Ans. [2]** or Answer: (A)
+        const ansMatch = tail.match(/(?:Ans(?:\.|wer)?[:\s]*|^\s*\d+\s*\[|\(\s*)[\(\[]?\s*([1-4A-Da-d])\s*[\)\]]?(?:\*\*)?/i);
+        if (ansMatch) {
+          let rawKey = ansMatch[1].toUpperCase();
+          if (rawKey === '1') inlineAnswerKey = 'A';
+          else if (rawKey === '2') inlineAnswerKey = 'B';
+          else if (rawKey === '3') inlineAnswerKey = 'C';
+          else if (rawKey === '4') inlineAnswerKey = 'D';
+          else if (['A', 'B', 'C', 'D'].includes(rawKey)) inlineAnswerKey = rawKey;
+        }
+
+        // Extract inline solution from tail: e.g. **Sol.** $m_1g = ...$
+        const solMatch = tail.match(/(?:(?:\*\*)?Sol(?:\.|ution)?[:\.\s]+(?:\*\*)?)([\s\S]*)/i);
+        if (solMatch) {
+          inlineSolutionText = solMatch[1].trim();
+        }
+
+        // Extract inline chapter from tail if coaching sheet mentioned it
+        const chMatch = tail.match(/Chapter\s*:\s*([^,\n\]]+)/i);
+        if (chMatch) {
+          inlineChapter = chMatch[1].trim();
+        }
+      }
 
       return {
         questionText: sanitizeQuestionText(qText),
@@ -192,6 +278,9 @@ export function extractOptions(raw) {
           C: sanitizeQuestionText(optC),
           D: sanitizeQuestionText(optD)
         },
+        inlineAnswerKey,
+        inlineSolutionText,
+        inlineChapter,
         hasOptions: true
       };
     }
@@ -339,10 +428,11 @@ export function extractQuestionCandidates(jobId, pages, allTopics = [], diagramM
     if (rawText.length < 15 || isInstructionBlock(rawText)) continue;
 
     const parsed = extractOptions(rawText);
-    const answerKey = answerKeyMap[qNum] || solutionsMap[qNum]?.ansKey || 'A';
-    const solutionText = solutionsMap[qNum]?.text || null;
-    const fullClassificationText = `${parsed.questionText || rawText} ${Object.values(parsed.options || {}).join(' ')}`;
+    const answerKey = parsed.inlineAnswerKey || answerKeyMap[qNum] || solutionsMap[qNum]?.ansKey || 'A';
+    const solutionText = parsed.inlineSolutionText || solutionsMap[qNum]?.text || null;
+    const fullClassificationText = `${parsed.questionText || rawText} ${Object.values(parsed.options || {}).join(' ')} ${parsed.inlineChapter || ''}`;
     const classification = classifyQuestion(qNum, fullClassificationText, allTopics);
+    const suggestedChapter = parsed.inlineChapter || classification.chapter;
     const sourcePage = getPageNum(qMatches[i].index);
 
     // BUG 5 FIX: Added `*[Diagram:` check (generated by sanitizeQuestionText from pseudo <img> tags)
@@ -364,7 +454,7 @@ export function extractQuestionCandidates(jobId, pages, allTopics = [], diagramM
       source_pages: [sourcePage],
       source_question_number: qNum,
       subject: classification.subject,
-      suggested_chapter: classification.chapter,
+      suggested_chapter: suggestedChapter,
       suggested_topic: classification.topicName,
       suggested_topic_id: classification.topicId,
       raw_text: rawText,
@@ -398,7 +488,7 @@ export function extractQuestionCandidates(jobId, pages, allTopics = [], diagramM
         if (rawText.length < 15 || isInstructionBlock(rawText)) continue;
 
         const parsed = extractOptions(rawText);
-        let correctAnswer = answerKeyMap[qNum] || solutionsMap[qNum]?.ansKey || 'A';
+        let correctAnswer = parsed.inlineAnswerKey || answerKeyMap[qNum] || solutionsMap[qNum]?.ansKey || 'A';
         if (ansKeyRaw) {
           if (ansKeyRaw === '1') correctAnswer = 'A';
           else if (ansKeyRaw === '2') correctAnswer = 'B';
@@ -407,8 +497,9 @@ export function extractQuestionCandidates(jobId, pages, allTopics = [], diagramM
           else correctAnswer = ansKeyRaw.toUpperCase();
         }
 
-        const solutionText = solutionsMap[qNum]?.text || null;
-        const classification = classifyQuestion(qNum, parsed.questionText || rawText, allTopics);
+        const solutionText = parsed.inlineSolutionText || solutionsMap[qNum]?.text || null;
+        const classification = classifyQuestion(qNum, `${parsed.questionText || rawText} ${parsed.inlineChapter || ''}`, allTopics);
+        const suggestedChapter = parsed.inlineChapter || classification.chapter;
 
         const hasDiagram = Boolean(
           rawText.includes('imgur') ||
@@ -425,7 +516,7 @@ export function extractQuestionCandidates(jobId, pages, allTopics = [], diagramM
           source_pages: [page.page_number],
           source_question_number: qNum,
           subject: classification.subject,
-          suggested_chapter: classification.chapter,
+          suggested_chapter: suggestedChapter,
           suggested_topic: classification.topicName,
           suggested_topic_id: classification.topicId,
           raw_text: rawText,
@@ -468,7 +559,12 @@ export function extractQuestionCandidates(jobId, pages, allTopics = [], diagramM
         for (const [optKey, optUrl] of Object.entries(diag.options)) {
           if (!optUrl) continue;
           c.has_diagram = true;
-          c.options[optKey] = `![Option ${optKey}](${optUrl})`;
+          const currentText = (c.options[optKey] || '').trim();
+          if (currentText && !currentText.includes(optUrl)) {
+            c.options[optKey] = `${currentText}\n\n![Option ${optKey}](${optUrl})`;
+          } else if (!currentText) {
+            c.options[optKey] = `![Option ${optKey}](${optUrl})`;
+          }
         }
       }
     }

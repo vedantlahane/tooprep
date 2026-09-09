@@ -6,7 +6,8 @@
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
     "worker": "node src/worker.js",
-    "test": "node --test tests/**/*.test.js"
+    "test": "node --test tests/**/*.test.js",
+    "postinstall": "pip3 install --break-system-packages -r requirements.txt || pip3 install -r requirements.txt || pip install -r requirements.txt || true"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",

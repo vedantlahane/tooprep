@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { contentService } from '@/features/content/services/contentService';
+import { loadPdfDocument, renderPdfPageToDataUrl } from '@/features/content/lib/clientPdfRenderer';
 import { topicsService } from '@/features/topics/services/topicsService';
 import MathText from '@/features/questions/components/MathText';
 import {
@@ -491,17 +492,28 @@ export default function AdminPipelinePage() {
     }
   };
 
-  // Render PDF Page on demand
+  // Render PDF Page on demand with server + client streaming fallback
   const handleRenderPdfPage = async (pageNum) => {
     if (!currentJob) return;
     setRenderingPdf(true);
     try {
       const res = await contentService.renderPdfPage(currentJob.job_id, pageNum, 150);
-      if (res?.dataUrl) {
-        setPdfPageDataUrl(res.dataUrl);
+      if (res && res.success !== false && (res.data_url || res.dataUrl)) {
+        setPdfPageDataUrl(res.data_url || res.dataUrl);
+        return;
       }
+      throw new Error(res?.error || 'Server render failed');
     } catch (err) {
-      console.warn('PDF render error:', err);
+      try {
+        const buffer = await contentService.downloadSourcePdfBuffer(currentJob.job_id);
+        const doc = await loadPdfDocument(buffer, `${currentJob.job_id}_streamed`);
+        const pageRes = await renderPdfPageToDataUrl(doc, pageNum, 1.5);
+        if (pageRes?.dataUrl) {
+          setPdfPageDataUrl(pageRes.dataUrl);
+        }
+      } catch (clientErr) {
+        console.warn('PDF render error (server & client):', clientErr);
+      }
     } finally {
       setRenderingPdf(false);
     }

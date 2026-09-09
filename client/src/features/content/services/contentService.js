@@ -64,7 +64,17 @@ export const contentService = {
   transitionJob: (jobId, stage, reason) =>
     request('POST', `${base}/ingestion-jobs/${jobId}/transitions`, { stage, reason }),
   getSourcePdfUrl: (jobId) =>
-    `/api${base}/ingestion-jobs/${jobId}/pdf`,
+    `${API_BASE}${base}/ingestion-jobs/${jobId}/pdf`,
+  downloadSourcePdfBuffer: async (jobId) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    const url = `${API_BASE}${base}/ingestion-jobs/${jobId}/pdf`;
+    const res = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    });
+    if (!res.ok) throw new Error(`Failed to fetch source PDF (${res.status})`);
+    return await res.arrayBuffer();
+  },
 
   /**
    * Subscribe to real-time pipeline progress events for a job using SSE.
