@@ -48,6 +48,10 @@ export const contentService = {
     if (filename) form.append('filename', filename);
     return request('POST', `${base}/images/upload`, form);
   },
+  deleteImages: (urls) => {
+    const list = Array.isArray(urls) ? urls : [urls];
+    return request('POST', `${base}/images/delete`, { urls: list });
+  },
   renderPdfPage: (jobId, pageNum, dpi = 150) =>
     request('GET', `${base}/ingestion-jobs/${jobId}/pages/${pageNum}/render?dpi=${dpi}`),
   cropPdfDiagram: (jobId, pageNum, rect, dpi = 300) =>

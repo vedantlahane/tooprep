@@ -126,3 +126,76 @@ export async function storeQuestionImage({ buffer, mimetype = 'image/png', origi
     throw err;
   }
 }
+
+/**
+ * Deletes question diagrams/images from Supabase Storage and/or local fallback disk.
+ * @param {string[]|string} imageUrlsOrPaths - Array of image URLs or storage paths to remove.
+ * @returns {Promise<{ deleted: string[], failed: string[] }>}
+ */
+export async function deleteQuestionImages(imageUrlsOrPaths) {
+  const inputs = Array.isArray(imageUrlsOrPaths) ? imageUrlsOrPaths : [imageUrlsOrPaths];
+  if (inputs.length === 0) return { deleted: [], failed: [] };
+
+  const supabasePaths = [];
+  const localFiles = [];
+  const deleted = [];
+  const failed = [];
+
+  for (const item of inputs) {
+    if (!item || typeof item !== 'string') continue;
+    const clean = item.trim();
+
+    // 1. Supabase Storage URL
+    const supaMatch = clean.match(/\/question-images\/(.+)$/);
+    if (supaMatch) {
+      supabasePaths.push(decodeURIComponent(supaMatch[1]));
+      deleted.push(clean);
+      continue;
+    }
+
+    // 2. Direct storage path inside question-images bucket
+    if (clean.startsWith('diagrams/')) {
+      supabasePaths.push(clean);
+      deleted.push(clean);
+      continue;
+    }
+
+    // 3. Local fallback upload path
+    if (clean.includes('/uploads/questions/')) {
+      const filename = path.basename(clean);
+      localFiles.push(filename);
+      deleted.push(clean);
+      continue;
+    }
+  }
+
+  // Delete from Supabase Storage bucket
+  if (supabasePaths.length > 0) {
+    try {
+      const { error } = await supabaseAdmin.storage
+        .from(QUESTION_IMAGES_BUCKET)
+        .remove(supabasePaths);
+
+      if (error) {
+        console.warn('[deleteQuestionImages] Supabase storage delete warning:', error.message);
+      }
+    } catch (err) {
+      console.warn('[deleteQuestionImages] Supabase delete exception:', err.message);
+    }
+  }
+
+  // Delete from local static disk if applicable
+  for (const filename of localFiles) {
+    try {
+      const fullPath = path.join(LOCAL_UPLOADS_DIR, filename);
+      if (fs.existsSync(fullPath)) {
+        fs.unlinkSync(fullPath);
+      }
+    } catch (err) {
+      console.warn('[deleteQuestionImages] Local delete exception:', err.message);
+    }
+  }
+
+  return { deleted, failed };
+}
+

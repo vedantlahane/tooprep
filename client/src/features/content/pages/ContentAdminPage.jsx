@@ -1242,7 +1242,13 @@ function CandidateCard({
     }
     if (savedData.question_text !== undefined) setQuestionText(savedData.question_text);
     if (savedData.options) {
-      if (typeof savedData.options === 'object') {
+      if (Array.isArray(savedData.options)) {
+        setOptions(['A', 'B', 'C', 'D'].map((id, index) => {
+          const item = savedData.options.find(o => (o?.id || '').toUpperCase() === id) || savedData.options[index];
+          const text = typeof item === 'object' && item !== null ? (item.text ?? '') : String(item ?? '');
+          return { id, text };
+        }));
+      } else if (typeof savedData.options === 'object' && savedData.options !== null) {
         setOptions(['A', 'B', 'C', 'D'].map(id => ({
           id,
           text: String(savedData.options[id] ?? savedData.options[id.toLowerCase()] ?? '')

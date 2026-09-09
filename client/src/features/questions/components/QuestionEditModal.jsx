@@ -413,7 +413,19 @@ export default function QuestionEditModal({
     try {
       let saved;
       if (isCandidate) {
-        saved = { ...payload, id: question?.id };
+        if (question?.id) {
+          try {
+            await questionsService.updateQuestion(question.id, payload);
+          } catch (updateErr) {
+            console.warn('[QuestionEditModal] Candidate backend update warning:', updateErr.message);
+          }
+        }
+        saved = {
+          ...payload,
+          id: question?.id,
+          options: activeOptions,
+          optionsMap: activeOptions.reduce((acc, o) => ({ ...acc, [o.id]: o.text }), {})
+        };
       } else if (isEditMode) {
         saved = await questionsService.updateQuestion(question.id, payload);
       } else {

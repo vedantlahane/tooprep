@@ -9,6 +9,8 @@ const imageUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize
 
 router.use(requireAdmin);
 router.post('/images/upload', imageUpload.single('file'), contentController.uploadImage);
+router.delete('/images', contentController.deleteImages);
+router.post('/images/delete', contentController.deleteImages);
 router.get('/ingestion-jobs/:jobId/pages/:pageNum/render', contentController.renderPdfPage);
 router.post('/ingestion-jobs/:jobId/pages/:pageNum/crop', contentController.cropPdfDiagram);
 

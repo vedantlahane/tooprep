@@ -293,7 +293,7 @@ export async function solveAndDeriveQuestion({
     '4. OPTIONS: Ensure all options A, B, C, D have standard KaTeX formatting with units ($45^\\circ\\text{C}$, etc.).\n' +
     '5. VERIFICATION & SOLVING: Solve the problem independently from first principles. Verify which option key (A, B, C, or D) is mathematically correct. Ensure correct_answer matches the derived answer exactly.\n' +
     '6. SOLUTION DERIVATION:\n' +
-    '   - Provide a complete, rigorous, step-by-step KaTeX derivation ($...$ inline, $$...$$ display block).\n' +
+    '   - Provide a complete, rigorous, step-by-step KaTeX derivation ($...$ inline, $$...$$ display block). Wrap all multi-line mathematical equations inside display blocks ($$ \\begin{aligned} ... \\end{aligned} $$ or $$ ... $$) and use clear numbered steps.\n' +
     '   - CRITICAL: DO NOT generate or preserve any Mermaid diagrams (```mermaid ... ```) for circuits, optics, or physics setups as they render poorly and distort the physics. Express equivalent circuits, ray optics, and physical mechanisms through clean mathematical reasoning and formulas.\n' +
     '   - If the existing draft solution has wrong steps or inaccurate equations, discard them and rewrite the derivation accurately.\n' +
     '7. CURRICULUM & DIFFICULTY: Accurately classify Subject, Chapter, and Topic.\n\n' +

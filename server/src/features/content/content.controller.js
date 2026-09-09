@@ -132,6 +132,17 @@ export const contentController = {
       return res.status(201).json(result);
     } catch (error) { return sendError(res, req, error); }
   },
+  async deleteImages(req, res) {
+    try {
+      const urls = req.body?.urls || (req.body?.url ? [req.body.url] : (req.query?.url ? [req.query.url] : []));
+      if (!urls || urls.length === 0) {
+        return res.json({ deleted: true, count: 0 });
+      }
+      const { deleteQuestionImages } = await import('./content.storage.js');
+      const result = await deleteQuestionImages(urls);
+      return res.json({ deleted: true, count: result.deleted.length, ...result });
+    } catch (error) { return sendError(res, req, error); }
+  },
   async renderPdfPage(req, res) {
     try {
       const pageNum = parseInt(req.params.pageNum, 10) || 1;

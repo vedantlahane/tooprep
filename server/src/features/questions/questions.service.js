@@ -37,6 +37,44 @@ import { validateQuestionInput } from './question.validation.js';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/**
+ * Extracts all image URLs referenced in question stem, options, or solution text.
+ * @param {Object} question
+ * @returns {string[]}
+ */
+export function extractImageUrls(question) {
+  if (!question) return [];
+  const urls = new Set();
+  const texts = [];
+
+  if (typeof question.question_text === 'string') texts.push(question.question_text);
+  if (typeof question.solution_text === 'string') texts.push(question.solution_text);
+
+  if (Array.isArray(question.options)) {
+    for (const opt of question.options) {
+      if (typeof opt === 'string') texts.push(opt);
+      else if (opt && typeof opt.text === 'string') texts.push(opt.text);
+    }
+  } else if (question.options && typeof question.options === 'object') {
+    for (const val of Object.values(question.options)) {
+      if (typeof val === 'string') texts.push(val);
+    }
+  }
+
+  const mdImgRegex = /!\[.*?\]\((https?:\/\/[^\s\)]+|\/uploads\/[^\s\)]+)\)/g;
+  const htmlImgRegex = /<img[^>]+src=["'](https?:\/\/[^"']+|\/uploads\/[^"']+)["']/gi;
+  const rawUrlRegex = /(https?:\/\/[^\s"'<>\)]+\/(?:question-images|uploads\/questions)\/[^\s"'<>\)]+)/g;
+
+  for (const text of texts) {
+    let m;
+    while ((m = mdImgRegex.exec(text)) !== null) urls.add(m[1].trim());
+    while ((m = htmlImgRegex.exec(text)) !== null) urls.add(m[1].trim());
+    while ((m = rawUrlRegex.exec(text)) !== null) urls.add(m[1].trim());
+  }
+
+  return Array.from(urls);
+}
+
 export const questionsService = {
 
   /**
@@ -293,11 +331,35 @@ export const questionsService = {
     }
 
     const isUuid = UUID_REGEX.test(id);
+    let oldImages = [];
+
     if (!isUuid) {
       const db = await getMongoDb();
+      let existingCandidate = await db.collection('extracted_candidates').findOne({ candidate_key: id });
+      if (!existingCandidate) {
+        try {
+          const { ObjectId } = await import('mongodb');
+          if (ObjectId.isValid(id)) {
+            existingCandidate = await db.collection('extracted_candidates').findOne({ _id: new ObjectId(id) });
+          }
+        } catch {}
+      }
+      if (existingCandidate) {
+        oldImages = extractImageUrls(existingCandidate);
+      }
+
       const candidateUpdates = {};
       if (updatePayload.question_text !== undefined) candidateUpdates.question_text = updatePayload.question_text;
-      if (updatePayload.options !== undefined) candidateUpdates.options = updatePayload.options;
+      if (updatePayload.options !== undefined) {
+        let normOptions = updatePayload.options;
+        if (Array.isArray(normOptions)) {
+          normOptions = normOptions.reduce((acc, opt) => {
+            if (opt && opt.id) acc[opt.id] = opt.text;
+            return acc;
+          }, {});
+        }
+        candidateUpdates.options = normOptions;
+      }
       if (updatePayload.correct_answer !== undefined) candidateUpdates.correct_answer = updatePayload.correct_answer;
       if (updatePayload.solution_text !== undefined) candidateUpdates.solution_text = updatePayload.solution_text;
       if (updatePayload.topic_id !== undefined) candidateUpdates.suggested_topic_id = updatePayload.topic_id;
@@ -323,6 +385,15 @@ export const questionsService = {
       }
 
       if (candidateResult) {
+        // Asynchronously purge any removed images from Supabase storage
+        const newImages = extractImageUrls(updatePayload);
+        const removed = oldImages.filter(u => !newImages.includes(u));
+        if (removed.length > 0) {
+          import('../content/content.storage.js')
+            .then(({ deleteQuestionImages }) => deleteQuestionImages(removed))
+            .catch(err => console.warn('[cleanup] Failed to delete removed candidate images:', err.message));
+        }
+
         return {
           id: candidateResult.candidate_key || String(candidateResult._id),
           ...candidateResult,
@@ -334,6 +405,16 @@ export const questionsService = {
       const notFound = new Error(`Question or candidate not found for ID: ${id}`);
       notFound.statusCode = 404;
       throw notFound;
+    }
+
+    // For Supabase questions, fetch previous image references for cleanup diffing
+    const { data: existingQ } = await supabaseAdmin
+      .from('questions')
+      .select('question_text, options, solution_text')
+      .eq('id', id)
+      .single();
+    if (existingQ) {
+      oldImages = extractImageUrls(existingQ);
     }
 
     const { data, error } = await supabaseAdmin
@@ -349,12 +430,22 @@ export const questionsService = {
       notFound.statusCode = 404;
       throw notFound;
     }
+
+    // Asynchronously purge any removed images from Supabase storage
+    const newImages = extractImageUrls(updatePayload);
+    const removed = oldImages.filter(u => !newImages.includes(u));
+    if (removed.length > 0) {
+      import('../content/content.storage.js')
+        .then(({ deleteQuestionImages }) => deleteQuestionImages(removed))
+        .catch(err => console.warn('[cleanup] Failed to delete removed question images:', err.message));
+    }
+
     return data;
   },
 
   /**
    * Delete a question from the question bank (admin-only).
-   * Cascades through attempts via DB foreign keys.
+   * Cascades through attempts via DB foreign keys and deletes associated diagrams.
    *
    * @param {string} id - Question UUID or candidate key.
    * @returns {Promise<{ deleted: boolean, id: string }>}
@@ -369,6 +460,16 @@ export const questionsService = {
     const isUuid = UUID_REGEX.test(id);
     if (!isUuid) {
       const db = await getMongoDb();
+      let existingCandidate = await db.collection('extracted_candidates').findOne({ candidate_key: id });
+      if (!existingCandidate) {
+        try {
+          const { ObjectId } = await import('mongodb');
+          if (ObjectId.isValid(id)) {
+            existingCandidate = await db.collection('extracted_candidates').findOne({ _id: new ObjectId(id) });
+          }
+        } catch {}
+      }
+
       let del = await db.collection('extracted_candidates').deleteOne({ candidate_key: id });
       if (del.deletedCount === 0) {
         try {
@@ -378,8 +479,24 @@ export const questionsService = {
           }
         } catch {}
       }
+
+      if (del.deletedCount > 0 && existingCandidate) {
+        const imgs = extractImageUrls(existingCandidate);
+        if (imgs.length > 0) {
+          import('../content/content.storage.js')
+            .then(({ deleteQuestionImages }) => deleteQuestionImages(imgs))
+            .catch(err => console.warn('[cleanup] Failed to delete candidate images on delete:', err.message));
+        }
+      }
+
       return { deleted: del.deletedCount > 0, id, is_candidate: true };
     }
+
+    const { data: existingQ } = await supabaseAdmin
+      .from('questions')
+      .select('question_text, options, solution_text')
+      .eq('id', id)
+      .single();
 
     const { error } = await supabaseAdmin
       .from('questions')
@@ -387,6 +504,16 @@ export const questionsService = {
       .eq('id', id);
 
     if (error) throw new Error(error.message);
+
+    if (existingQ) {
+      const imgs = extractImageUrls(existingQ);
+      if (imgs.length > 0) {
+        import('../content/content.storage.js')
+          .then(({ deleteQuestionImages }) => deleteQuestionImages(imgs))
+          .catch(err => console.warn('[cleanup] Failed to delete question images on delete:', err.message));
+      }
+    }
+
     return { deleted: true, id };
   },
 

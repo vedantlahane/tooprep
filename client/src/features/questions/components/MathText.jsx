@@ -428,6 +428,16 @@ export function renderLatex(text) {
     return id;
   });
 
+  // 3.5. Multi-line LaTeX display environments without delimiters:
+  // \begin{align*}...\end{align*}, \begin{aligned}...\end{aligned}, \begin{gather*}...\end{gather*}, \begin{cases}...\end{cases}, etc.
+  const displayEnvRegex = /\\begin\{(align\*?|aligned|gather\*?|gathered|equation\*?|split|multline\*?|cases|matrix|pmatrix|bmatrix|vmatrix)\}([\s\S]*?)\\end\{\1\}/g;
+  processed = processed.replace(displayEnvRegex, (match) => {
+    const id = `${mathPrefix}${mathPlaceholders.length}@@@`;
+    const html = `<div class="katex-display-wrapper my-2.5 overflow-x-auto">${renderMathRobust(match, true)}</div>`;
+    mathPlaceholders.push({ id, html });
+    return id;
+  });
+
   // 4. Inline math $...$
   // Use [^\n$]+ to prevent matching across newlines (which corrupts multi-paragraph text).
   // Use (?!\$) negative lookahead/lookbehind to prevent re-matching $$...$$ placeholders.
