@@ -653,6 +653,21 @@ function StudioPdfViewer({ jobId, pageNum, onNavigatePage, onDirectCrop, activeC
           >
             Fit
           </button>
+
+          <div className="h-3.5 w-px bg-white/20 mx-1" />
+          <label
+            title={localPdfName ? `Loaded: ${localPdfName}. Click to change PDF` : 'Attach or select local PDF file'}
+            className="px-2 py-0.5 text-[9px] border border-primary/40 bg-primary/10 text-primary hover:bg-primary hover:text-black font-bold uppercase rounded-xs cursor-pointer transition-colors flex items-center gap-1 shrink-0"
+          >
+            <UploadCloud className="w-3 h-3" />
+            <span>{localPdfName ? 'PDF Loaded' : 'Attach PDF'}</span>
+            <input
+              type="file"
+              accept="application/pdf,.pdf"
+              className="hidden"
+              onChange={handleLocalPdfSelect}
+            />
+          </label>
         </div>
       </div>
 
@@ -1723,6 +1738,14 @@ export default function ContentAdminPage() {
     });
     try {
       const res = await contentService.renderPdfPage(selectedJob.job_id, page, 150);
+      if (res && res.success === false) {
+        setCropperModal(prev => ({
+          ...prev,
+          loading: false,
+          error: res.error || 'Failed to render PDF page'
+        }));
+        return;
+      }
       setCropperModal(prev => ({
         ...prev,
         loading: false,
@@ -1747,6 +1770,14 @@ export default function ContentAdminPage() {
     }));
     try {
       const res = await contentService.renderPdfPage(selectedJob.job_id, newPage, 150);
+      if (res && res.success === false) {
+        setCropperModal(prev => ({
+          ...prev,
+          loading: false,
+          error: res.error || 'Failed to render PDF page'
+        }));
+        return;
+      }
       setCropperModal(prev => ({
         ...prev,
         loading: false,

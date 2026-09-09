@@ -47,27 +47,86 @@ async function ensureLocalSourcePdf(job) {
   const localPdfPath = path.join(cacheDir, `${job.job_id}.pdf`);
   if (fs.existsSync(localPdfPath)) return localPdfPath;
 
+  // 1. Try downloading from remote storage if storage_path is set
   if (job.source?.storage_path) {
     try {
       const buffer = await downloadSourcePdf(job.source.storage_path);
       fs.writeFileSync(localPdfPath, buffer);
       return localPdfPath;
     } catch (e) {
-      console.warn('[ensureLocalSourcePdf] Download failed:', e.message);
+      console.warn('[ensureLocalSourcePdf] Remote storage download failed:', e.message);
     }
   }
 
-  const possiblePaths = [
+  // 2. Check direct paths
+  const directPaths = [
     job.source?.filename,
-    job.source?.metadata?.local_path,
-    `C:\\Users\\Admin\\Desktop\\JEE _Mains\\2018\\${job.source?.filename}`,
-    `C:\\Users\\Admin\\Desktop\\JEE _Mains\\${job.source?.year}\\${job.source?.filename}`
+    job.source?.metadata?.local_path
   ];
-  for (const p of possiblePaths) {
-    if (p && fs.existsSync(p)) return p;
+  for (const p of directPaths) {
+    if (p && fs.existsSync(p)) {
+      try { fs.copyFileSync(p, localPdfPath); return localPdfPath; } catch {}
+      return p;
+    }
   }
 
-  throw applicationError('Source PDF could not be found or downloaded for job ' + job.job_id, 404);
+  // 3. Gather candidate filenames for directory scanning
+  const candidateNames = new Set();
+  if (job.source?.filename) {
+    candidateNames.add(job.source.filename);
+    candidateNames.add(path.basename(job.source.filename));
+  }
+  if (job.source?.storage_path) {
+    candidateNames.add(path.basename(job.source.storage_path));
+  }
+  if (job.source?.metadata?.local_path) {
+    candidateNames.add(path.basename(job.source.metadata.local_path));
+  }
+
+  const baseDirs = [
+    'C:\\Users\\Admin\\Desktop\\JEE _Mains',
+    path.resolve(__dirname, '../../../public/uploads/sources'),
+    path.resolve(__dirname, '../../../public/uploads')
+  ];
+
+  for (const name of candidateNames) {
+    if (!name) continue;
+    for (const baseDir of baseDirs) {
+      if (!fs.existsSync(baseDir)) continue;
+
+      // Direct in baseDir
+      const direct = path.join(baseDir, name);
+      if (fs.existsSync(direct)) {
+        try { fs.copyFileSync(direct, localPdfPath); return localPdfPath; } catch {}
+        return direct;
+      }
+
+      // Year-specific subfolder
+      if (job.source?.year) {
+        const yearSub = path.join(baseDir, String(job.source.year), name);
+        if (fs.existsSync(yearSub)) {
+          try { fs.copyFileSync(yearSub, localPdfPath); return localPdfPath; } catch {}
+          return yearSub;
+        }
+      }
+
+      // Any subfolder under baseDir (e.g., 2018, 2019, 2020)
+      try {
+        const entries = fs.readdirSync(baseDir, { withFileTypes: true });
+        for (const entry of entries) {
+          if (entry.isDirectory()) {
+            const nested = path.join(baseDir, entry.name, name);
+            if (fs.existsSync(nested)) {
+              try { fs.copyFileSync(nested, localPdfPath); return localPdfPath; } catch {}
+              return nested;
+            }
+          }
+        }
+      } catch {}
+    }
+  }
+
+  throw applicationError(`Source PDF could not be found or downloaded for job ${job.job_id}. You can attach or select the local PDF in the Studio viewer.`, 404);
 }
 
 export function buildContentDraft(input, actorId, now = new Date()) {
@@ -477,7 +536,7 @@ export const contentService = {
       logger.warn('pdf.render.engine_unavailable', { jobId, error: execErr.message });
       return {
         success: false,
-        error: 'PDF render engine unavailable on server host. You can attach or select the local PDF in the Studio viewer.',
+        error: `PDF render engine error: ${execErr.message}. You can attach or select the local PDF in the Studio viewer.`,
         code: 'RENDERER_UNAVAILABLE',
         job_id: jobId,
         page: pageNumber
