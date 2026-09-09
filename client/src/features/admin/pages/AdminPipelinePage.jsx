@@ -406,12 +406,18 @@ export default function AdminPipelinePage() {
   };
 
   const handleJobDelete = async (jobId) => {
-    if (!window.confirm(`Are you sure you want to delete ingestion job "${jobId}"? This will delete all associated extracted candidates.`)) {
-      return;
-    }
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete ingestion job "${jobId}"? This will delete all associated extracted candidates.`
+    );
+    if (!confirmDelete) return;
+
+    const deleteQuestions = window.confirm(
+      `Do you also want to DELETE all questions published from this job from the Question Bank?\n\n• OK = Delete Job + Remove Questions from Question Bank\n• Cancel = Delete Job only (keep published questions)`
+    );
+
     setActionInProgress(prev => ({ ...prev, [jobId]: 'deleting' }));
     try {
-      await contentService.deleteJob(jobId);
+      await contentService.deleteJob(jobId, deleteQuestions);
       setJobs(prev => prev.filter(j => j.job_id !== jobId));
       if (selectedJobId === jobId) {
         setSelectedJobId('');
@@ -790,16 +796,15 @@ export default function AdminPipelinePage() {
                   {/* Right Actions */}
                   <div className="flex items-center gap-2 shrink-0 font-mono text-xs" onClick={e => e.stopPropagation()}>
                     {/* View Source PDF */}
-                    <a
-                      href={contentService.getSourcePdfUrl(job.job_id)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="px-2.5 py-1 border border-white/15 hover:border-white/40 text-white/70 hover:text-white flex items-center gap-1.5 transition-colors"
+                    <button
+                      type="button"
+                      onClick={() => contentService.openSourcePdf(job.job_id)}
+                      className="px-2.5 py-1 border border-white/15 hover:border-white/40 text-white/70 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
                       title="View original uploaded PDF"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
                       <span className="hidden sm:inline">Source PDF</span>
-                    </a>
+                    </button>
 
                     {/* Retry Action (if failed/paused) */}
                     {isFailed && (
@@ -1321,15 +1326,14 @@ export default function AdminPipelinePage() {
                   </div>
                 </div>
 
-                <a
-                  href={contentService.getSourcePdfUrl(currentJob.job_id)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-primary hover:underline uppercase text-xs font-bold flex items-center gap-1 cursor-pointer"
+                <button
+                  type="button"
+                  onClick={() => contentService.openSourcePdf(currentJob.job_id)}
+                  className="text-primary hover:underline uppercase text-xs font-bold flex items-center gap-1 cursor-pointer bg-transparent border-none p-0"
                 >
                   <span>Open Full PDF in New Tab</span>
                   <ExternalLink className="w-3.5 h-3.5" />
-                </a>
+                </button>
               </div>
 
               {/* Rendered PDF Canvas */}

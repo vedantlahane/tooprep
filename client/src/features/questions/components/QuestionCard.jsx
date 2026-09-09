@@ -1,6 +1,8 @@
-import { Bookmark, Check, X, Sparkles } from 'lucide-react';
+import { useState } from 'react';
+import { Bookmark, Check, X, Sparkles, Flag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import MathText from './MathText';
+import ReportQuestionModal from './ReportQuestionModal';
 
 export { MathText };
 
@@ -15,6 +17,8 @@ export default function QuestionCard({
   markedForReview = false,
   onMarkForReview = null
 }) {
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+
   if (!question) return null;
 
   const rawOptions = typeof question.options === 'string'
@@ -100,7 +104,7 @@ export default function QuestionCard({
               {questionNumber}
             </span>
           )}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className={`text-[11px] font-mono px-2 py-0.5 rounded-xs uppercase tracking-wider font-bold border ${
               question.difficulty === 'easy'
                 ? 'bg-status-aligned/15 text-status-aligned border-status-aligned/30'
@@ -110,28 +114,58 @@ export default function QuestionCard({
             }`}>
               {question.difficulty}
             </span>
-            {question.source_type === 'PYQ' && (
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded-xs bg-primary/10 text-primary border border-primary/30 uppercase tracking-wider">
-                PYQ {question.exam_year || ''}
-              </span>
-            )}
+
+            {/* Exam & Year Provenance Badge */}
+            {(() => {
+              const rawExam = question.exam_name || question.provenance?.exam || (question.question_text?.includes('Advanced') ? 'JEE Advanced' : question.question_text?.includes('JEE') ? 'JEE Main' : null);
+              const year = question.exam_year || question.provenance?.year;
+              if (rawExam || year) {
+                return (
+                  <span className="text-[11px] font-mono px-2 py-0.5 rounded-xs border border-amber-500/40 bg-amber-500/10 text-amber-300 uppercase tracking-wider font-semibold flex items-center gap-1">
+                    <Sparkles className="w-2.5 h-2.5" />
+                    <span>{rawExam || 'JEE'} {year || ''}</span>
+                  </span>
+                );
+              }
+              if (question.source_type === 'PYQ') {
+                return (
+                  <span className="text-[11px] font-mono px-2 py-0.5 rounded-xs bg-primary/10 text-primary border border-primary/30 uppercase tracking-wider">
+                    PYQ
+                  </span>
+                );
+              }
+              return null;
+            })()}
           </div>
         </div>
 
-        {onMarkForReview && (
-          <button
-            type="button"
-            onClick={onMarkForReview}
-            className={`p-2 transition-all rounded-sm border cursor-pointer ${
-              markedForReview
-                ? 'border-[#FF9500] text-[#FF9500] bg-[#FF9500]/15'
-                : 'border-white/10 text-white/50 hover:text-white hover:border-white/30 bg-white/5'
-            }`}
-            title="Mark for Review"
-          >
-            <Bookmark className={`w-4 h-4 ${markedForReview ? 'fill-current text-[#FF9500]' : ''}`} />
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {question?.id && (
+            <button
+              type="button"
+              onClick={() => setReportModalOpen(true)}
+              className="p-2 transition-all rounded-sm border border-white/10 text-white/50 hover:text-amber-400 hover:border-amber-500/30 bg-white/5 cursor-pointer"
+              title="Report an issue with this question"
+            >
+              <Flag className="w-4 h-4" />
+            </button>
+          )}
+
+          {onMarkForReview && (
+            <button
+              type="button"
+              onClick={onMarkForReview}
+              className={`p-2 transition-all rounded-sm border cursor-pointer ${
+                markedForReview
+                  ? 'border-[#FF9500] text-[#FF9500] bg-[#FF9500]/15'
+                  : 'border-white/10 text-white/50 hover:text-white hover:border-white/30 bg-white/5'
+              }`}
+              title="Mark for Review"
+            >
+              <Bookmark className={`w-4 h-4 ${markedForReview ? 'fill-current text-[#FF9500]' : ''}`} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Question stem */}
@@ -204,6 +238,13 @@ export default function QuestionCard({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Report Question Modal */}
+      <ReportQuestionModal
+        isOpen={reportModalOpen}
+        question={question}
+        onClose={() => setReportModalOpen(false)}
+      />
     </div>
   );
 }

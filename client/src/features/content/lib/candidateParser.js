@@ -34,6 +34,11 @@ export function cleanOcrMathArtifacts(text) {
   // 5. Clean multi-line constant lists: "(\nA\n,\nB\n)" -> "(A, B)"
   s = s.replace(/\(\s*\n+\s*([A-Za-z])\s*\n*,\s*\n*([A-Za-z])\s*\n*\)/g, '($1, $2)');
 
+  // 6. Strip engineering_drawing and OCR diagram placeholders
+  s = s.replace(/engineering_drawing:[^\n\r]*/gi, '');
+  s = s.replace(/\*\[Diagram:[^\]]*\]\*/gi, '');
+  s = s.replace(/<img[^>]*>/gi, '');
+
   return s;
 }
 

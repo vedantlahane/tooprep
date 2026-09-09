@@ -52,8 +52,10 @@ export const contentService = {
     request('GET', `${base}/ingestion-jobs/${jobId}/pages/${pageNum}/render?dpi=${dpi}`),
   cropPdfDiagram: (jobId, pageNum, rect, dpi = 300) =>
     request('POST', `${base}/ingestion-jobs/${jobId}/pages/${pageNum}/crop`, { rect, dpi }),
-  deleteJob: (jobId) =>
-    request('DELETE', `${base}/ingestion-jobs/${jobId}`),
+  deleteJob: (jobId, deleteQuestions = false) =>
+    request('DELETE', `${base}/ingestion-jobs/${jobId}${deleteQuestions ? '?delete_questions=true' : ''}`),
+  aiResearchQuestion: (data) =>
+    request('POST', `${base}/ai-research-question`, data),
   uploadSourcePdf: (jobId, file) => {
     const form = new FormData();
     form.append('file', file);
@@ -63,6 +65,12 @@ export const contentService = {
     request('GET', `${base}/ingestion-jobs/${jobId}`),
   transitionJob: (jobId, stage, reason) =>
     request('POST', `${base}/ingestion-jobs/${jobId}/transitions`, { stage, reason }),
+  openSourcePdf: async (jobId) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    const url = `${API_BASE}${base}/ingestion-jobs/${jobId}/pdf${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  },
   getSourcePdfUrl: (jobId) =>
     `${API_BASE}${base}/ingestion-jobs/${jobId}/pdf`,
   downloadSourcePdfBuffer: async (jobId) => {

@@ -196,5 +196,55 @@ export const questionsController = {
       const statusCode = err.statusCode || 500;
       return res.status(statusCode).json({ error: err.message || 'Server error', details: err.details });
     }
+  },
+
+  /**
+   * POST /api/questions/:id/report — Student/Admin question issue reporting.
+   */
+  async reportQuestion(req, res) {
+    try {
+      const { reason, notes } = req.body;
+      const result = await questionsService.reportQuestion(req.params.id, { reason, notes }, req.user?.id);
+      return res.status(201).json({ success: true, report: result });
+    } catch (err) {
+      console.error('POST /questions/:id/report error:', err);
+      const statusCode = err.statusCode || 500;
+      return res.status(statusCode).json({ error: err.message || 'Server error' });
+    }
+  },
+
+  /**
+   * GET /api/questions/reports — Admin list reported questions.
+   */
+  async listReports(req, res) {
+    try {
+      const { status, limit } = req.query;
+      const reports = await questionsService.listReports(status, limit ? Number(limit) : 50);
+      return res.json({ reports });
+    } catch (err) {
+      console.error('GET /questions/reports error:', err);
+      const statusCode = err.statusCode || 500;
+      return res.status(statusCode).json({ error: err.message || 'Server error' });
+    }
+  },
+
+  /**
+   * PATCH /api/questions/reports/:reportId — Admin update report status.
+   */
+  async updateReportStatus(req, res) {
+    try {
+      const { status, resolution_notes } = req.body;
+      const updated = await questionsService.updateReportStatus(
+        req.params.reportId,
+        status,
+        resolution_notes,
+        req.user.id
+      );
+      return res.json({ success: true, report: updated });
+    } catch (err) {
+      console.error('PATCH /questions/reports/:reportId error:', err);
+      const statusCode = err.statusCode || 500;
+      return res.status(statusCode).json({ error: err.message || 'Server error' });
+    }
   }
 };

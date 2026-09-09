@@ -243,13 +243,13 @@ export function classifyQuestion(questionNumber, questionText, allTopics = []) {
     }
   }
 
-  // Fallback: pick the first topic of the target subject
-  const fallbackTopic = allTopics.find(t => t.subject?.toLowerCase() === targetSubject.toLowerCase());
+  // If no match found, do NOT blindly assign to the first topic of the subject (e.g. Kinematics).
+  // Return null topicId so admins or the AI agent can classify it accurately.
   return {
     subject: targetSubject,
-    chapter: fallbackTopic?.chapter || null,
-    topicName: fallbackTopic?.name || null,
-    topicId: fallbackTopic?.id || null,
-    confidence: 'LOW'
+    chapter: null,
+    topicName: null,
+    topicId: null,
+    confidence: 'NONE'
   };
 }

@@ -47,4 +47,7 @@ export const questionsService = {
   bulkDelete: (question_ids) => request('POST', '/questions/bulk-delete', { question_ids }),
   bulkMove: (ids, topic_id) => request('POST', '/questions/bulk-move', { ids, topic_id }),
   bulkImport: (questions, default_topic_id) => request('POST', '/questions/bulk-import', { questions, default_topic_id }),
+  reportQuestion: (id, { reason, notes }) => request('POST', `/questions/${id}/report`, { reason, notes }),
+  listReports: ({ status = 'ALL', limit = 50 } = {}) => request('GET', `/questions/reports?status=${status}&limit=${limit}`),
+  updateReportStatus: (reportId, { status, resolution_notes }) => request('PATCH', `/questions/reports/${reportId}`, { status, resolution_notes }),
 };

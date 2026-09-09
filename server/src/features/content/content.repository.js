@@ -1,4 +1,5 @@
 import { getMongoDb } from '../../lib/mongodb.js';
+import { supabaseAdmin } from '../../lib/supabase.js';
 
 let indexesReady;
 
@@ -277,8 +278,43 @@ export const contentRepository = {
     );
   },
 
-  async deleteJob(jobId) {
-    const { jobs, extractedCandidates, parsedDocuments } = await collections();
+  async deleteJob(jobId, deleteQuestions = false) {
+    const { jobs, extractedCandidates, parsedDocuments, questions } = await collections();
+    let deletedPublishedCount = 0;
+
+    if (deleteQuestions) {
+      // 1. Gather all canonical question IDs from candidates & content_questions
+      const [candidates, contentQs] = await Promise.all([
+        extractedCandidates.find({ job_id: jobId }, { projection: { canonical_question_id: 1 } }).toArray(),
+        questions.find({ 'provenance.ingestion_job_id': jobId }, { projection: { question_id: 1 } }).toArray()
+      ]);
+      const canonicalIds = [
+        ...new Set([
+          ...candidates.map(c => c.canonical_question_id).filter(Boolean),
+          ...contentQs.map(q => q.question_id).filter(Boolean)
+        ])
+      ];
+
+      // 2. Delete published projections from Supabase
+      if (canonicalIds.length > 0) {
+        const { error, count } = await supabaseAdmin
+          .from('questions')
+          .delete({ count: 'exact' })
+          .in('canonical_question_id', canonicalIds);
+        if (!error && count !== null) {
+          deletedPublishedCount = count;
+        }
+      }
+
+      // 3. Delete draft/verified questions from MongoDB
+      await questions.deleteMany({
+        $or: [
+          { 'provenance.ingestion_job_id': jobId },
+          { question_id: { $in: canonicalIds } }
+        ]
+      });
+    }
+
     const [jobRes, candidatesRes, docRes] = await Promise.all([
       jobs.deleteOne({ job_id: jobId }),
       extractedCandidates.deleteMany({ job_id: jobId }),
@@ -287,7 +323,8 @@ export const contentRepository = {
     return {
       deletedJobCount: jobRes.deletedCount,
       deletedCandidateCount: candidatesRes.deletedCount,
-      deletedDocumentCount: docRes.deletedCount
+      deletedDocumentCount: docRes.deletedCount,
+      deletedQuestionsCount: deletedPublishedCount
     };
   }
 };

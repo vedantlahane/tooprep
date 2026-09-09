@@ -53,6 +53,13 @@ router.get('/', questionsController.getQuestions);
 router.post('/', requireAdmin, questionsController.createQuestion);
 
 /* ──────────────────────────────────────────────────────────────────────────
+ * Question Reporting System
+ * ────────────────────────────────────────────────────────────────────────── */
+router.get('/reports', requireAdmin, questionsController.listReports);
+router.patch('/reports/:reportId', requireAdmin, questionsController.updateReportStatus);
+router.post('/:id/report', questionsController.reportQuestion);
+
+/* ──────────────────────────────────────────────────────────────────────────
  * Question Management & Modification (admin-only)
  * ────────────────────────────────────────────────────────────────────────── */
 router.put('/:id', requireAdmin, questionsController.updateQuestion);

@@ -45,7 +45,8 @@ import {
   ZoomIn,
   ZoomOut,
   Tag,
-  Trash2
+  Trash2,
+  RefreshCw
 } from 'lucide-react';
 import {
   loadPdfDocument,
@@ -872,17 +873,27 @@ function CandidateCard({
   isCompact = false
 }) {
   const initialParsed = useMemo(() => {
-    let qText = candidate.question_text || candidate.raw_text || '';
+    const cleanOcrNoise = (txt) => {
+      if (!txt || typeof txt !== 'string') return '';
+      return txt
+        .replace(/engineering_drawing:[^\n\r]*/gi, '')
+        .replace(/\*\[Diagram:[^\]]*\]\*/gi, '')
+        .replace(/<img[^>]*>/gi, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+    };
+
+    let qText = cleanOcrNoise(candidate.question_text || candidate.raw_text || '');
     let opts = [{ id: 'A', text: '' }, { id: 'B', text: '' }, { id: 'C', text: '' }, { id: 'D', text: '' }];
     let ans = candidate.correct_answer || 'A';
-    let sol = candidate.solution_text || '';
+    let sol = cleanOcrNoise(candidate.solution_text || '');
 
     if (candidate.options && typeof candidate.options === 'object') {
       opts = [
-        { id: 'A', text: candidate.options.A || candidate.options.a || '' },
-        { id: 'B', text: candidate.options.B || candidate.options.b || '' },
-        { id: 'C', text: candidate.options.C || candidate.options.c || '' },
-        { id: 'D', text: candidate.options.D || candidate.options.d || '' }
+        { id: 'A', text: cleanOcrNoise(candidate.options.A || candidate.options.a || '') },
+        { id: 'B', text: cleanOcrNoise(candidate.options.B || candidate.options.b || '') },
+        { id: 'C', text: cleanOcrNoise(candidate.options.C || candidate.options.c || '') },
+        { id: 'D', text: cleanOcrNoise(candidate.options.D || candidate.options.d || '') }
       ];
 
       // Defensive check: if Option D contains inline Ans. or Sol. or coaching notes, clean it!
@@ -901,15 +912,15 @@ function CandidateCard({
         }
       }
     } else {
-      const extracted = extractOptionsFromText(candidate.raw_text);
+      const extracted = extractOptionsFromText(cleanOcrNoise(candidate.raw_text));
       if (extracted.hasOptions) {
-        qText = extracted.questionText;
-        opts = extracted.options;
+        qText = cleanOcrNoise(extracted.questionText);
+        opts = extracted.options.map(o => ({ ...o, text: cleanOcrNoise(o.text) }));
         if (extracted.inlineAnswerKey && (!candidate.correct_answer || candidate.correct_answer === 'A')) {
           ans = extracted.inlineAnswerKey;
         }
         if (extracted.inlineSolutionText && !candidate.solution_text) {
-          sol = extracted.inlineSolutionText;
+          sol = cleanOcrNoise(extracted.inlineSolutionText);
         }
       }
     }
@@ -935,7 +946,19 @@ function CandidateCard({
 
   const [similarQuestions, setSimilarQuestions] = useState([]);
   const [searchingSimilar, setSearchingSimilar] = useState(false);
-  const [viewMode, setViewMode] = useState('split'); // 'split' | 'preview' | 'editor'
+
+  // View mode persisted across question cards in localStorage
+  const [viewMode, setViewModeState] = useState(() => {
+    try { return localStorage.getItem('tooprep_candidate_view_mode') || 'split'; }
+    catch { return 'split'; }
+  });
+  const setViewMode = (mode) => {
+    setViewModeState(mode);
+    try { localStorage.setItem('tooprep_candidate_view_mode', mode); } catch {}
+  };
+
+  const [researching, setResearching] = useState(false);
+  const [researchFeedback, setResearchFeedback] = useState('');
 
   const fileInputRef = useRef(null);
   const [targetImageField, setTargetImageField] = useState('stem');
@@ -959,6 +982,54 @@ function CandidateCard({
         ...o,
         text: (o.text ? o.text.trim() + ' ' : '') + `![Option ${optId}](${cleanUrl})`
       } : o));
+    }
+  };
+
+  // 1-Click AI Web Research & Polish (Tavily)
+  const handleTavilyResearch = async () => {
+    setResearching(true);
+    setResearchFeedback('');
+    try {
+      const optsObj = (options || []).reduce((acc, o) => {
+        acc[o.id] = o.text;
+        return acc;
+      }, {});
+
+      const result = await contentService.aiResearchQuestion({
+        question_text: questionText,
+        options: optsObj,
+        current_answer: correctAnswer,
+        current_solution: solutionText,
+        subject: candidate.subject
+      });
+
+      if (result.cleaned_question_text) {
+        setQuestionText(result.cleaned_question_text);
+      }
+      if (result.options && (result.options.A || result.options.B)) {
+        setOptions([
+          { id: 'A', text: result.options.A || '' },
+          { id: 'B', text: result.options.B || '' },
+          { id: 'C', text: result.options.C || '' },
+          { id: 'D', text: result.options.D || '' }
+        ]);
+      }
+      if (result.correct_answer) {
+        setCorrectAnswer(result.correct_answer);
+      }
+      if (result.solution_text) {
+        setSolutionText(result.solution_text);
+      }
+
+      const provStr = result.exam_name ? ` • ${result.exam_name} ${result.exam_year || ''}` : '';
+      setResearchFeedback(`✨ Polished with Tavily (${result.confidence || 'HIGH'} confidence${provStr})`);
+      setTimeout(() => setResearchFeedback(''), 7000);
+    } catch (err) {
+      console.error('Tavily research error:', err);
+      setResearchFeedback(`⚠️ Tavily research error: ${err.message || 'Check connection'}`);
+      setTimeout(() => setResearchFeedback(''), 6000);
+    } finally {
+      setResearching(false);
     }
   };
 
@@ -1202,6 +1273,20 @@ function CandidateCard({
             <span>AI Format</span>
           </button>
 
+          <button
+            onClick={handleTavilyResearch}
+            disabled={researching}
+            className="px-2 py-1 text-label-sm-mono uppercase tracking-widest border border-amber-500/60 bg-amber-500/10 hover:bg-amber-500 hover:text-black text-amber-300 transition-colors rounded-sm flex items-center gap-1 text-[11px] font-bold cursor-pointer disabled:opacity-50"
+            title="AI Web Research (Tavily): Search official JEE papers, verify options, fetch step-by-step LaTeX solution"
+          >
+            {researching ? (
+              <RefreshCw className="w-3 h-3 animate-spin" />
+            ) : (
+              <Sparkles className="w-3 h-3" />
+            )}
+            <span>{researching ? 'Researching...' : 'Tavily Research'}</span>
+          </button>
+
           {isExpanded && (
             <div className="flex items-center border border-white/20 bg-surface-dim p-0.5 rounded-xs">
               <button
@@ -1232,6 +1317,14 @@ function CandidateCard({
           )}
         </div>
       </div>
+
+      {/* Tavily Research Feedback Banner */}
+      {researchFeedback && (
+        <div className="px-4 py-2 bg-amber-500/10 border-b border-amber-500/30 text-amber-300 text-xs font-mono flex items-center gap-2 animate-fade-in">
+          <Sparkles className="w-4 h-4 shrink-0 text-amber-400" />
+          <span>{researchFeedback}</span>
+        </div>
+      )}
 
       {/* Expanded Editor Body */}
       {isExpanded && (
@@ -1906,17 +1999,17 @@ export default function ContentAdminPage() {
     return { url: imageUrl };
   };
 
-  const [deleteJobConfirm, setDeleteJobConfirm] = useState(null); // { jobId, jobName, loading: false }
+  const [deleteJobConfirm, setDeleteJobConfirm] = useState(null); // { jobId, jobName, loading: false, deleteQuestions: false }
 
   const handlePromptDeleteJob = (jobId, jobName) => {
-    setDeleteJobConfirm({ jobId, jobName, loading: false });
+    setDeleteJobConfirm({ jobId, jobName, loading: false, deleteQuestions: false });
   };
 
   const handleExecuteDeleteJob = async () => {
     if (!deleteJobConfirm?.jobId) return;
     try {
       setDeleteJobConfirm(prev => ({ ...prev, loading: true }));
-      await contentService.deleteJob(deleteJobConfirm.jobId);
+      await contentService.deleteJob(deleteJobConfirm.jobId, deleteJobConfirm.deleteQuestions);
       const deletedId = deleteJobConfirm.jobId;
       setDeleteJobConfirm(null);
       // Reload jobs
@@ -2675,6 +2768,18 @@ export default function ContentAdminPage() {
                 This will delete the job, all its extracted candidate questions, and parser artifacts from the database.
               </p>
             </div>
+
+            <label className="flex items-center gap-2.5 p-2.5 bg-white/5 border border-white/10 rounded cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={Boolean(deleteJobConfirm.deleteQuestions)}
+                onChange={e => setDeleteJobConfirm(prev => ({ ...prev, deleteQuestions: e.target.checked }))}
+                className="accent-error w-4 h-4 cursor-pointer"
+              />
+              <span className="text-white/90 text-xs font-sans">
+                Also delete all published questions from this job from the Question Bank
+              </span>
+            </label>
 
             <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
               <button

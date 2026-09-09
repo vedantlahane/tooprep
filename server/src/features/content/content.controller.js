@@ -150,7 +150,22 @@ export const contentController = {
   },
   async deleteIngestionJob(req, res) {
     try {
-      const result = await contentService.deleteIngestionJob(req.params.jobId, req.user.id);
+      const deleteQuestions = req.query.delete_questions === 'true' || req.body?.delete_questions === true;
+      const result = await contentService.deleteIngestionJob(req.params.jobId, req.user.id, deleteQuestions);
+      return res.json(result);
+    } catch (error) { return sendError(res, req, error); }
+  },
+  async aiResearchQuestion(req, res) {
+    try {
+      const { question_text, options, current_answer, current_solution, subject } = req.body;
+      if (!question_text) throw Object.assign(new Error('question_text is required'), { statusCode: 400 });
+      const result = await contentService.researchQuestionWithTavily({
+        questionText: question_text,
+        options,
+        currentAnswer: current_answer,
+        currentSolution: current_solution,
+        subject
+      });
       return res.json(result);
     } catch (error) { return sendError(res, req, error); }
   },

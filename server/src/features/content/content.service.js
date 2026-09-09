@@ -592,15 +592,16 @@ export const contentService = {
     }
   },
 
-  async deleteIngestionJob(jobId, actorId) {
+  async deleteIngestionJob(jobId, actorId, deleteQuestions = false) {
     if (!jobId) throw applicationError('jobId is required', 400);
     const existing = await contentRepository.findJob(jobId);
     if (!existing) throw applicationError(`Job ${jobId} not found`, 404);
 
-    const result = await contentRepository.deleteJob(jobId);
+    const result = await contentRepository.deleteJob(jobId, deleteQuestions);
     logger.info('content.job.deleted', {
       job_id: jobId,
       actor_id: actorId,
+      delete_questions: deleteQuestions,
       deleted_counts: result
     });
     return {
@@ -608,6 +609,11 @@ export const contentService = {
       message: `Ingestion job ${jobId} deleted successfully`,
       ...result
     };
+  },
+
+  async researchQuestionWithTavily(params) {
+    const { researchQuestionWithTavily } = await import('./tavily.provider.js');
+    return researchQuestionWithTavily(params);
   },
 
   async uploadSourcePdf(jobId, file, actorId) {

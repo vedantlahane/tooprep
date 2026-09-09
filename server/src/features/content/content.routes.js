@@ -17,6 +17,7 @@ router.post('/ingestion-jobs/:jobId/pages/:pageNum/crop', contentController.crop
 // for a specific ingestion job as it is being processed by content.worker.js.
 router.get('/ingestion-jobs/:jobId/events', contentController.streamJobEvents);
 
+router.post('/ai-research-question', contentController.aiResearchQuestion);
 router.post('/questions', contentController.createDraft);
 router.get('/questions/search', contentController.searchQuestions);
 router.get('/questions/:questionId', contentController.getDraft);

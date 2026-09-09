@@ -104,9 +104,23 @@ const AdminQuestionCard = memo(function AdminQuestionCard({ q, isSelected, onTog
           <span>{q.verified ? 'Verified (Live)' : 'Draft (Hidden)'}</span>
         </button>
 
-        {q.exam_year && (
-          <span className="text-white/40 text-[10px] uppercase tracking-widest">
-            {q.exam_year}
+        {/* Exam & Year Provenance Badge */}
+        {(() => {
+          const rawExam = q.exam_name || q.provenance?.exam || (q.question_text?.includes('Advanced') ? 'JEE Advanced' : q.question_text?.includes('JEE') ? 'JEE Main' : null);
+          const year = q.exam_year || q.provenance?.year;
+          if (!rawExam && !year) return null;
+          return (
+            <span className="px-2 py-0.5 border border-amber-500/40 bg-amber-500/10 text-amber-300 text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">
+              <Sparkles className="w-2.5 h-2.5" />
+              <span>{rawExam || 'JEE Main'} {year || ''}</span>
+            </span>
+          );
+        })()}
+
+        {/* Has Diagram Indicator */}
+        {(q.question_text?.includes('![') || q.question_text?.includes('<img') || (Array.isArray(q.options) && q.options.some(o => String(o?.text).includes('![')))) && (
+          <span className="px-1.5 py-0.5 border border-sky-500/40 bg-sky-500/10 text-sky-300 text-[10px] uppercase tracking-widest">
+            Diagram
           </span>
         )}
 
@@ -237,9 +251,12 @@ export default function AdminQuestionsPage() {
   const [selectedDifficulty, setSelectedDifficulty] = useState('All');
   const [qualityPreset, setQualityPreset] = useState('all');
   const [sourceTypeFilter, setSourceTypeFilter] = useState('All'); // 'All' | 'PYQ' | 'ORIGINAL'
+  const [examTypeFilter, setExamTypeFilter] = useState('All'); // 'All' | 'JEE Main' | 'JEE Advanced'
+  const [diagramFilter, setDiagramFilter] = useState('All'); // 'All' | 'With Diagram' | 'Text Only'
   const [examYearFilter, setExamYearFilter] = useState('All');
   const [sortOption, setSortOption] = useState('newest'); // 'newest' | 'oldest' | 'difficulty_asc' | 'difficulty_desc'
   const [searchQuery, setSearchQuery] = useState('');
+  const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
 
   // View mode state (Cards vs Table)
   const [viewMode, setViewMode] = useState(() => {
@@ -349,6 +366,20 @@ export default function AdminQuestionsPage() {
       if (qualityPreset === 'has_solution' && (!q.solution_text || !q.solution_text.trim())) return false;
       if (qualityPreset === 'pyq_only' && q.source_type !== 'PYQ') return false;
 
+      // Exam Type filter
+      if (examTypeFilter === 'JEE Main') {
+        const isMain = q.exam_name?.includes('Main') || q.provenance?.exam?.includes('Main') || (q.question_text?.includes('JEE') && !q.question_text?.includes('Advanced'));
+        if (!isMain) return false;
+      } else if (examTypeFilter === 'JEE Advanced') {
+        const isAdv = q.exam_name?.includes('Advanced') || q.provenance?.exam?.includes('Advanced') || q.question_text?.includes('Advanced');
+        if (!isAdv) return false;
+      }
+
+      // Diagram filter
+      const hasDiag = Boolean(q.question_text?.includes('![') || q.question_text?.includes('<img') || (Array.isArray(q.options) && q.options.some(o => String(o?.text).includes('!['))));
+      if (diagramFilter === 'With Diagram' && !hasDiag) return false;
+      if (diagramFilter === 'Text Only' && hasDiag) return false;
+
       // Text search filter
       if (query) {
         const textMatch = (q.question_text || '').toLowerCase().includes(query);
@@ -358,12 +389,12 @@ export default function AdminQuestionsPage() {
       }
       return true;
     });
-  }, [questions, qualityPreset, deferredSearchQuery]);
+  }, [questions, qualityPreset, examTypeFilter, diagramFilter, deferredSearchQuery]);
 
   // Reset pagination to page 1 whenever any filter criteria changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedSubject, selectedChapters, selectedTopics, selectedDifficulty, qualityPreset, deferredSearchQuery, pageSize]);
+  }, [selectedSubject, selectedChapters, selectedTopics, selectedDifficulty, qualityPreset, examTypeFilter, diagramFilter, deferredSearchQuery, pageSize]);
 
   // Compute pagination window
   const totalPages = Math.max(1, Math.ceil(filteredQuestions.length / pageSize));
@@ -462,14 +493,19 @@ export default function AdminQuestionsPage() {
     }
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (selectedQuestionIds.length === 0) return;
-    if (!window.confirm(`Permanently delete ${selectedQuestionIds.length} question(s)? This cannot be undone.`)) return;
+    setBulkDeleteModalOpen(true);
+  };
+
+  const confirmBulkDelete = async () => {
+    if (selectedQuestionIds.length === 0) return;
     setBulkActionInProgress(true);
     try {
       await questionsService.bulkDelete(selectedQuestionIds);
       setQuestions(prev => prev.filter(q => !selectedQuestionIds.includes(q.id)));
       setSelectedQuestionIds([]);
+      setBulkDeleteModalOpen(false);
     } catch (err) {
       alert('Bulk delete failed: ' + err.message);
     } finally {
@@ -675,6 +711,40 @@ export default function AdminQuestionsPage() {
                   }`}
                 >
                   {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-mono text-white/50 uppercase tracking-widest mb-1.5">Exam</label>
+            <div className="flex gap-1.5 flex-wrap">
+              {['All', 'JEE Main', 'JEE Advanced'].map((ex) => (
+                <button
+                  key={ex}
+                  onClick={() => setExamTypeFilter(ex)}
+                  className={`px-2.5 py-1.5 border uppercase tracking-wider text-xs transition-all cursor-pointer ${
+                    examTypeFilter === ex ? 'bg-primary border-primary text-black font-bold shadow-sm' : 'border-white/15 bg-transparent text-white/60 hover:text-white hover:border-white/40'
+                  }`}
+                >
+                  {ex}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-mono text-white/50 uppercase tracking-widest mb-1.5">Diagram</label>
+            <div className="flex gap-1.5 flex-wrap">
+              {['All', 'With Diagram', 'Text Only'].map((diag) => (
+                <button
+                  key={diag}
+                  onClick={() => setDiagramFilter(diag)}
+                  className={`px-2.5 py-1.5 border uppercase tracking-wider text-xs transition-all cursor-pointer ${
+                    diagramFilter === diag ? 'bg-primary border-primary text-black font-bold shadow-sm' : 'border-white/15 bg-transparent text-white/60 hover:text-white hover:border-white/40'
+                  }`}
+                >
+                  {diag}
                 </button>
               ))}
             </div>
@@ -1042,6 +1112,46 @@ export default function AdminQuestionsPage() {
           fetchQuestions();
         }}
       />
+
+      {/* Bulk Delete Modal */}
+      {bulkDeleteModalOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#0b0d13] border-2 border-error/50 p-6 rounded max-w-md w-full shadow-2xl font-mono text-xs space-y-4 animate-scale-up text-left">
+            <div className="flex items-center gap-2 text-error font-bold uppercase tracking-wider text-sm border-b border-error/30 pb-3">
+              <AlertTriangle className="w-5 h-5 text-error" />
+              <span>Bulk Delete Questions</span>
+            </div>
+            <p className="text-white/80 leading-relaxed font-sans text-xs">
+              Are you sure you want to permanently delete <strong className="text-white font-mono">{selectedQuestionIds.length}</strong> selected question(s) from the Question Bank?
+            </p>
+            <div className="p-3 bg-error/10 border border-error/30 text-error text-[11px] rounded space-y-1">
+              <p className="font-bold">⚠️ Warning: Irreversible Action</p>
+              <p className="text-white/70">
+                This action cannot be undone. Questions will be permanently removed from the Supabase database.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
+              <button
+                type="button"
+                disabled={bulkActionInProgress}
+                onClick={() => setBulkDeleteModalOpen(false)}
+                className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded uppercase font-bold cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={bulkActionInProgress}
+                onClick={confirmBulkDelete}
+                className="px-4 py-2 bg-error hover:bg-error/90 text-white font-bold rounded uppercase flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {bulkActionInProgress ? <Sparkles className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                <span>{bulkActionInProgress ? 'Deleting...' : `Delete ${selectedQuestionIds.length} Questions`}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

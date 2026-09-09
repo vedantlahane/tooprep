@@ -30,6 +30,7 @@
 /* Supabase admin client — provides unrestricted access to the `questions`
    table. Auth and role checks are handled upstream by route middleware. */
 import { supabaseAdmin } from '../../lib/supabase.js';
+import { getMongoDb } from '../../lib/mongodb.js';
 import { toStudentQuestion } from './question.dto.js';
 import { createQuestionId } from '../content/content.contracts.js';
 import { validateQuestionInput } from './question.validation.js';
@@ -550,5 +551,74 @@ export const questionsService = {
       rejected_items: rejectedItems,
       questions: data || []
     };
+  },
+
+  /**
+   * Submit a student or admin issue report for a question.
+   */
+  async reportQuestion(questionId, { reason, notes }, userId) {
+    if (!questionId) throw Object.assign(new Error('questionId is required'), { statusCode: 400 });
+    if (!reason) throw Object.assign(new Error('Reason is required'), { statusCode: 400 });
+
+    const { data: qData } = await supabaseAdmin
+      .from('questions')
+      .select('id, question_text, options, correct_answer, solution_text, topic_id, difficulty')
+      .or(`id.eq.${questionId},canonical_question_id.eq.${questionId}`)
+      .maybeSingle();
+
+    const db = await getMongoDb();
+    const reportDoc = {
+      report_id: `rep_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      question_id: questionId,
+      supabase_id: qData?.id || questionId,
+      reporter_user_id: userId,
+      reason,
+      notes: notes || '',
+      status: 'OPEN',
+      question_snapshot: qData || null,
+      created_at: new Date(),
+      updated_at: new Date()
+    };
+
+    await db.collection('question_reports').insertOne(reportDoc);
+    return reportDoc;
+  },
+
+  /**
+   * List reported questions (admin-only).
+   */
+  async listReports(status = null, limit = 50) {
+    const db = await getMongoDb();
+    const filter = {};
+    if (status && status !== 'ALL') {
+      filter.status = status;
+    }
+    return db.collection('question_reports')
+      .find(filter, { projection: { _id: 0 } })
+      .sort({ created_at: -1 })
+      .limit(limit)
+      .toArray();
+  },
+
+  /**
+   * Resolve or update status of a report (admin-only).
+   */
+  async updateReportStatus(reportId, status, resolutionNotes, actorId) {
+    const db = await getMongoDb();
+    const result = await db.collection('question_reports').findOneAndUpdate(
+      { report_id: reportId },
+      {
+        $set: {
+          status,
+          resolution_notes: resolutionNotes || null,
+          resolved_by: actorId,
+          resolved_at: new Date(),
+          updated_at: new Date()
+        }
+      },
+      { returnDocument: 'after', projection: { _id: 0 } }
+    );
+    if (!result) throw Object.assign(new Error(`Report ${reportId} not found`), { statusCode: 404 });
+    return result;
   }
 };
