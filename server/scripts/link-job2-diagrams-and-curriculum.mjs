@@ -69,10 +69,14 @@ function classifyCandidateTopic(candidate, topicsGrouped) {
       if (nameLower.includes('zener') && /zener/i.test(textLower)) score += 70;
     }
     if (nameLower.includes('rotational') || nameLower.includes('rigid') || chapLower.includes('rotational')) {
-      if (/moment of inertia|angular momentum|torque|rolling|angular velocity|rod of length|l-shaped object/i.test(textLower)) score += 75;
+      if (/moment of inertia|angular momentum|torque|rolling|angular velocity|pivoted rod|hinged rod|l-shaped object/i.test(textLower)) {
+        if (!/temperature difference|thermal|steady state|heat flow|conduction/i.test(textLower)) {
+          score += 75;
+        }
+      }
     }
-    if (nameLower.includes('thermodynamics') || nameLower.includes('thermal') || chapLower.includes('thermal')) {
-      if (/carnot|isothermal|adiabatic|moles of|heat engine|entropy|specific heat|temperature difference/i.test(textLower)) score += 75;
+    if (nameLower.includes('thermodynamics') || nameLower.includes('thermal') || chapLower.includes('thermal') || nameLower.includes('calorimetry') || nameLower.includes('heat')) {
+      if (/carnot|isothermal|adiabatic|moles of|heat engine|entropy|specific heat|temperature difference|steady state|thermal resistance|conduction|thermal conductivity/i.test(textLower)) score += 95;
     }
     if (nameLower.includes('gravitation')) {
       if (/orbit|escape velocity|gravitational|satellite|planet|kepler/i.test(textLower)) score += 75;

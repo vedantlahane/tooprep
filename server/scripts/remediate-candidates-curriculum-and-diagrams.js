@@ -85,16 +85,17 @@ function classifyCandidateTopic(candidate, topicsGrouped) {
       if (/faraday|lenz|induced emf|self induction|ac circuit|impedance|lcr/i.test(textLower)) score += 65;
     }
     if (nameLower.includes('rotational') || nameLower.includes('rolling')) {
-      if (/moment of inertia|torque|angular momentum|rolling|angular velocity|radius of gyration/i.test(textLower)) score += 60;
+      if (/moment of inertia|torque|angular momentum|rolling|angular velocity|radius of gyration/i.test(textLower)) {
+        if (!/temperature difference|thermal|steady state|heat flow|conduction/i.test(textLower)) {
+          score += 60;
+        }
+      }
     }
-    if (nameLower.includes('work') || nameLower.includes('energy') || nameLower.includes('power')) {
-      if (/kinetic energy|potential energy|conservative force|work done|spring constant/i.test(textLower)) score += 55;
-    }
-    if (nameLower.includes('kinematics') || nameLower.includes('motion in a straight line')) {
-      if (/velocity|acceleration|projectile|speed|distance|displacement/i.test(textLower)) score += 55;
-    }
-    if (nameLower.includes('gravitat')) {
-      if (/gravitational|escape velocity|orbital velocity|satellite|kepler/i.test(textLower)) score += 65;
+    if (nameLower.includes('heat') || nameLower.includes('thermal') || chapLower.includes('thermal') || nameLower.includes('calorimetry')) {
+      if (/temperature difference|steady state|thermal conductivity|thermal resistance|heat transfer|conduction|heat flow|calorimeter|latent heat|specific heat|expansion|cooling|k_th|r_th/i.test(textLower)) {
+        score += 90;
+        if (nameLower.includes('heat transfer') || nameLower.includes('calorimetry')) score += 60;
+      }
     }
     if (nameLower.includes('thermodynamic')) {
       if (/carnot|isothermal|adiabatic|isobaric|specific heat|entropy|ideal gas/i.test(textLower)) score += 60;

@@ -9,7 +9,8 @@ import {
   detectSolutionText,
   isInstructionSnippet,
   autoFormatAndCleanMath,
-  polishCandidateText
+  polishCandidateText,
+  cleanSolutionText
 } from '../lib/candidateParser';
 import {
   UploadCloud,
@@ -863,8 +864,16 @@ function StudioPdfViewer({ jobId, pageNum, onNavigatePage, onDirectCrop, activeC
 /**
  * Automatically infer the best matching curriculum topic ID from syllabus hierarchy.
  */
-function autoInferTopicId(candidate, groupedTopics) {
-  if (candidate.suggested_topic_id) return candidate.suggested_topic_id;
+function autoInferTopicId(candidate, groupedTopics, forceReinfer = false) {
+  if (!forceReinfer && candidate.suggested_topic_id) {
+    const textLower = `${candidate.question_text || ''} ${candidate.raw_text || ''} ${candidate.solution_text || ''}`.toLowerCase();
+    const isTorqueFalseMatch = (candidate.suggested_topic === 'Torque and Equilibrium' || candidate.suggested_chapter === 'Rotational Motion') &&
+      /temperature difference|thermal|steady state|heat flow|conduction/i.test(textLower) &&
+      !/torque|moment of inertia|angular|rolling|rotate|hinge|pivot/i.test(textLower);
+    if (!isTorqueFalseMatch) {
+      return candidate.suggested_topic_id;
+    }
+  }
   if (!groupedTopics || Object.keys(groupedTopics).length === 0) return '';
 
   const subject = candidate.subject || 'Physics';
@@ -892,6 +901,13 @@ function autoInferTopicId(candidate, groupedTopics) {
     }
 
     // High-priority physics domain concept rules
+    if (nameLower.includes('heat') || nameLower.includes('thermal') || chapLower.includes('thermal') || nameLower.includes('calorimetry')) {
+      if (/temperature difference|steady state|thermal conductivity|thermal resistance|heat transfer|conduction|heat flow|calorimeter|latent heat|specific heat|expansion|cooling|k_th|r_th/i.test(textLower)) {
+        score += 90;
+        if (nameLower.includes('heat transfer') || nameLower.includes('calorimetry')) score += 60;
+        if (nameLower.includes('expansion') && /expansion|bimetallic/i.test(textLower)) score += 50;
+      }
+    }
     if (nameLower.includes('lens') || nameLower.includes('refract') || nameLower.includes('ray optics') || nameLower.includes('optical') || chapLower.includes('optics')) {
       if (/lens|convex|concave|refractive|prism|mirror|focal length|magnification|glass block|slab|optical setup/i.test(textLower)) {
         score += 80;
@@ -928,8 +944,12 @@ function autoInferTopicId(candidate, groupedTopics) {
     if (nameLower.includes('electromagnetic induction') || nameLower.includes('alternating current')) {
       if (/faraday|lenz|induced emf|self induction|mutual induction|ac circuit|impedance|lcr/i.test(textLower)) score += 65;
     }
-    if (nameLower.includes('rotational') || nameLower.includes('rolling')) {
-      if (/moment of inertia|torque|angular momentum|rolling|angular velocity|radius of gyration/i.test(textLower)) score += 60;
+    if (nameLower.includes('rotational') || nameLower.includes('rolling') || nameLower.includes('torque') || chapLower.includes('rotational')) {
+      if (/moment of inertia|torque|angular momentum|rolling|angular velocity|radius of gyration|pivoted rod|hinged rod|free to rotate/i.test(textLower)) {
+        if (!/temperature difference|thermal|steady state|heat flow|conduction/i.test(textLower)) {
+          score += 65;
+        }
+      }
     }
     if (nameLower.includes('work') || nameLower.includes('energy') || nameLower.includes('power')) {
       if (/kinetic energy|potential energy|conservative force|work done|spring constant/i.test(textLower)) score += 55;
@@ -1274,13 +1294,30 @@ function CandidateCard({
 
   // 1-Click AI Format & Clean
   const handleAutoCleanAndPolish = () => {
-    const polished = polishCandidateText(questionText || candidate.raw_text);
+    const polished = polishCandidateText(questionText || candidate.raw_text, solutionText);
     setQuestionText(polished.questionText);
     if (polished.hasOptions) {
       setOptions(polished.options);
     }
     if (polished.correctAnswer) {
       setCorrectAnswer(polished.correctAnswer);
+    }
+    if (polished.solutionText) {
+      setSolutionText(polished.solutionText);
+    } else if (solutionText) {
+      setSolutionText(cleanSolutionText(solutionText));
+    }
+
+    // Also auto-re-infer curriculum topic to fix any previous misclassifications
+    const candidateContext = {
+      ...candidate,
+      question_text: polished.questionText,
+      solution_text: polished.solutionText || solutionText,
+      subject: candidate.subject || 'Physics'
+    };
+    const inferredTopicId = autoInferTopicId(candidateContext, groupedTopics, true);
+    if (inferredTopicId && inferredTopicId !== topicId) {
+      setTopicId(inferredTopicId);
     }
   };
 

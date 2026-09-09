@@ -30,6 +30,28 @@ export function cleanOcrArtifacts(text) {
     // Strip empty KaTeX blocks
     .replace(/\$\$\s*\$\$/g, '')
     .replace(/\$\s*\$/g, '')
+    // Strip broken OCR tables (empty headers or diagram text layout fragments)
+    .replace(/<table>[\s\S]*?<\/table>/gi, (tableHtml) => {
+      const emptyHeaders = (tableHtml.match(/<th>\s*<\/th>/gi) || []).length;
+      const totalHeaders = (tableHtml.match(/<th[^>]*>/gi) || []).length;
+      const hasOcrMarkers = /\\underline|<s>|<strike>|<del>|colspan="\d+"\s*>\s*<\/td>/i.test(tableHtml);
+      if (hasOcrMarkers || (totalHeaders > 0 && emptyHeaders >= totalHeaders / 2)) {
+        return '';
+      }
+      return tableHtml;
+    })
+    // Strip stray OCR strikethrough tags
+    .replace(/<s\b[^>]*>[\s\S]*?<\/s>/gi, '')
+    .replace(/<strike\b[^>]*>[\s\S]*?<\/strike>/gi, '')
+    .replace(/<del\b[^>]*>[\s\S]*?<\/del>/gi, '')
+    // Convert <sub>...</sub> and <sup>...</sup> into LaTeX subscript/superscript
+    .replace(/([A-Za-z0-9_\(\)]+)<sub>([A-Za-z0-9_\s\+-]+)<\/sub>/g, (m, base, sub) => {
+      const cleanSub = sub.trim();
+      return /^[a-zA-Z0-9]$/.test(cleanSub) ? `${base}_{${cleanSub}}` : `${base}_{\\text{${cleanSub}}}`;
+    })
+    .replace(/<sub>([A-Za-z0-9_\s\+-]+)<\/sub>/g, (m, sub) => `_{${sub.trim()}}`)
+    .replace(/([A-Za-z0-9_\(\)]+)<sup>([A-Za-z0-9_\s\+-]+)<\/sup>/g, (m, base, sup) => `${base}^{${sup.trim()}}`)
+    .replace(/<sup>([A-Za-z0-9_\s\+-]+)<\/sup>/g, (m, sup) => `^{${sup.trim()}}`)
     // Clean multiple consecutive blank lines
     .replace(/\n{3,}/g, '\n\n')
     .trim();
@@ -163,16 +185,22 @@ export async function researchQuestionWithTavily({
 
   // 2. Build or polish solution from Tavily answer and educational snippets
   if (answer && answer.length > 30) {
-    // Format the answer into clear solution text
     const cleanAnswer = answer
       .replace(/###\s*/g, '')
       .replace(/\*\*/g, '')
       .trim();
 
-    if (!solutionDraft || solutionDraft.length < 50 || solutionDraft.includes('engineering_drawing')) {
-      solutionDraft = cleanAnswer;
+    // Preserve any existing mermaid diagrams from currentSolution
+    const mermaidMatch = (currentSolution || '').match(/```mermaid[\s\S]*?```/);
+    const mermaidBlock = mermaidMatch ? `\n\n${mermaidMatch[0]}` : '';
+
+    // Check if cleaned solution has substantial mathematical derivation text
+    const textWithoutMermaid = (solutionDraft || '').replace(/```mermaid[\s\S]*?```/g, '').trim();
+
+    if (!textWithoutMermaid || textWithoutMermaid.length < 40 || textWithoutMermaid.includes('engineering_drawing')) {
+      solutionDraft = `${cleanAnswer}${mermaidBlock}`;
     } else {
-      // Append additional verified explanation if helpful
+      // If current solution has good math derivation, append Tavily derivation cleanly
       if (!solutionDraft.includes(cleanAnswer.slice(0, 40))) {
         solutionDraft = `${solutionDraft}\n\n**Key Concept & Derivation:**\n${cleanAnswer}`;
       }

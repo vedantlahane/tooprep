@@ -212,9 +212,70 @@ export function autoFormatAndCleanMath(rawText) {
 }
 
 /**
- * Polish an entire candidate question: splits options, cleans LaTeX, infers answer key.
+ * Automatically cleans and sanitizes solution text:
+ * - Strips corrupted OCR layout tables (empty headers or diagram text layout fragments)
+ * - Converts HTML subscript/superscript tags (<sub>, <sup>) to LaTeX notation
+ * - Preserves Mermaid diagram blocks (```mermaid ... ```) intact
+ * - Normalizes math symbols and spacing
  */
-export function polishCandidateText(rawText) {
+export function cleanSolutionText(solutionText) {
+  if (!solutionText || typeof solutionText !== 'string') return '';
+
+  // 1. Extract and preserve any Mermaid diagrams
+  const mermaidBlocks = [];
+  let text = solutionText.replace(/```mermaid[\s\S]*?```/g, (block) => {
+    const placeholder = `__MERMAID_BLOCK_${mermaidBlocks.length}__`;
+    mermaidBlocks.push(block);
+    return placeholder;
+  });
+
+  // 2. Strip broken OCR tables (empty headers or diagram text layout fragments)
+  text = text.replace(/<table>[\s\S]*?<\/table>/gi, (tableHtml) => {
+    const emptyHeaders = (tableHtml.match(/<th>\s*<\/th>/gi) || []).length;
+    const totalHeaders = (tableHtml.match(/<th[^>]*>/gi) || []).length;
+    const hasOcrMarkers = /\\underline|<s>|<strike>|<del>|colspan="\d+"\s*>\s*<\/td>/i.test(tableHtml);
+    if (hasOcrMarkers || (totalHeaders > 0 && emptyHeaders >= totalHeaders / 2)) {
+      return '';
+    }
+    return tableHtml;
+  });
+
+  // 3. Strip stray OCR strikethrough tags
+  text = text.replace(/<s\b[^>]*>[\s\S]*?<\/s>/gi, '');
+  text = text.replace(/<strike\b[^>]*>[\s\S]*?<\/strike>/gi, '');
+  text = text.replace(/<del\b[^>]*>[\s\S]*?<\/del>/gi, '');
+
+  // 4. Convert <sub> and <sup> HTML tags into LaTeX
+  text = text.replace(/([A-Za-z0-9_\(\)]+)<sub>([A-Za-z0-9_\s\+-]+)<\/sub>/g, (m, base, sub) => {
+    const cleanSub = sub.trim();
+    return /^[a-zA-Z0-9]$/.test(cleanSub) ? `${base}_{${cleanSub}}` : `${base}_{\\text{${cleanSub}}}`;
+  });
+  text = text.replace(/<sub>([A-Za-z0-9_\s\+-]+)<\/sub>/g, (m, sub) => `_{${sub.trim()}}`);
+  text = text.replace(/([A-Za-z0-9_\(\)]+)<sup>([A-Za-z0-9_\s\+-]+)<\/sup>/g, (m, base, sup) => `${base}^{${sup.trim()}}`);
+  text = text.replace(/<sup>([A-Za-z0-9_\s\+-]+)<\/sup>/g, (m, sup) => `^{${sup.trim()}}`);
+
+  // 5. Clean OCR drawing annotations & diagram placeholders
+  text = text.replace(/engineering_drawing:[^\n\r]*/gi, '');
+  text = text.replace(/\*\[Diagram:[^\]]*\]\*/gi, '');
+  text = text.replace(/<img[^>]*>/gi, '');
+
+  // 6. Clean empty KaTeX blocks and normalize whitespace
+  text = text.replace(/\$\$\s*\$\$/g, '');
+  text = text.replace(/\$\s*\$/g, '');
+  text = text.replace(/\n{3,}/g, '\n\n');
+
+  // 7. Restore Mermaid blocks
+  for (let i = 0; i < mermaidBlocks.length; i++) {
+    text = text.replace(`__MERMAID_BLOCK_${i}__`, mermaidBlocks[i]);
+  }
+
+  return text.trim();
+}
+
+/**
+ * Polish an entire candidate question: splits options, cleans LaTeX, infers answer key, and cleans solution.
+ */
+export function polishCandidateText(rawText, solutionText = '') {
   const extracted = extractOptionsFromText(rawText);
   const cleanedStem = autoFormatAndCleanMath(extracted.questionText);
   const cleanedOptions = extracted.options.map(opt => ({
@@ -222,12 +283,15 @@ export function polishCandidateText(rawText) {
     text: autoFormatAndCleanMath(opt.text)
   }));
   const detectedKey = detectAnswerKey(rawText);
+  const cleanedSolution = solutionText ? cleanSolutionText(solutionText) : (extracted.inlineSolutionText ? cleanSolutionText(extracted.inlineSolutionText) : null);
 
   return {
     questionText: cleanedStem,
     options: cleanedOptions,
     correctAnswer: detectedKey,
+    solutionText: cleanedSolution,
     hasOptions: extracted.hasOptions
   };
 }
+
 

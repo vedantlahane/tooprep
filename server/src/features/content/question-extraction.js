@@ -116,7 +116,34 @@ export function sanitizeQuestionText(text) {
   // 7. Strip section headers at the end of option or question text
   cleaned = cleaned.replace(/\n\s*\*\*CHEMISTRY\*\*\s*$/i, '');
   cleaned = cleaned.replace(/\n\s*\*\*PHYSICS\*\*\s*$/i, '');
-  cleaned = cleaned.replace(/\n\s*\*\*MATHEMATICS\*\*\s*$/i, '');
+  // 8. Strip broken OCR layout tables (empty headers or diagram text layout fragments)
+  cleaned = cleaned.replace(/<table>[\s\S]*?<\/table>/gi, (tableHtml) => {
+    // If the table contains options (A)/(B)/(C)/(D), keep it for parseTableOptions
+    if (/\(?\b[A-D]\b\)?/i.test(tableHtml) && /<td>/i.test(tableHtml)) {
+      const hasOcrMarkers = /\\underline|<s>|<strike>|<del>|colspan="\d+"\s*>\s*<\/td>/i.test(tableHtml);
+      const emptyHeaders = (tableHtml.match(/<th>\s*<\/th>/gi) || []).length;
+      const totalHeaders = (tableHtml.match(/<th[^>]*>/gi) || []).length;
+      if (hasOcrMarkers || (totalHeaders > 0 && emptyHeaders >= totalHeaders / 2)) {
+        return '';
+      }
+      return tableHtml;
+    }
+    return '';
+  });
+
+  // 9. Strip stray OCR strikethrough tags
+  cleaned = cleaned.replace(/<s\b[^>]*>[\s\S]*?<\/s>/gi, '');
+  cleaned = cleaned.replace(/<strike\b[^>]*>[\s\S]*?<\/strike>/gi, '');
+  cleaned = cleaned.replace(/<del\b[^>]*>[\s\S]*?<\/del>/gi, '');
+
+  // 10. Convert <sub> and <sup> tags to LaTeX
+  cleaned = cleaned.replace(/([A-Za-z0-9_\(\)]+)<sub>([A-Za-z0-9_\s\+-]+)<\/sub>/g, (m, base, sub) => {
+    const cleanSub = sub.trim();
+    return /^[a-zA-Z0-9]$/.test(cleanSub) ? `${base}_{${cleanSub}}` : `${base}_{\\text{${cleanSub}}}`;
+  });
+  cleaned = cleaned.replace(/<sub>([A-Za-z0-9_\s\+-]+)<\/sub>/g, (m, sub) => `_{${sub.trim()}}`);
+  cleaned = cleaned.replace(/([A-Za-z0-9_\(\)]+)<sup>([A-Za-z0-9_\s\+-]+)<\/sup>/g, (m, base, sup) => `${base}^{${sup.trim()}}`);
+  cleaned = cleaned.replace(/<sup>([A-Za-z0-9_\s\+-]+)<\/sup>/g, (m, sup) => `^{${sup.trim()}}`);
 
   return cleaned.trim();
 }
