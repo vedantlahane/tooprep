@@ -216,9 +216,9 @@ function PdfCroppingStudioModal({ modal, onClose, onCrop, onNavigatePage }) {
     setError('');
     setCropSuccess('');
     try {
-      await onCrop(pdfPoints, target);
+      await onCrop(pdfPoints, target, selection);
       const targetName = target === 'stem' ? 'Question Stem' : `Option ${target.slice(3).toUpperCase()}`;
-      setCropSuccess(`✓ Diagram cropped at 300 DPI and inserted into ${targetName}!`);
+      setCropSuccess(`✓ Diagram cropped and inserted into ${targetName}!`);
       if (target === 'stem') setTarget('optA');
       else if (target === 'optA') setTarget('optB');
       else if (target === 'optB') setTarget('optC');
@@ -2413,8 +2413,34 @@ export default function ContentAdminPage() {
     }
   };
 
-  const handleExecuteModalCrop = async (rect, target) => {
+  const handleExecuteModalCrop = async (rect, target, selection = null) => {
     if (!cropperModal || !selectedJob) return;
+
+    // 1. High-fidelity client-side canvas crop (instant, zero-server-dependency, works on Render and locally)
+    if (cropperModal.dataUrl) {
+      try {
+        const cropCoords = selection || {
+          ...rect,
+          pageWidth: cropperModal.width || 595.3,
+          pageHeight: cropperModal.height || 841.9
+        };
+        const croppedDataUrl = await cropImageByRelativeCoords(cropperModal.dataUrl, cropCoords);
+        const uploadRes = await contentService.uploadImage(
+          croppedDataUrl,
+          `crop_${selectedJob.job_id}_p${cropperModal.pageNum}_${target}_${Date.now()}.png`
+        );
+        if (uploadRes && uploadRes.url) {
+          if (cropperModal.onApply) {
+            cropperModal.onApply(target, uploadRes.url);
+          }
+          return uploadRes;
+        }
+      } catch (clientCropErr) {
+        console.warn('[handleExecuteModalCrop] Client canvas crop fallback failed, trying server:', clientCropErr);
+      }
+    }
+
+    // 2. Fallback: Server-side PDF crop (300 DPI via python/PyMuPDF if host environment supports it)
     try {
       const res = await contentService.cropPdfDiagram(selectedJob.job_id, cropperModal.pageNum, rect, 300);
       if (res && res.url) {
@@ -2423,23 +2449,10 @@ export default function ContentAdminPage() {
         }
         return res;
       }
+      throw new Error('Server PDF cropper returned empty response');
     } catch (cropErr) {
-      console.warn('Server crop failed, attempting client crop fallback:', cropErr);
-    }
-    // Fallback: client-side crop from current page dataUrl
-    if (cropperModal.dataUrl) {
-      try {
-        const croppedDataUrl = await cropImageByRelativeCoords(cropperModal.dataUrl, rect);
-        const uploadRes = await contentService.uploadImage(croppedDataUrl, `crop_${Date.now()}.png`);
-        if (uploadRes && uploadRes.url) {
-          if (cropperModal.onApply) {
-            cropperModal.onApply(target, uploadRes.url);
-          }
-          return uploadRes;
-        }
-      } catch (clientCropErr) {
-        console.error('Client crop failed:', clientCropErr);
-      }
+      console.error('[handleExecuteModalCrop] Crop failed:', cropErr);
+      throw new Error(cropErr.message || 'Failed to crop diagram from PDF');
     }
   };
 
